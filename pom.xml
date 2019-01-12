@@ -11,13 +11,97 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <!-- 本地测试服务端插件目录 -->
-        <dir.api>../../_api</dir.api>
-        <dir.server>../../_server</dir.server>
-        <dir.login>../../_login</dir.login>
-        <dir.proxy>../../_proxy</dir.proxy>
-        <dir.login-proxy>../../_proxy0</dir.login-proxy>
     </properties>
+
+    <profiles>
+        <profile>
+            <id>default</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+
+            <properties>
+                <!-- 本地测试服务端插件目录 -->
+                <dir.api>../../_api</dir.api>
+                <dir.server>../../_server</dir.server>
+                <dir.login>../../_login</dir.login>
+                <dir.proxy>../../_proxy</dir.proxy>
+                <dir.login-proxy>../../_proxy0</dir.login-proxy>
+            </properties>
+
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>copy</id>
+                                <phase>package</phase>
+                                <configuration>
+                                    <tasks>
+                                        <echo message="正在复制 ${project.build.finalName} 至本地 Proxy代理 服务端目录..."/>
+                                        <mkdir dir="${dir.login-proxy}"/>
+                                        <mkdir dir="${dir.proxy}/plugins"/>
+                                        <copy todir="${dir.login-proxy}" overwrite="true">
+                                            <fileset dir="${project.build.directory}">
+                                                <include name="${project.build.finalName}.jar" />
+                                            </fileset>
+                                        </copy>
+                                        <copy todir="${dir.proxy}" overwrite="true">
+                                            <fileset dir="${project.build.directory}">
+                                                <include name="${project.build.finalName}.jar" />
+                                            </fileset>
+                                        </copy>
+                                    </tasks>
+                                </configuration>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <id>homeland</id>
+
+            <properties>
+                <!-- 本地测试服务端插件目录 -->
+                <dir.server>${basedir}/../_server</dir.server>
+                <dir.proxy>${basedir}/../_proxy</dir.proxy>
+            </properties>
+
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>copy</id>
+                                <phase>package</phase>
+                                <configuration>
+                                    <tasks>
+                                        <echo message="正在复制 ${project.build.finalName} 至本地 Proxy代理 服务端目录..."/>
+                                        <copy todir="${dir.proxy}" overwrite="true">
+                                            <fileset dir="${project.build.directory}">
+                                                <include name="${project.build.finalName}.jar" />
+                                            </fileset>
+                                        </copy>
+                                    </tasks>
+                                </configuration>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+    </profiles>
 
     <dependencies>
         <dependency>
@@ -82,35 +166,6 @@
                     </transformers>
                     <dependencyReducedPomLocation>${project.build.directory}/dependency-reduced-pom.xml</dependencyReducedPomLocation>
                 </configuration>
-            </plugin>
-            <plugin>
-                <artifactId>maven-antrun-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>copy</id>
-                        <phase>package</phase>
-                        <configuration>
-                            <tasks>
-                                <echo message="正在复制 ${project.build.finalName} 至本地 Proxy代理 服务端目录..."/>
-                                <mkdir dir="${dir.login-proxy}"/>
-                                <mkdir dir="${dir.proxy}/plugins"/>
-                                <copy todir="${dir.login-proxy}" overwrite="true">
-                                    <fileset dir="${project.build.directory}">
-                                        <include name="${project.build.finalName}.jar" />
-                                    </fileset>
-                                </copy>
-                                <copy todir="${dir.proxy}" overwrite="true">
-                                    <fileset dir="${project.build.directory}">
-                                        <include name="${project.build.finalName}.jar" />
-                                    </fileset>
-                                </copy>
-                            </tasks>
-                        </configuration>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>
