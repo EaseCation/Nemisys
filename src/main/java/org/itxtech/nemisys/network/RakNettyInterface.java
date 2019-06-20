@@ -22,6 +22,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Queue;
+import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -232,14 +233,20 @@ public class RakNettyInterface implements ServerInstance, AdvancedSourceInterfac
     public void setName(String name) {
         QueryRegenerateEvent info = this.server.getQueryInformation();
         String[] names = name.split("!@#");  //Split double names within the program
-        this.raknet.setName(
-                "MCPE;" + Utils.rtrim(names[0].replace(";", "\\;"), '\\') + ";" +
-                        ProtocolInfo.CURRENT_PROTOCOL + ";" +
-                        ProtocolInfo.MINECRAFT_VERSION_NETWORK + ";" +
-                        info.getPlayerCount() + ";" +
-                        info.getMaxPlayerCount() + ";" +
-                        this.server.getServerUniqueId().toString() + ";" +
-                        (names.length > 1 ? Utils.rtrim(names[1].replace(";", "\\;"), '\\') : "") + ";Survival;");
+        String motd = Utils.rtrim(names[0].replace(";", "\\;"), '\\');
+        String subMotd = names.length > 1 ? Utils.rtrim(names[1].replace(";", "\\;"), '\\') : "";
+        StringJoiner joiner = new StringJoiner(";")
+                .add("MCPE")
+                .add(motd)
+                .add(Integer.toString(ProtocolInfo.CURRENT_PROTOCOL))
+                .add(ProtocolInfo.MINECRAFT_VERSION_NETWORK)
+                .add(Integer.toString(info.getPlayerCount()))
+                .add(Integer.toString(info.getMaxPlayerCount()))
+                .add(this.server.getServerUniqueId().toString())
+                .add(subMotd)
+                .add("Survival")
+                .add("1");
+        this.raknet.setName(joiner.toString());
     }
 
     @Override
