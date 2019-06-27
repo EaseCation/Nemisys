@@ -1,7 +1,7 @@
 package org.itxtech.nemisys.synapse;
 
 import org.itxtech.nemisys.Server;
-import org.itxtech.nemisys.network.RakNettyInterface;
+//import org.itxtech.nemisys.network.RakNettyInterface;
 import org.itxtech.nemisys.network.SourceInterface;
 import org.itxtech.nemisys.network.protocol.mcpe.DataPacket;
 import org.itxtech.nemisys.utils.Config;
@@ -49,14 +49,14 @@ public class Synapse {
             }
         }
 
-        for (SourceInterface interfaz : this.getServer().getNetwork().getInterfaces()) {
-            if (interfaz instanceof RakNettyInterface) {
-                if (this.getConfig().getBoolean("disable-rak")) {
-                    interfaz.shutdown();
-                    break;
-                }
-            }
-        }
+        //for (SourceInterface interfaz : this.getServer().getNetwork().getInterfaces()) {
+        //    if (interfaz instanceof RakNettyInterface) {
+        //        if (this.getConfig().getBoolean("disable-rak")) {
+        //            interfaz.shutdown();
+        //            break;
+        //        }
+        //    }
+        //}
 
         this.server.getLogger().notice("Enabled Synapse Client");
     }

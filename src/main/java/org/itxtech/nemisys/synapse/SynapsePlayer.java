@@ -10,14 +10,15 @@ import org.itxtech.nemisys.network.protocol.spp.PlayerLogoutPacket;
 import org.itxtech.nemisys.network.protocol.spp.TransferPacket;
 import org.itxtech.nemisys.utils.ClientData;
 
+import java.net.InetSocketAddress;
 import java.util.UUID;
 
 public class SynapsePlayer extends Player {
 
     private SynapseEntry synapseEntry;
 
-    public SynapsePlayer(SourceInterface interfaz, SynapseEntry synapseEntry, Long clientID, String ip, int port) {
-        super(interfaz, clientID, ip, port);
+    public SynapsePlayer(SourceInterface interfaz, SynapseEntry synapseEntry, Long clientID, InetSocketAddress socketAddress) {
+        super(interfaz, clientID, socketAddress);
         this.synapseEntry = synapseEntry;
     }
 
@@ -51,11 +52,11 @@ public class SynapsePlayer extends Player {
     }
 
     @Override
-    public void sendDataPacket(DataPacket pk, boolean direct, boolean needACK) {
+    public void sendDataPacket(DataPacket pk, boolean direct) {
         DataPacketSendEvent ev = new DataPacketSendEvent(this, pk);
         this.getServer().getPluginManager().callEvent(ev);
         if (!ev.isCancelled()) {
-            super.sendDataPacket(pk, direct, needACK);
+            super.sendDataPacket(pk, direct);
         }
     }
 

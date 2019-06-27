@@ -1,6 +1,6 @@
 package org.itxtech.nemisys.network.protocol.mcpe;
 
-import org.itxtech.nemisys.raknet.protocol.EncapsulatedPacket;
+import com.nukkitx.network.raknet.RakNetReliability;
 import org.itxtech.nemisys.utils.BinaryStream;
 
 /**
@@ -10,8 +10,7 @@ import org.itxtech.nemisys.utils.BinaryStream;
 public abstract class DataPacket extends BinaryStream implements Cloneable {
 
     public boolean isEncoded = false;
-    public EncapsulatedPacket encapsulatedPacket;
-    public int reliability = 2;
+    public RakNetReliability reliability = RakNetReliability.RELIABLE_ORDERED;
     private int channel = 0;
 
     public abstract byte pid();

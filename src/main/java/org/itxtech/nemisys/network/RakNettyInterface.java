@@ -1,12 +1,13 @@
 package org.itxtech.nemisys.network;
 
 import com.magicdroidx.raknetty.RakNetServer;
-import com.magicdroidx.raknetty.ServerInstance;
 import com.magicdroidx.raknetty.handler.session.Session;
 import com.magicdroidx.raknetty.listener.ServerListener;
 import com.magicdroidx.raknetty.listener.SessionListenerAdapter;
 import com.magicdroidx.raknetty.protocol.raknet.Reliability;
 import com.magicdroidx.raknetty.protocol.raknet.session.GameWrapperPacket;
+import com.nukkitx.network.raknet.RakNetServerListener;
+import io.netty.buffer.ByteBuf;
 import org.itxtech.nemisys.Nemisys;
 import org.itxtech.nemisys.Player;
 import org.itxtech.nemisys.Server;
@@ -19,6 +20,7 @@ import org.itxtech.nemisys.utils.*;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Queue;
@@ -29,7 +31,7 @@ import java.util.concurrent.LinkedBlockingQueue;
  * author: boybook
  * Nukkit Project
  */
-public class RakNettyInterface implements ServerInstance, AdvancedSourceInterface {
+/*public class RakNettyInterface implements RakNetServerListener, AdvancedSourceInterface {
 
     private final Server server;
     private final Map<InetSocketAddress, Player> players = new ConcurrentHashMap<>();
@@ -157,17 +159,17 @@ public class RakNettyInterface implements ServerInstance, AdvancedSourceInterfac
 
     @Override
     public void openSession(InetSocketAddress address, long clientID) {
-        PlayerCreationEvent ev = new PlayerCreationEvent(this, Player.class, Player.class, clientID, address.getHostName(), address.getPort());
+        PlayerCreationEvent ev = new PlayerCreationEvent(this, Player.class, Player.class, clientID, address);
         this.server.getPluginManager().callEvent(ev);
         Class<? extends Player> clazz = ev.getPlayerClass();
 
         try {
-            Constructor constructor = clazz.getConstructor(SourceInterface.class, long.class, String.class, int.class);
-            Player player = (Player) constructor.newInstance(this, ev.getClientId(), ev.getAddress(), ev.getPort());
+            Constructor constructor = clazz.getConstructor(SourceInterface.class, long.class, InetSocketAddress.class);
+            Player player = (Player) constructor.newInstance(this, ev.getClientId(), ev.getSocketAddress());
             this.players.put(address, player);
             this.identifiersACK.put(address, 0);
             this.identifiers.put(player.rawHashCode(), address);
-            this.server.addPlayer(address.toString(), player);
+            this.server.addPlayer(address, player);
         } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
             Server.getInstance().getLogger().logException(e);
         }
@@ -204,23 +206,23 @@ public class RakNettyInterface implements ServerInstance, AdvancedSourceInterfac
     }
 
     @Override
-    public void blockAddress(String address) {
+    public void blockAddress(InetAddress address) {
         this.blockAddress(address, 300);
     }
 
     @Override
-    public void blockAddress(String address, int timeout) {
+    public void blockAddress(InetAddress address, int timeout) {
         //this.handler.blockAddress(address, timeout);
     }
 
     @Override
-    public void handleRaw(String address, int port, byte[] payload) {
-        this.server.handlePacket(address, port, payload);
+    public void handleRaw(InetAddress address, ByteBuf payload) {
+        this.server.handlePacket(address, payload);
     }
 
     @Override
-    public void sendRawPacket(String address, int port, byte[] payload) {
-        //this.handler.sendRaw(address, port, payload);
+    public void sendRawPacket(InetAddress address, ByteBuf payload) {
+        //this.handler.sendRaw(address, payload);
     }
 
     @Override
@@ -266,8 +268,8 @@ public class RakNettyInterface implements ServerInstance, AdvancedSourceInterfac
                 buffer = packet.getBuffer();
                 try {
                     buffer = Zlib.deflate(
-                            Binary.appendBytes(Binary.writeUnsignedVarInt(buffer.length), buffer),
-                            /*Server.getInstance().networkCompressionLevel*/7);
+                            Binary.appendBytes(Binary.writeUnsignedVarInt(buffer.length), buffer),*/
+                            /*Server.getInstance().networkCompressionLevel*//*7);
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
@@ -297,3 +299,4 @@ public class RakNettyInterface implements ServerInstance, AdvancedSourceInterfac
         return data;
     }
 }
+*/

@@ -7,7 +7,10 @@ import org.itxtech.nemisys.network.protocol.mcpe.*;
 import org.itxtech.nemisys.utils.Binary;
 import org.itxtech.nemisys.utils.BinaryStream;
 import org.itxtech.nemisys.utils.Zlib;
+import io.netty.buffer.ByteBuf;
 
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.util.*;
 
 /**
@@ -82,9 +85,11 @@ public class Network {
         interfaz.setName(this.name + "!@#" + this.subName);
     }
 
-    public void unregisterInterface(SourceInterface interfaz) {
-        this.interfaces.remove(interfaz);
-        this.advancedInterfaces.remove(interfaz);
+    public void unregisterInterface(SourceInterface sourceInterface) {
+        this.interfaces.remove(sourceInterface);
+        if (sourceInterface instanceof AdvancedSourceInterface) {
+            this.advancedInterfaces.remove(sourceInterface);
+        }
     }
 
     public String getName() {
@@ -186,19 +191,21 @@ public class Network {
         return new GenericPacket();
     }
 
-    public void sendPacket(String address, int port, byte[] payload) {
-        for (AdvancedSourceInterface interfaz : this.advancedInterfaces) {
-            interfaz.sendRawPacket(address, port, payload);
+    public void sendPacket(InetSocketAddress socketAddress, ByteBuf payload) {
+        for (AdvancedSourceInterface sourceInterface : this.advancedInterfaces) {
+            sourceInterface.sendRawPacket(socketAddress, payload);
         }
     }
 
-    public void blockAddress(String address) {
-        this.blockAddress(address, 300);
+    public void blockAddress(InetAddress address) {
+        for (AdvancedSourceInterface sourceInterface : this.advancedInterfaces) {
+            sourceInterface.blockAddress(address);
+        }
     }
 
-    public void blockAddress(String address, int timeout) {
-        for (AdvancedSourceInterface interfaz : this.advancedInterfaces) {
-            interfaz.blockAddress(address, timeout);
+    public void blockAddress(InetAddress address, int timeout) {
+        for (AdvancedSourceInterface sourceInterface : this.advancedInterfaces) {
+            sourceInterface.blockAddress(address, timeout);
         }
     }
 

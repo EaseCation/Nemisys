@@ -12,6 +12,7 @@ import org.itxtech.nemisys.network.protocol.spp.RedirectPacket;
 import org.itxtech.nemisys.scheduler.AsyncTask;
 import org.itxtech.nemisys.utils.*;
 
+import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -25,8 +26,7 @@ public class Player {
     protected UUID uuid;
     private byte[] cachedLoginPacket = new byte[0];
     private String name;
-    private String ip;
-    private int port;
+    private InetSocketAddress socketAddress;
     private long clientId;
     private long randomClientId;
     private String xuid;
@@ -48,11 +48,10 @@ public class Player {
     protected final Queue<DataPacket> incomingPackets = new ConcurrentLinkedQueue<>();
     protected final Queue<DataPacket> outgoingPackets = new ConcurrentLinkedQueue<>();
 
-    public Player(SourceInterface interfaz, long clientId, String ip, int port) {
+    public Player(SourceInterface interfaz, long clientId, InetSocketAddress socketAddress) {
         this.interfaz = interfaz;
         this.clientId = clientId;
-        this.ip = ip;
-        this.port = port;
+        this.socketAddress = socketAddress;
         this.name = "";
         this.server = Server.getInstance();
         this.lastUpdate = System.currentTimeMillis();
@@ -137,8 +136,8 @@ public class Player {
 
                 this.server.getLogger().info(this.getServer().getLanguage().translateString("nemisys.player.logIn", new String[]{
                         TextFormat.AQUA + this.name + TextFormat.WHITE,
-                        this.ip,
-                        String.valueOf(this.port),
+                        this.getIp(),
+                        String.valueOf(this.getPort()),
                         ""+TextFormat.GREEN + this.getRandomClientId() + TextFormat.WHITE,
                 }));
 
@@ -226,11 +225,15 @@ public class Player {
     }
 
     public String getIp() {
-        return this.ip;
+        return this.socketAddress.getAddress().getHostAddress();
     }
 
     public int getPort() {
-        return this.port;
+        return this.socketAddress.getPort();
+    }
+
+    public InetSocketAddress getSocketAddress() {
+        return this.socketAddress;
     }
 
     public UUID getUUID() {
@@ -276,8 +279,8 @@ public class Player {
             this.client.addPlayer(this);
             PlayerLoginPacket pk = new PlayerLoginPacket();
             pk.uuid = this.uuid;
-            pk.address = this.ip;
-            pk.port = this.port;
+            pk.address = this.getIp();
+            pk.port = this.getPort();
             pk.isFirstTime = this.isFirstTimeLogin;
             pk.cachedLoginPacket = this.cachedLoginPacket;
             pk.protocol = this.getProtocol();
@@ -297,11 +300,12 @@ public class Player {
     }
 
     public void sendDataPacket(DataPacket pk, boolean direct) {
-        this.sendDataPacket(pk, direct, false);
+        this.interfaz.putPacket(this, pk, false, direct);
     }
 
+    @Deprecated
     public void sendDataPacket(DataPacket pk, boolean direct, boolean needACK) {
-        this.interfaz.putPacket(this, pk, needACK, direct);
+        this.sendDataPacket(pk, direct);
     }
 
     public int getPing() {
@@ -338,8 +342,8 @@ public class Player {
 
             this.server.getLogger().info(this.getServer().getLanguage().translateString("nemisys.player.logOut", new String[]{
                     TextFormat.AQUA + this.getName() + TextFormat.WHITE,
-                    this.ip,
-                    String.valueOf(this.port),
+                    this.getIp(),
+                    String.valueOf(this.getPort()),
                     this.getServer().getLanguage().translateString(reason)
             }));
 

@@ -23,6 +23,7 @@ import org.itxtech.nemisys.utils.*;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
@@ -171,16 +172,16 @@ public class JRakNetInterface implements RakNetServerListener, AdvancedSourceInt
 
     @Override
     public void onClientConnect(RakNetClientSession session) {
-        PlayerCreationEvent ev = new PlayerCreationEvent(this, Player.class, Player.class, session.getGloballyUniqueId(), session.getAddress().getHostString(), session.getInetPort());
+        PlayerCreationEvent ev = new PlayerCreationEvent(this, Player.class, Player.class, session.getGloballyUniqueId(), session.getAddress());
         this.server.getPluginManager().callEvent(ev);
         Class<? extends Player> clazz = ev.getPlayerClass();
 
         try {
-            Constructor constructor = clazz.getConstructor(SourceInterface.class, long.class, String.class, int.class);
-            Player player = (Player) constructor.newInstance(this, ev.getClientId(), ev.getAddress(), ev.getPort());
+            Constructor constructor = clazz.getConstructor(SourceInterface.class, long.class, InetSocketAddress.class);
+            Player player = (Player) constructor.newInstance(this, ev.getClientId(), ev.getSocketAddress());
             this.players.put(session, player);
             this.identifiers.put(player.rawHashCode(), session);
-            this.server.addPlayer(session.getAddress().toString(), player);
+            this.server.addPlayer(session.getAddress(), player);
         } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
             Server.getInstance().getLogger().logException(e);
         }
@@ -242,18 +243,18 @@ public class JRakNetInterface implements RakNetServerListener, AdvancedSourceInt
     }
 
     @Override
-    public void blockAddress(String address) {
+    public void blockAddress(InetAddress address) {
         this.blockAddress(address, 300);
     }
 
     @Override
-    public void blockAddress(String address, int timeout) {
+    public void blockAddress(InetAddress address, int timeout) {
 
     }
 
     @Override
-    public void sendRawPacket(String address, int port, byte[] payload) {
-        raknet.sendNettyMessage(Unpooled.wrappedBuffer(payload), new InetSocketAddress(address, port));
+    public void sendRawPacket(InetSocketAddress socketAddress, ByteBuf payload) {
+        raknet.sendNettyMessage(Unpooled.wrappedBuffer(payload), socketAddress);
     }
 
     @Override

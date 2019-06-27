@@ -1,5 +1,8 @@
 package org.itxtech.nemisys;
 
+import io.netty.util.ResourceLeakDetector;
+import io.netty.util.internal.logging.InternalLoggerFactory;
+import io.netty.util.internal.logging.Log4J2LoggerFactory;
 import org.itxtech.nemisys.command.CommandReader;
 import org.itxtech.nemisys.network.protocol.mcpe.ProtocolInfo;
 import org.itxtech.nemisys.utils.MainLogger;
@@ -26,6 +29,10 @@ public class Nemisys {
     public static int DEBUG = 1;
 
     public static void main(String[] args) {
+
+        // Netty logger for debug info
+        InternalLoggerFactory.setDefaultFactory(Log4J2LoggerFactory.INSTANCE);
+        ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.PARANOID);
 
         //Shorter title for windows 8/2012/10
         String osName = System.getProperty("os.name").toLowerCase();
