@@ -31,8 +31,8 @@ public class Nemisys {
     public static void main(String[] args) {
 
         // Netty logger for debug info
-        InternalLoggerFactory.setDefaultFactory(Log4J2LoggerFactory.INSTANCE);
-        ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.PARANOID);
+        //InternalLoggerFactory.setDefaultFactory(Log4J2LoggerFactory.INSTANCE);
+        //ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.PARANOID);
 
         //Shorter title for windows 8/2012/10
         String osName = System.getProperty("os.name").toLowerCase();
