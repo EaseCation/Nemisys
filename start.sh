@@ -36,4 +36,3 @@ while [ "$LOOPS" -eq 0 ] || [ "$DO_LOOP" == "true" ]; do
 	fi
 	((LOOPS++))
 done
-	

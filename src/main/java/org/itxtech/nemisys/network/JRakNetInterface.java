@@ -9,7 +9,6 @@ import com.whirvis.jraknet.server.RakNetServerListener;
 import com.whirvis.jraknet.server.ServerPing;
 import com.whirvis.jraknet.session.RakNetClientSession;
 import com.whirvis.jraknet.session.RakNetSession;
-import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.itxtech.nemisys.Nemisys;
 import org.itxtech.nemisys.Player;
