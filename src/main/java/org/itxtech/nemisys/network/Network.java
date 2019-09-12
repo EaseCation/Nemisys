@@ -6,6 +6,7 @@ import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.network.protocol.mcpe.*;
 import org.itxtech.nemisys.utils.Binary;
 import org.itxtech.nemisys.utils.BinaryStream;
+import org.itxtech.nemisys.utils.Utils;
 import org.itxtech.nemisys.utils.Zlib;
 import io.netty.buffer.ByteBuf;
 
@@ -71,7 +72,7 @@ public class Network {
 
                 interfaz.emergencyShutdown();
                 this.unregisterInterface(interfaz);
-                this.server.getLogger().critical(this.server.getLanguage().translateString("nemisys.server.networkError", new String[]{interfaz.getClass().getName(), e.getMessage()}));
+                this.server.getLogger().critical(this.server.getLanguage().translateString("nemisys.server.networkError", new String[]{interfaz.getClass().getName(), Utils.getExceptionMessage(e)}));
             }
         }
     }

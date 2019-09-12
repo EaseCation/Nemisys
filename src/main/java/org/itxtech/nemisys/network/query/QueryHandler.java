@@ -1,17 +1,19 @@
 package org.itxtech.nemisys.network.query;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.buffer.ByteBufAllocator;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.event.server.QueryRegenerateEvent;
-import org.itxtech.nemisys.utils.Binary;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * author: MagicDroidX
@@ -43,16 +45,18 @@ public class QueryHandler {
         this.server.getLogger().info(this.server.getLanguage().translateString("nemisys.server.query.running", new String[]{addr, String.valueOf(port)}));
     }
 
-    public static String getTokenString(byte[] token, InetAddress address) {
-        return getTokenString(new String(token), address);
+    public static byte[] getTokenString(String token, InetAddress address) {
+        return getTokenString(token.getBytes(StandardCharsets.UTF_8), address);
     }
 
-    public static String getTokenString(String token, InetAddress address) {
-        String salt = address.toString();
+    public static byte[] getTokenString(byte[] token, InetAddress address) {
         try {
-            return String.valueOf(Binary.readInt(Binary.subBytes(MessageDigest.getInstance("SHA-512").digest((salt + ":" + token).getBytes()), 7, 4)));
+            MessageDigest digest = MessageDigest.getInstance("MD5");
+            digest.update(address.toString().getBytes(StandardCharsets.UTF_8));
+            digest.update(token);
+            return Arrays.copyOf(digest.digest(), 4);
         } catch (NoSuchAlgorithmException e) {
-            return String.valueOf(new Random().nextInt());
+            return ByteBuffer.allocate(4).putInt(ThreadLocalRandom.current().nextInt()).array();
         }
     }
 
@@ -78,24 +82,27 @@ public class QueryHandler {
 
         switch (packetId) {
             case HANDSHAKE:
-                ByteBuf reply = PooledByteBufAllocator.DEFAULT.directBuffer();
+                ByteBuf reply = ByteBufAllocator.DEFAULT.ioBuffer(10); // 1 + 4 + 4 + 1
                 reply.writeByte(HANDSHAKE);
                 reply.writeInt(sessionId);
-                reply.writeBytes(getTokenString(this.token, address.getAddress()).getBytes(StandardCharsets.UTF_8));
+                reply.writeBytes(getTokenString(this.token, address.getAddress()));
                 reply.writeByte(0);
 
                 this.server.getNetwork().sendPacket(address, reply);
                 break;
             case STATISTICS:
-                String token = String.valueOf(packet.readInt());
-                if (!token.equals(getTokenString(this.token, address.getAddress())) && !token.equals(getTokenString(this.lastToken, address.getAddress()))) {
+                byte[] token = new byte[4];
+                packet.readBytes(token);
+
+                if (!Arrays.equals(token, getTokenString(this.token, address.getAddress())) &&
+                        !Arrays.equals(token, getTokenString(this.lastToken, address.getAddress()))) {
                     break;
                 }
 
                 if (this.timeout < System.currentTimeMillis()) {
                     this.regenerateInfo();
                 }
-                reply = PooledByteBufAllocator.DEFAULT.directBuffer();
+                reply = ByteBufAllocator.DEFAULT.ioBuffer(64);
                 reply.writeByte(STATISTICS);
                 reply.writeInt(sessionId);
                 if (packet.readableBytes() == 8) {
