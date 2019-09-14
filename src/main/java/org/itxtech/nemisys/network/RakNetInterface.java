@@ -192,12 +192,12 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
 
     @Override
     public void onSessionCreation(RakNetServerSession session) {
-        PlayerCreationEvent ev = new PlayerCreationEvent(this, Player.class, Player.class, null, session.getAddress());
+        PlayerCreationEvent ev = new PlayerCreationEvent(this, Player.class, Player.class, -1, session.getAddress());
         this.server.getPluginManager().callEvent(ev);
         Class<? extends Player> clazz = ev.getPlayerClass();
 
         try {
-            Constructor constructor = clazz.getConstructor(SourceInterface.class, Long.class, InetSocketAddress.class);
+            Constructor constructor = clazz.getConstructor(SourceInterface.class, long.class, InetSocketAddress.class);
             Player player = (Player) constructor.newInstance(this, ev.getClientId(), ev.getSocketAddress());
             this.server.addPlayer(session.getAddress(), player);
             NemisysSessionListener listener = new NemisysSessionListener(player);
