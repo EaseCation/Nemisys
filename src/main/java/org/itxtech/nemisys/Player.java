@@ -88,7 +88,7 @@ public class Player {
                 if (this.cachedLoginPacket.length == 0) {
                     this.getServer().getNetwork().processBatch((BatchPacket) packet, this);
                 } else {
-                    this.redirectPacket(packet.getBuffer());
+                    if (this.client != null) this.redirectPacket(packet.getBuffer());
                 }
                 break;
             case ProtocolInfo.LOGIN_PACKET:
