@@ -1,8 +1,12 @@
 package org.itxtech.nemisys;
 
+import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
 import io.netty.buffer.ByteBuf;
+import lombok.extern.log4j.Log4j2;
+import org.apache.logging.log4j.Level;
 import org.itxtech.nemisys.command.*;
+import org.itxtech.nemisys.console.NemisysConsole;
 import org.itxtech.nemisys.event.HandlerList;
 import org.itxtech.nemisys.event.TranslationContainer;
 import org.itxtech.nemisys.event.server.QueryRegenerateEvent;
@@ -23,31 +27,31 @@ import org.itxtech.nemisys.synapse.SynapseEntry;
 import org.itxtech.nemisys.utils.*;
 
 import java.io.File;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * author: MagicDroidX & Box
  * Nukkit
  */
+@Log4j2
 public class Server {
 
     private static Server instance = null;
     public int uptime = 0;
-    private boolean isRunning = true;
+    private AtomicBoolean isRunning = new AtomicBoolean(true);
     private boolean hasStopped = false;
-    private PluginManager pluginManager = null;
-    private ServerScheduler scheduler = null;
+    private PluginManager pluginManager;
+    private ServerScheduler scheduler;
     private int tickCounter;
     private long nextTick;
     private float[] tickAverage = {100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100};
     private float[] useAverage = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     private float maxTick = 100;
     private float maxUse = 0;
-    private MainLogger logger;
-    private CommandReader console;
+    private final NemisysConsole console;
+    private final ConsoleThread consoleThread;
     private SimpleCommandMap commandMap;
     private ConsoleCommandSender consoleSender;
     private int maxPlayers;
@@ -70,9 +74,9 @@ public class Server {
     private Map<String, Client> mainClients = new HashMap<>();
     private Synapse synapse;
 
-    public Server(MainLogger logger, final String filePath, String dataPath, String pluginPath) {
+    public Server(final String filePath, String dataPath, String pluginPath) {
+        Preconditions.checkState(instance == null, "Already initialized!");
         instance = this;
-        this.logger = logger;
 
         this.filePath = filePath;
 
@@ -83,10 +87,13 @@ public class Server {
         this.dataPath = new File(dataPath).getAbsolutePath() + "/";
         this.pluginPath = new File(pluginPath).getAbsolutePath() + "/";
 
-        this.console = new CommandReader();
-        this.console.start();
+        this.console = new NemisysConsole(this);
+        this.consoleThread = new ConsoleThread();
+        this.consoleThread.start();
 
-        this.logger.info("Loading " + TextFormat.GREEN + "server properties" + TextFormat.WHITE + "...");
+        this.console.setExecutingCommands(true);
+
+        log.info("Loading {} ...", TextFormat.GREEN + "server properties" + TextFormat.WHITE);
         this.properties = new Config(this.dataPath + "server.properties", Config.PROPERTIES, new ConfigSection() {
             {
                 put("motd", "Nemisys Proxy");
@@ -112,8 +119,8 @@ public class Server {
         });
 
         this.baseLang = new BaseLang((String) this.getConfig("lang", BaseLang.FALLBACK_LANGUAGE));
-        this.logger.info(this.getLanguage().translateString("language.selected", new String[]{getLanguage().getName(), getLanguage().getLang()}));
-        this.logger.info(getLanguage().translateString("nemisys.server.start", TextFormat.AQUA + this.getVersion() + TextFormat.WHITE));
+        log.info(this.getLanguage().translateString("language.selected", new String[]{getLanguage().getName(), getLanguage().getLang()}));
+        log.info(getLanguage().translateString("nemisys.server.start", TextFormat.AQUA + this.getVersion() + TextFormat.WHITE));
 
         Object poolSize = this.getConfig("async-workers", "auto");
         if (!(poolSize instanceof Integer)) {
@@ -129,26 +136,34 @@ public class Server {
         this.scheduler = new ServerScheduler();
 
         if (this.getPropertyBoolean("enable-rcon", false)) {
-            this.rcon = new RCON(this, this.getPropertyString("rcon.password", ""), (!this.getIp().equals("")) ? this.getIp() : "0.0.0.0", this.getPropertyInt("rcon.port", this.getPort()));
+            try {
+                this.rcon = new RCON(this, this.getPropertyString("rcon.password", ""), (!this.getIp().equals("")) ? this.getIp() : "0.0.0.0", this.getPropertyInt("rcon.port", this.getPort()));
+            } catch (IllegalArgumentException e) {
+                log.error(getLanguage().translateString(e.getMessage(), e.getCause().getMessage()));
+            }
         }
 
         this.maxPlayers = this.getPropertyInt("max-players", 20);
 
-        Nemisys.DEBUG = this.getPropertyInt("debug", 1);
-        if (this.logger instanceof MainLogger) {
-            this.logger.setLogDebug(Nemisys.DEBUG > 1);
+        Nemisys.DEBUG = Math.max(this.getPropertyInt("debug", 1), 1);
+
+        int logLevel = (Nemisys.DEBUG + 3) * 100;
+        for (Level level : Level.values()) {
+            if (level.intLevel() == logLevel) {
+                Nemisys.setLogLevel(level);
+                break;
+            }
         }
 
-        this.logger.info(this.getLanguage().translateString("nemisys.server.networkStart", new String[]{this.getIp().equals("") ? "*" : this.getIp(), String.valueOf(this.getPort())}));
+        log.info(this.getLanguage().translateString("nemisys.server.networkStart", new String[]{this.getIp().equals("") ? "*" : this.getIp(), String.valueOf(this.getPort())}));
         this.serverID = UUID.randomUUID();
 
         this.network = new Network(this);
         this.network.setName(this.getMotd());
         this.network.setSubName(this.getSubMotd());
 
-        this.logger.info(this.getLanguage().translateString("nemisys.server.info", new String[]{this.getName(), TextFormat.YELLOW + this.getNemisysVersion() + TextFormat.WHITE, TextFormat.AQUA + this.getCodename() + TextFormat.WHITE, this.getApiVersion()}));
-        this.logger.info(this.getLanguage().translateString("nemisys.server.license", this.getName()));
-
+        log.info(this.getLanguage().translateString("nemisys.server.info", new String[]{this.getName(), TextFormat.YELLOW + this.getNemisysVersion() + TextFormat.WHITE, TextFormat.AQUA + this.getCodename() + TextFormat.WHITE, this.getApiVersion()}));
+        log.info(this.getLanguage().translateString("nemisys.server.license", this.getName()));
 
         this.consoleSender = new ConsoleCommandSender();
         this.commandMap = new SimpleCommandMap(this);
@@ -170,8 +185,7 @@ public class Server {
             try {
                 this.synapse = new Synapse(this);
             } catch (Exception e) {
-                this.logger.warning("Failed.");
-                this.logger.logException(e);
+                log.warn("Failed.", e);
             }
         }
 
@@ -185,7 +199,7 @@ public class Server {
     }
 
     public static void broadcastPacket(Collection<Player> players, DataPacket packet) {
-        broadcastPacket(players.stream().toArray(Player[]::new), packet);
+        broadcastPacket(players.toArray(new Player[0]), packet);
     }
 
     public static void broadcastPacket(Player[] players, DataPacket packet) {
@@ -284,11 +298,7 @@ public class Server {
     }
 
     public void shutdown() {
-        if (this.isRunning) {
-            ServerKiller killer = new ServerKiller(90);
-            killer.start();
-        }
-        this.isRunning = false;
+        isRunning.compareAndSet(true, false);
     }
 
     public void forceShutdown() {
@@ -297,14 +307,13 @@ public class Server {
         }
 
         try {
-
-            // clean shutdown of console thread asap
-            this.console.shutdown();
+            isRunning.compareAndSet(true, false);
 
             this.hasStopped = true;
 
-            this.shutdown();
-
+            if (this.rcon != null) {
+                this.rcon.close();
+            }
 
             for (Client client : new ArrayList<>(this.clients.values())) {
                 for (Player player : new ArrayList<>(client.getPlayers().values())) {
@@ -313,24 +322,20 @@ public class Server {
                 client.close("Synapse server closed");
             }
 
-            if (this.rcon != null) {
-                this.rcon.close();
-            }
-
-            this.getLogger().debug("Disabling all plugins");
+            log.debug("Disabling all plugins");
             this.pluginManager.disablePlugins();
 
-            this.getLogger().debug("Removing event handlers");
+            log.debug("Removing event handlers");
             HandlerList.unregisterAll();
 
-            this.getLogger().debug("Stopping all tasks");
+            log.debug("Stopping all tasks");
             this.scheduler.cancelAllTasks();
             this.scheduler.mainThreadHeartbeat(Integer.MAX_VALUE);
 
-            this.getLogger().debug("Closing console");
-            this.console.interrupt();
+            log.debug("Closing console");
+            this.consoleThread.interrupt();
 
-            this.getLogger().debug("Stopping network interfaces");
+            log.debug("Stopping network interfaces");
             for (SourceInterface interfaz : new ArrayList<>(this.network.getInterfaces())) {
                 interfaz.shutdown();
                 this.network.unregisterInterface(interfaz);
@@ -344,8 +349,7 @@ public class Server {
 
             //todo other things
         } catch (Exception e) {
-            this.logger.logException(e); //todo remove this?
-            this.logger.emergency("Exception happened while shutting down, exit the process");
+            log.fatal("Exception happened while shutting down, exiting the process", e);
             System.exit(1);
         }
     }
@@ -357,7 +361,7 @@ public class Server {
 
         this.tickCounter = 0;
 
-        this.getLogger().info(this.getLanguage().translateString("nemisys.server.startFinished", String.valueOf((double) (System.currentTimeMillis() - Nemisys.START_TIME) / 1000)));
+        log.info(this.getLanguage().translateString("nemisys.server.startFinished", String.valueOf((double) (System.currentTimeMillis() - Nemisys.START_TIME) / 1000)));
 
         this.tickProcessor();
         this.forceShutdown();
@@ -378,7 +382,7 @@ public class Server {
                 this.queryHandler.handle(address, payload);
             }
         } catch (Exception e) {
-            this.logger.error("Error whilst handling packet", e);
+            log.error("Error whilst handling packet", e);
 
             this.network.blockAddress(address.getAddress(), -1);
         }
@@ -386,18 +390,23 @@ public class Server {
 
     public void tickProcessor() {
         this.nextTick = System.currentTimeMillis();
-        while (this.isRunning) {
-            try {
-                this.tick();
-            } catch (RuntimeException e) {
-                this.getLogger().logException(e);
-            }
+        try {
+            while (this.isRunning.get()) {
+                try {
+                    this.tick();
+                } catch (RuntimeException e) {
+                    log.error(e);
+                }
 
-            try {
-                Thread.sleep(1);
-            } catch (InterruptedException e) {
-                Server.getInstance().getLogger().logException(e);
+                try {
+                    Thread.sleep(1);
+                } catch (InterruptedException e) {
+                    log.error(e);
+                }
             }
+        } catch (Throwable e) {
+            log.fatal("Exception happened while ticking server", e);
+            log.fatal(Utils.getAllThreadDumps());
         }
     }
 
@@ -433,6 +442,7 @@ public class Server {
 
         if ((this.tickCounter & 0b1111) == 0) {
             this.titleTick();
+            this.network.resetStatistics();
             this.maxTick = 100;
             this.maxUse = 0;
 
@@ -443,7 +453,7 @@ public class Server {
                         this.queryHandler.regenerateInfo();
                     }
                 } catch (Exception e) {
-                    this.logger.logException(e);
+                    log.error(e);
                 }
             }
 
@@ -482,7 +492,7 @@ public class Server {
     }
 
     public void titleTick() {
-        if (!Nemisys.ANSI) {
+        if (!Nemisys.ANSI || !Nemisys.TITLE) {
             return;
         }
 
@@ -509,8 +519,6 @@ public class Server {
                 " | Load " + this.getTickUsage() + "%" + (char) 0x07;
 
         System.out.print(title);
-
-        this.network.resetStatistics();
     }
 
     public QueryRegenerateEvent getQueryInformation() {
@@ -522,7 +530,7 @@ public class Server {
     }
 
     public boolean isRunning() {
-        return isRunning;
+        return isRunning.get();
     }
 
     public String getNemisysVersion() {
@@ -586,7 +594,7 @@ public class Server {
     }
 
     public MainLogger getLogger() {
-        return this.logger;
+        return MainLogger.getLogger();
     }
 
     public PluginManager getPluginManager() {
@@ -677,7 +685,7 @@ public class Server {
             }
         }
 
-        return matchedPlayer.toArray(new Player[matchedPlayer.size()]);
+        return matchedPlayer.toArray(new Player[0]);
     }
 
     public void removePlayer(Player player) {
@@ -838,4 +846,11 @@ public class Server {
         }
     }
 
+    private class ConsoleThread extends Thread implements InterruptibleThread {
+
+        @Override
+        public void run() {
+            console.start();
+        }
+    }
 }

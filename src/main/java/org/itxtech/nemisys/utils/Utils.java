@@ -1,6 +1,8 @@
 package org.itxtech.nemisys.utils;
 
 import java.io.*;
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadInfo;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
@@ -84,6 +86,15 @@ public class Utils {
         br.close();
         reader.close();
         return stringBuilder.toString();
+    }
+
+    public static String getAllThreadDumps() {
+        ThreadInfo[] threads = ManagementFactory.getThreadMXBean().dumpAllThreads(true, true);
+        StringBuilder builder = new StringBuilder();
+        for (ThreadInfo info : threads) {
+            builder.append('\n').append(info);
+        }
+        return builder.toString();
     }
 
     public static String getExceptionMessage(Throwable e) {
