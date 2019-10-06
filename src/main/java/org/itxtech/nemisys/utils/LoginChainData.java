@@ -29,6 +29,10 @@ public interface LoginChainData {
 
     String getXUID();
 
+    default boolean isXboxAuthed() {
+        return true;
+    }
+
     int getCurrentInputMode();
 
     int getDefaultInputMode();
