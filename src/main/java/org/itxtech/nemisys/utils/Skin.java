@@ -120,7 +120,7 @@ public class Skin {
     }
 
     public Skin(String base64, String model) {
-    	byte[] decode = null;
+    	byte[] decode;
     	try {
         	decode = Base64.getUrlDecoder().decode(base64);
         } catch(IllegalArgumentException e) {
@@ -150,9 +150,6 @@ public class Skin {
     }
 
     public void setData(byte[] data) {
-        if (!isValidSkin(data.length)) {
-            throw new IllegalArgumentException("Invalid skin");
-        }
         this.data = data;
     }
 

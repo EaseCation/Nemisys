@@ -1,11 +1,14 @@
 package org.itxtech.nemisys.network.protocol.mcpe;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import com.netease.mc.authlib.Profile;
 import com.netease.mc.authlib.TokenChain;
 import org.itxtech.nemisys.Server;
+import org.itxtech.nemisys.utils.SerializedImage;
 import org.itxtech.nemisys.utils.Skin;
 
 import java.nio.charset.StandardCharsets;
@@ -122,10 +125,28 @@ public class LoginPacket extends DataPacket {
 
     private void decodeSkinData() {
         JsonObject skinToken = decodeToken(new String(this.get(this.getLInt())));
-        String skinId = null;
         if (skinToken.has("ClientRandomId")) this.clientId = skinToken.get("ClientRandomId").getAsLong();
-        if (skinToken.has("SkinId")) skinId = skinToken.get("SkinId").getAsString();
-        if (skinToken.has("SkinData")) this.skin = new Skin(skinToken.get("SkinData").getAsString(), skinId);
+        String skinId = Skin.MODEL_STEVE;
+        byte[] skinData = new byte[0];
+        if (skinToken.has("SkinId")) {
+            skinId = skinToken.get("SkinId").getAsString();
+        }
+        skinData = getImage(skinToken, "Skin").data;
+        skin = new Skin(skinData, skinId);
+    }
+
+    private static SerializedImage getImage(JsonObject token, String name) {
+        if (token.has(name + "Data")) {
+            byte[] skinImage = Base64.getDecoder().decode(token.get(name + "Data").getAsString());
+            if (token.has(name + "ImageHeight") && token.has(name + "ImageWidth")) {
+                int width = token.get(name + "ImageWidth").getAsInt();
+                int height = token.get(name + "ImageHeight").getAsInt();
+                return new SerializedImage(width, height, skinImage);
+            } else {
+                return SerializedImage.fromLegacy(skinImage);
+            }
+        }
+        return SerializedImage.EMPTY;
     }
 
     private JsonObject decodeToken(String token) {
