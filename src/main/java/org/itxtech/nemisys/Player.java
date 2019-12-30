@@ -228,7 +228,7 @@ public class Player {
     }
 
     public String getIp() {
-        return this.socketAddress.getAddress().getHostAddress();
+        return this.socketAddress.isUnresolved() ? this.socketAddress.getHostName() : this.socketAddress.getAddress().getHostAddress();
     }
 
     public int getPort() {

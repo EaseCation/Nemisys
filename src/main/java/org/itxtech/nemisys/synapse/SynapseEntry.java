@@ -268,7 +268,8 @@ public class SynapseEntry {
                 break;
             case SynapseInfo.PLAYER_LOGIN_PACKET:
                 PlayerLoginPacket playerLoginPacket = (PlayerLoginPacket) pk;
-                InetSocketAddress socketAddress = new InetSocketAddress(playerLoginPacket.address, playerLoginPacket.port);
+
+                InetSocketAddress socketAddress = InetSocketAddress.createUnresolved(playerLoginPacket.address, playerLoginPacket.port);
                 SynapsePlayerCreationEvent ev = new SynapsePlayerCreationEvent(this.synLibInterface, SynapsePlayer.class, SynapsePlayer.class, new Random().nextLong(), socketAddress);
                 this.getSynapse().getServer().getPluginManager().callEvent(ev);
                 Class<? extends SynapsePlayer> clazz = ev.getPlayerClass();
