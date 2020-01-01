@@ -8,6 +8,7 @@ import org.itxtech.nemisys.network.synlib.SynapseServer;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Created by boybook on 16/6/24.
@@ -18,7 +19,7 @@ public class SynapseInterface {
     private Server server;
     private String ip;
     private int port;
-    private Map<String, Client> clients = new HashMap<>();
+    private Map<String, Client> clients = new ConcurrentHashMap<>();
     private SynapseServer interfaz;
 
     public SynapseInterface(Server server, String ip, int port) {

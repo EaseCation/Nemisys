@@ -9,6 +9,7 @@ import org.itxtech.nemisys.InterruptibleThread;
 import org.itxtech.nemisys.Nemisys;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.network.SynapseInterface;
+import org.itxtech.nemisys.network.protocol.spp.SynapseInfo;
 import org.itxtech.nemisys.utils.ThreadedLogger;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -114,7 +115,11 @@ public class SynapseServer extends Thread implements InterruptibleThread {
     }
 
     public void pushThreadToMainPacket(SynapseClientPacket data) {
-        this.externalQueue.offer(data);
+        if (data.getPacket().pid() == SynapseInfo.REDIRECT_PACKET) {
+            server.handlePacket(data.getHash(), data.getPacket()); //把nk发给玩家的数据包绕过主线程，直接在netty线程中进行发送
+        } else {
+            this.externalQueue.offer(data);
+        }
     }
 
     public SynapseClientPacket readThreadToMainPacket() {
