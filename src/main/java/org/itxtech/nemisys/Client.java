@@ -3,6 +3,7 @@ package org.itxtech.nemisys;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 import com.google.gson.Gson;
+import com.nukkitx.network.raknet.RakNetReliability;
 import org.itxtech.nemisys.event.client.ClientAuthEvent;
 import org.itxtech.nemisys.event.client.ClientConnectEvent;
 import org.itxtech.nemisys.event.client.ClientDisconnectEvent;
@@ -173,11 +174,19 @@ public class Client {
                     DataPacket send;
                     if (buffer.length > 0 && buffer[0] == (byte) 0xfe) {
                         send = new BatchPacket();
+                        send.reliability = RakNetReliability.fromId(((RedirectPacket) packet).reliability);
+                        send.setBuffer(((RedirectPacket) packet).mcpeBuffer);
                         send.setBuffer(buffer, 1);
                         send.decode();
+                        send.setChannel(((RedirectPacket) packet).channel);
+                        //if (send.reliability != RakNetReliability.RELIABLE_ORDERED || send.getChannel() != 0)
+                        //    this.server.getLogger().info("batch: " + ((RedirectPacket) packet).mcpeBuffer.length + "  reliability: " + send.reliability.name() + "  channel: " + send.getChannel());
                     } else {
                         send = new GenericPacket();
+                        send.reliability = RakNetReliability.fromId(((RedirectPacket) packet).reliability);
+                        send.setChannel(((RedirectPacket) packet).channel);
                         send.setBuffer(((RedirectPacket) packet).mcpeBuffer);
+                        //this.server.getLogger().info("len: " + ((RedirectPacket) packet).mcpeBuffer.length + "  reliability: " + send.reliability.name() + "  channel: " + send.getChannel());
                     }
 
                     this.players.get(uuid).sendDataPacket(send, ((RedirectPacket) packet).direct);
