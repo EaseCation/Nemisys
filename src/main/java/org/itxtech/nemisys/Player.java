@@ -141,7 +141,7 @@ public class Player {
                         TextFormat.AQUA + this.name + TextFormat.WHITE,
                         this.getIp(),
                         String.valueOf(this.getPort()),
-                        ""+TextFormat.GREEN + this.getRandomClientId() + TextFormat.WHITE,
+                        ""+TextFormat.GREEN + this.getUUID() + TextFormat.WHITE,
                 }));
 
                 Map<String, Client> c = this.server.getMainClients();
