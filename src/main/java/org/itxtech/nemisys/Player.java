@@ -350,7 +350,7 @@ public class Player {
                     this.getServer().getLanguage().translateString(reason)
             }));
 
-            this.interfaz.close(this, notify ? reason : "");
+            Server.getInstance().getScheduler().scheduleDelayedTask(() -> this.interfaz.close(this, notify ? reason : ""), 2);
             this.getServer().removePlayer(this);
         }
     }
