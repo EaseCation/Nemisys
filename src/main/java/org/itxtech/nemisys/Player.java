@@ -1,5 +1,6 @@
 package org.itxtech.nemisys;
 
+import com.google.gson.JsonObject;
 import org.itxtech.nemisys.event.player.PlayerAsyncLoginEvent;
 import org.itxtech.nemisys.event.player.PlayerLoginEvent;
 import org.itxtech.nemisys.event.player.PlayerLogoutEvent;
@@ -25,7 +26,7 @@ public class Player {
     public boolean closed;
     protected UUID uuid;
     private byte[] cachedLoginPacket = new byte[0];
-    private String name;
+    protected String name;
     private InetSocketAddress socketAddress;
     private long clientId;
     private long randomClientId;
@@ -39,7 +40,7 @@ public class Player {
     private long lastUpdate;
     private Skin skin;
     private LoginChainData loginChainData;
-    private boolean neteaseClient;
+    protected boolean neteaseClient;
 
     private final AtomicBoolean ticking = new AtomicBoolean();
 
@@ -263,10 +264,10 @@ public class Player {
     }
 
     public void transfer(Client client) {
-        this.transfer(client, false);
+        this.transfer(client, null, false);
     }
 
-    public void transfer(Client client, boolean needDisconnect) {
+    public void transfer(Client client, JsonObject extra, boolean needDisconnect) {
         PlayerTransferEvent ev;
         this.server.getPluginManager().callEvent(ev = new PlayerTransferEvent(this, client, needDisconnect));
         if (!ev.isCancelled()) {
@@ -287,8 +288,12 @@ public class Player {
             pk.isFirstTime = this.isFirstTimeLogin;
             pk.cachedLoginPacket = this.cachedLoginPacket;
             pk.protocol = this.getProtocol();
-            pk.username = this.getName();
-            pk.xuid = this.xuid;
+            if (extra != null) pk.extra = extra;
+            else {
+                pk.extra.addProperty("username", this.getName());
+                pk.extra.addProperty("xuid", this.xuid);
+                pk.extra.addProperty("netease", this.isNeteaseClient());
+            }
 
             this.client.sendDataPacket(pk);
 

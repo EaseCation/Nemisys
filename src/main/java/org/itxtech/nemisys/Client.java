@@ -201,7 +201,7 @@ public class Client {
                 if (this.players.containsKey(uuid0)) {
                     Player player = this.players.get(uuid0);
                     if (clients.containsKey(((TransferPacket) packet).clientHash)) {
-                        player.transfer(clients.get(((TransferPacket) packet).clientHash), true);
+                        player.transfer(clients.get(((TransferPacket) packet).clientHash), ((TransferPacket) packet).extra, true);
                     } else {
                         player.close("Synapse Server: " + TextFormat.RED + "Target server is not online!" + "\n" + TextFormat.YELLOW + ((TransferPacket) packet).clientHash);
                     }

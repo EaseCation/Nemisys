@@ -1,5 +1,8 @@
 package org.itxtech.nemisys.network.protocol.spp;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+
 import java.util.UUID;
 
 /**
@@ -8,15 +11,15 @@ import java.util.UUID;
 public class PlayerLoginPacket extends SynapseDataPacket {
 
     public static final int NETWORK_ID = SynapseInfo.PLAYER_LOGIN_PACKET;
+
+    public int protocol;
     public UUID uuid;
     public String address;
     public int port;
     public boolean isFirstTime;
     public byte[] cachedLoginPacket;
-    public int protocol;
 
-    public String username = "";
-    public String xuid = null;
+    public JsonObject extra = new JsonObject();
 
     @Override
     public byte pid() {
@@ -33,8 +36,7 @@ public class PlayerLoginPacket extends SynapseDataPacket {
         this.putByte(this.isFirstTime ? (byte) 1 : (byte) 0);
         this.putUnsignedVarInt(this.cachedLoginPacket.length);
         this.put(this.cachedLoginPacket);
-        this.putString(this.username);
-        if (this.xuid != null) this.putString(this.xuid);
+        this.putString(new Gson().toJson(this.extra));
     }
 
     @Override
@@ -45,7 +47,6 @@ public class PlayerLoginPacket extends SynapseDataPacket {
         this.port = this.getInt();
         this.isFirstTime = this.getByte() == 1;
         this.cachedLoginPacket = this.get((int) this.getUnsignedVarInt());
-        this.username = this.getString();
-        if (!this.feof()) this.xuid = this.getString();
+        this.extra = new Gson().fromJson(this.getString(), JsonObject.class);
     }
 }

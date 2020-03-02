@@ -1,16 +1,19 @@
 package org.itxtech.nemisys.synapse;
 
+import com.google.gson.JsonPrimitive;
 import org.itxtech.nemisys.Player;
 import org.itxtech.nemisys.event.server.DataPacketSendEvent;
 import org.itxtech.nemisys.event.synapse.player.SynapsePlayerConnectEvent;
 import org.itxtech.nemisys.network.SourceInterface;
 import org.itxtech.nemisys.network.protocol.mcpe.DataPacket;
+import org.itxtech.nemisys.network.protocol.mcpe.LoginPacket;
 import org.itxtech.nemisys.network.protocol.spp.PlayerLoginPacket;
 import org.itxtech.nemisys.network.protocol.spp.PlayerLogoutPacket;
 import org.itxtech.nemisys.network.protocol.spp.TransferPacket;
 import org.itxtech.nemisys.utils.ClientData;
 
 import java.net.InetSocketAddress;
+import java.util.Optional;
 import java.util.UUID;
 
 public class SynapsePlayer extends Player {
@@ -29,6 +32,13 @@ public class SynapsePlayer extends Player {
         if (!ev.isCancelled()) {
             DataPacket pk = this.getSynapseEntry().getSynapse().getPacket(packet.cachedLoginPacket);
             //pk.decode();
+            if (pk instanceof LoginPacket) {
+                ((LoginPacket) pk).username = packet.extra.get("username").getAsString();
+                ((LoginPacket) pk).xuid = packet.extra.get("xuid").getAsString();
+                ((LoginPacket) pk).clientUUID = packet.uuid;
+                this.neteaseClient = Optional.ofNullable(packet.extra.get("netease")).orElseGet(() -> new JsonPrimitive(false)).getAsBoolean();
+            }
+
             this.handleDataPacket(pk);
         }
     }
