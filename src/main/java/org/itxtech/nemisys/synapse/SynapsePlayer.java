@@ -1,5 +1,6 @@
 package org.itxtech.nemisys.synapse;
 
+import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import org.itxtech.nemisys.Player;
 import org.itxtech.nemisys.event.server.DataPacketSendEvent;
@@ -11,6 +12,7 @@ import org.itxtech.nemisys.network.protocol.spp.PlayerLoginPacket;
 import org.itxtech.nemisys.network.protocol.spp.PlayerLogoutPacket;
 import org.itxtech.nemisys.network.protocol.spp.TransferPacket;
 import org.itxtech.nemisys.utils.ClientData;
+import org.itxtech.nemisys.utils.TextFormat;
 
 import java.net.InetSocketAddress;
 import java.util.Optional;
@@ -19,6 +21,7 @@ import java.util.UUID;
 public class SynapsePlayer extends Player {
 
     private SynapseEntry synapseEntry;
+    private JsonObject cachedExtra;
 
     public SynapsePlayer(SourceInterface interfaz, SynapseEntry synapseEntry, Long clientID, InetSocketAddress socketAddress) {
         super(interfaz, clientID, socketAddress);
@@ -30,6 +33,7 @@ public class SynapsePlayer extends Player {
         SynapsePlayerConnectEvent ev;
         this.getServer().getPluginManager().callEvent(ev = new SynapsePlayerConnectEvent(this, this.isFirstTimeLogin));
         if (!ev.isCancelled()) {
+            this.cachedExtra = packet.extra;
             DataPacket pk = this.getSynapseEntry().getSynapse().getPacket(packet.cachedLoginPacket);
             //pk.decode();
             if (pk instanceof LoginPacket) {
@@ -68,6 +72,19 @@ public class SynapsePlayer extends Player {
         if (!ev.isCancelled()) {
             super.sendDataPacket(pk, direct);
         }
+    }
+
+    @Override
+    public void completeLoginSequence(String clientHash) {
+        if (clientHash == null || clientHash.equals("")) {
+            this.close("Synapse Server: " + TextFormat.RED + "No target server!");
+            return;
+        }
+        if (!getServer().getClients().containsKey(clientHash)) {
+            this.close("Synapse Server: " + TextFormat.RED + "Target server is not online!");
+            return;
+        }
+        this.transfer(getServer().getClients().get(clientHash), cachedExtra, true);
     }
 
     @Override
