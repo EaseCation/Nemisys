@@ -30,10 +30,10 @@ public class SynapsePlayer extends Player {
 
     public void handleLoginPacket(PlayerLoginPacket packet) {
         this.isFirstTimeLogin = packet.isFirstTime;
+        this.cachedExtra = packet.extra;
         SynapsePlayerConnectEvent ev;
         this.getServer().getPluginManager().callEvent(ev = new SynapsePlayerConnectEvent(this, this.isFirstTimeLogin));
         if (!ev.isCancelled()) {
-            this.cachedExtra = packet.extra;
             DataPacket pk = this.getSynapseEntry().getSynapse().getPacket(packet.cachedLoginPacket);
             //pk.decode();
             if (pk instanceof LoginPacket) {
