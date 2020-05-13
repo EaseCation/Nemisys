@@ -372,6 +372,18 @@ public class Player {
         this.sendDataPacket(pk);
     }
 
+    public void sendPopup(String message) {
+        this.sendPopup(message, "");
+    }
+
+    public void sendPopup(String message, String subtitle) {
+        TextPacket pk = new TextPacket();
+        pk.type = TextPacket.TYPE_POPUP;
+        pk.message = message;
+        pk.primaryName = subtitle;
+        this.sendDataPacket(pk);
+    }
+
     public int rawHashCode() {
         return super.hashCode();
     }
