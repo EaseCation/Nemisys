@@ -45,6 +45,7 @@ public class Nemisys {
 
     public static void main(String[] args) {
         System.setProperty("log4j.skipJansi", "false");
+        System.getProperties().putIfAbsent("io.netty.allocator.type", "unpooled"); // Disable memory pooling unless specified
 
         // Netty logger for debug info
         InternalLoggerFactory.setDefaultFactory(Log4J2LoggerFactory.INSTANCE);
