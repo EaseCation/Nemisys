@@ -119,6 +119,9 @@ public class Nemisys {
         if (TITLE) {
             System.out.print((char) 0x1b + "]0;Server Stopped" + (char) 0x07);
         }
+
+        LogManager.shutdown();
+
         System.exit(0);
     }
 
