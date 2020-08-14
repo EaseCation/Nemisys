@@ -73,6 +73,15 @@ public class Server {
     private String clientDataJson = "";
     private Map<String, Client> mainClients = new HashMap<>();
     private Synapse synapse;
+    private boolean enableJmxMonitoring = false;
+    /**
+     * 过去 100 tick 的耗时 (ns). 用于 JMX Monitoring.
+     */
+    public final long[] tickTimes = new long[100];
+    /**
+     * 过去 100 tick 的平均耗时 (ms). 用于 JMX Monitoring.
+     */
+    public float averageTickTime;
 
     public Server(final String filePath, String dataPath, String pluginPath) {
         Preconditions.checkState(instance == null, "Already initialized!");
@@ -116,6 +125,7 @@ public class Server {
                 put("debug", 1);
                 put("enable-synapse-client", false);
                 put("xbox-auth", true);
+                put("enable-jmx-monitoring", false);
             }
         });
 
@@ -154,6 +164,11 @@ public class Server {
                 Nemisys.setLogLevel(level);
                 break;
             }
+        }
+
+        this.enableJmxMonitoring = this.getPropertyBoolean("enable-jmx-monitoring", false);
+        if (this.enableJmxMonitoring) {
+            ServerStatistics.registerJmxMonitoring(this);
         }
 
         log.info(this.getLanguage().translateString("nemisys.server.networkStart", new String[]{this.getIp().equals("") ? "*" : this.getIp(), String.valueOf(this.getPort())}));
@@ -481,6 +496,12 @@ public class Server {
 
         System.arraycopy(this.useAverage, 1, this.useAverage, 0, this.useAverage.length - 1);
         this.useAverage[this.useAverage.length - 1] = use;
+
+        if (this.enableJmxMonitoring) {
+            long diffNano = nowNano - tickTimeNano;
+            this.tickTimes[this.tickCounter % 100] = diffNano;
+            this.averageTickTime = this.averageTickTime * .8f + (float) diffNano / 1000000f * .19999999f;
+        }
 
         if ((this.nextTick - tickTime) < -1000) {
             this.nextTick = tickTime;
