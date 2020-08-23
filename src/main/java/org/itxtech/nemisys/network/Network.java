@@ -4,21 +4,26 @@ import org.itxtech.nemisys.Nemisys;
 import org.itxtech.nemisys.Player;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.network.protocol.mcpe.*;
-import org.itxtech.nemisys.utils.Binary;
-import org.itxtech.nemisys.utils.BinaryStream;
-import org.itxtech.nemisys.utils.Utils;
-import org.itxtech.nemisys.utils.Zlib;
+import org.itxtech.nemisys.utils.*;
 import io.netty.buffer.ByteBuf;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.*;
+import java.util.zip.DataFormatException;
+import java.util.zip.Deflater;
+import java.util.zip.Inflater;
 
 /**
  * author: MagicDroidX
  * Nukkit Project
  */
 public class Network {
+
+    private static final ThreadLocal<Inflater> INFLATER_RAW = ThreadLocal.withInitial(() -> new Inflater(true));
+    private static final ThreadLocal<Deflater> DEFLATER_RAW = ThreadLocal.withInitial(() -> new Deflater(7, true));
+    private static final ThreadLocal<byte[]> BUFFER = ThreadLocal.withInitial(() -> new byte[2 * 1024 * 1024]);
 
     private Class<? extends DataPacket>[] packetPool = new Class[256];
 
@@ -38,6 +43,67 @@ public class Network {
         this.registerPackets();
         this.server = server;
     }
+
+    public static byte[] inflateRaw(byte[] data) throws IOException, DataFormatException {
+        Inflater inflater = INFLATER_RAW.get();
+        inflater.reset();
+        inflater.setInput(data);
+        inflater.finished();
+
+        FastByteArrayOutputStream bos = new FastByteArrayOutputStream(1024);
+        bos.reset();
+        byte[] buf = BUFFER.get();
+        while (!inflater.finished()) {
+            int i = inflater.inflate(buf);
+            if (i == 0) {
+                throw new IOException("Could not decompress the data. Needs input: "+inflater.needsInput()+", Needs Dictionary: "+inflater.needsDictionary());
+            }
+            bos.write(buf, 0, i);
+        }
+        return bos.toByteArray();
+    }
+
+    public static byte[] deflateRaw(byte[] data, int level) throws IOException {
+        Deflater deflater = DEFLATER_RAW.get();
+        deflater.reset();
+        deflater.setLevel(level);
+        deflater.setInput(data);
+        deflater.finish();
+        FastByteArrayOutputStream bos = new FastByteArrayOutputStream(1024);
+        bos.reset();
+        byte[] buffer = BUFFER.get();
+        while (!deflater.finished()) {
+            int i = deflater.deflate(buffer);
+            bos.write(buffer, 0, i);
+        }
+
+        return bos.toByteArray();
+    }
+
+    public static byte[] deflateRaw(byte[][] datas, int level) throws IOException {
+        Deflater deflater = DEFLATER_RAW.get();
+        deflater.reset();
+        deflater.setLevel(level);
+        FastByteArrayOutputStream bos = new FastByteArrayOutputStream(1024);
+        bos.reset();
+        byte[] buffer = BUFFER.get();
+
+        for (byte[] data : datas) {
+            deflater.setInput(data);
+            while (!deflater.needsInput()) {
+                int i = deflater.deflate(buffer);
+                bos.write(buffer, 0, i);
+            }
+        }
+        deflater.finish();
+        while (!deflater.finished()) {
+            int i = deflater.deflate(buffer);
+            bos.write(buffer, 0, i);
+        }
+        //Deflater::end is called the time when the process exits.
+        return bos.toByteArray();
+    }
+
 
     public void addStatistics(double upload, double download) {
         this.upload += upload;
@@ -127,9 +193,13 @@ public class Network {
     public void processBatch(BatchPacket packet, Player player) {
         byte[] data;
         try {
-            data = Zlib.inflate(packet.payload, 2 * 1024 * 1024); // Max 2MB
+            data = Network.inflateRaw(packet.payload);
         } catch (Exception e) {
-            return;
+            try {
+                data = Zlib.inflate(packet.payload, 2 * 1024 * 1024); // Max 2MB
+            } catch (Exception e0) {
+                return;
+            }
         }
 
         int len = data.length;

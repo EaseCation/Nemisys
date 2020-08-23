@@ -850,7 +850,8 @@ public class Server {
         }
 
         try {
-            this.broadcastPacketsCallback(Zlib.deflate(data, 8), targets);
+            if (players[0].getProtocol() < 407) this.broadcastPacketsCallback(Zlib.deflate(data, 4), targets);
+            else this.broadcastPacketsCallback(Network.deflateRaw(data, 4), targets);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
