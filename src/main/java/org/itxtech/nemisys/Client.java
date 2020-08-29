@@ -12,9 +12,7 @@ import org.itxtech.nemisys.network.SynapseInterface;
 import org.itxtech.nemisys.network.protocol.mcpe.*;
 import org.itxtech.nemisys.network.protocol.spp.*;
 import org.itxtech.nemisys.network.protocol.spp.DisconnectPacket;
-import org.itxtech.nemisys.utils.MainLogger;
-import org.itxtech.nemisys.utils.PlayerNetworkLatencyData;
-import org.itxtech.nemisys.utils.TextFormat;
+import org.itxtech.nemisys.utils.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInput;
@@ -175,7 +173,6 @@ public class Client {
                     if (buffer.length > 0 && buffer[0] == (byte) 0xfe) {
                         send = new BatchPacket();
                         send.reliability = RakNetReliability.fromId(((RedirectPacket) packet).reliability);
-                        send.setBuffer(((RedirectPacket) packet).mcpeBuffer);
                         send.setBuffer(buffer, 1);
                         send.decode();
                         send.setChannel(((RedirectPacket) packet).channel);

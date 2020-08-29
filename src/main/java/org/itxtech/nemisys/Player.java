@@ -277,7 +277,7 @@ public class Player {
                 pk.reason = "Player has been transferred";
                 this.client.sendDataPacket(pk);
                 this.client.removePlayer(this);
-                this.removeAllPlayers();
+                //this.removeAllPlayers();
             }
             this.client = ev.getTargetClient();
             this.client.addPlayer(this);
