@@ -29,4 +29,11 @@ public class DisconnectPacket extends DataPacket {
         }
     }
 
+    @Override
+    public void tryEncode(int protocol) {
+        if (!this.isEncoded) {
+            this.isEncoded = true;
+            this.encode(protocol);
+        }
+    }
 }

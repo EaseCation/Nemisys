@@ -124,5 +124,11 @@ public class TextPacket extends DataPacket {
         this.putString(platformIdString);
     }
 
-
+    @Override
+    public void tryEncode(int protocol) {
+        if (!this.isEncoded) {
+            this.isEncoded = true;
+            this.encode(protocol);
+        }
+    }
 }

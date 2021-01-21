@@ -9,7 +9,7 @@ import org.itxtech.nemisys.utils.BinaryStream;
  */
 public abstract class DataPacket extends BinaryStream implements Cloneable {
 
-    public boolean isEncoded = false;
+    public volatile boolean isEncoded = false;
     public RakNetReliability reliability = RakNetReliability.RELIABLE_ORDERED;
     private int channel = 0;
 
@@ -23,12 +23,23 @@ public abstract class DataPacket extends BinaryStream implements Cloneable {
 
     }
 
+    public void tryEncode() {
+        if (!this.isEncoded) {
+            this.isEncoded = true;
+            this.encode();
+        }
+    }
+
     public void encode(int protocol) {
         this.encode();
     }
 
     public void decode(int protocol) {
         this.decode();
+    }
+
+    public void tryEncode(int protocol) {
+        this.tryEncode();
     }
 
     @Override
