@@ -1,5 +1,8 @@
 package org.itxtech.nemisys.network;
 
+import io.netty.buffer.ByteBufUtil;
+import io.netty.buffer.Unpooled;
+import lombok.extern.log4j.Log4j2;
 import org.itxtech.nemisys.Nemisys;
 import org.itxtech.nemisys.Player;
 import org.itxtech.nemisys.Server;
@@ -7,9 +10,11 @@ import org.itxtech.nemisys.network.protocol.mcpe.*;
 import org.itxtech.nemisys.utils.*;
 import io.netty.buffer.ByteBuf;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.ProtocolException;
 import java.util.*;
 import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
@@ -19,6 +24,7 @@ import java.util.zip.Inflater;
  * author: MagicDroidX
  * Nukkit Project
  */
+@Log4j2
 public class Network {
 
     private static final ThreadLocal<Inflater> INFLATER_RAW = ThreadLocal.withInitial(() -> new Inflater(true));
@@ -198,55 +204,77 @@ public class Network {
     }
 
     public void processBatch(BatchPacket packet, Player player) {
+        List<DataPacket> packets = new ArrayList<>();
+        try {
+            processBatch(packet.payload, packets);
+        } catch (ProtocolException e) {
+            player.close(e.getMessage());
+            log.error("Unable to process player packets ", e);
+        }
+        processPackets(player, packets);
+    }
+
+    public void processBatch(byte[] payload, Collection<DataPacket> packets) throws ProtocolException {
         byte[] data;
         try {
-            data = Network.inflateRaw(packet.payload);
+            data = Network.inflateRaw(payload);
         } catch (Exception e) {
             try {
-                data = Zlib.inflate(packet.payload, 2 * 1024 * 1024); // Max 2MB
+                data = Zlib.inflate(payload, 2 * 1024 * 1024); // Max 2MB
             } catch (Exception e0) {
+//                log.debug("Exception while inflating (raw) batch packet", e);
+//                log.debug("Exception while inflating batch packet", e0);
                 return;
             }
         }
 
-        int len = data.length;
         BinaryStream stream = new BinaryStream(data);
         try {
-            List<DataPacket> packets = new ArrayList<>();
             int count = 0;
-            while (stream.offset < len) {
+            while (!stream.feof()) {
                 count++;
                 if (count >= 1000) {
-                    player.close("Illegal Batch Packet");
-                    return;
+                    throw new ProtocolException("Illegal batch with " + count + " packets");
                 }
                 byte[] buf = stream.getByteArray();
 
-                DataPacket pk;
+                ByteArrayInputStream bais = new ByteArrayInputStream(buf);
+                int header = (int) VarInt.readUnsignedVarInt(bais);
 
-                if ((pk = this.getPacket(buf[0])) != null) {
+                // | Client ID | Sender ID | Packet ID |
+                // |   2 bits  |   2 bits  |  10 bits  |
+                int packetId = header & 0x3ff;
+
+                DataPacket pk = this.getPacket(packetId);
+
+                if (pk != null) {
                     /*System.out.println("first bits: "+buf[1]+"   "+buf[2]);
                     System.out.println("other bits: "+ Arrays.toString(buf));*/
-                    pk.setBuffer(buf, 3);
-
+                    pk.setBuffer(buf, buf.length - bais.available());
                     try {
                         pk.decode();
                     } catch (Exception e) { //probably 1.1 client ?
                         //e.printStackTrace();
-                        pk.setBuffer(buf, 1); //skip 2 more bytes
-                        pk.decode();
+                        try {
+                            pk.setBuffer(buf, 1); //skip 2 more bytes
+                            pk.decode();
+                        } catch (Exception e0) {
+                            if (log.isTraceEnabled()) {
+                                log.trace("Dumping Packet\n{}", ByteBufUtil.prettyHexDump(Unpooled.wrappedBuffer(buf)));
+                            }
+                            log.error("Unable to decode packet", e);
+                            throw new IllegalStateException("Unable to decode " + pk.getClass().getSimpleName());
+                        }
                     }
 
                     packets.add(pk);
+                } else {
+                    log.debug("Received unknown packet with ID: {}", Integer.toHexString(packetId));
                 }
             }
-
-            processPackets(player, packets);
-
         } catch (Exception e) {
-            if (Nemisys.DEBUG > 0) {
-                this.server.getLogger().debug("BatchPacket 0x" + Binary.bytesToHexString(packet.payload));
-                this.server.getLogger().logException(e);
+            if (log.isDebugEnabled()) {
+                log.debug("Error whilst decoding batch packet", e);
             }
         }
     }
@@ -259,12 +287,19 @@ public class Network {
      */
     public void processPackets(Player player, List<DataPacket> packets) {
         if (packets.isEmpty()) return;
-        packets.forEach(player::handleDataPacket);
+        packets.forEach(packet -> {
+            try {
+                player.handleDataPacket(packet);
+            } catch (Exception e) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Error whilst handling data packet", e);
+                }
+            }
+        });
     }
 
-
-    public DataPacket getPacket(byte id) {
-        Class<? extends DataPacket> clazz = this.packetPool[id & 0xff];
+    public DataPacket getPacket(int id) {
+        Class<? extends DataPacket> clazz = this.packetPool[id];
         if (clazz != null) {
             try {
                 return clazz.newInstance();

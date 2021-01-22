@@ -111,7 +111,7 @@ public class Client {
                 gPacket.setBuffer(((BroadcastPacket) packet).payload);
                 for (UUID uniqueId : ((BroadcastPacket) packet).entries) {
                     if (this.players.containsKey(uniqueId)) {
-                        this.players.get(uniqueId).sendDataPacket(gPacket, ((BroadcastPacket) packet).direct);
+                        this.players.get(uniqueId).sendDataPacket(gPacket);
                     }
                 }
                 break;
@@ -186,7 +186,7 @@ public class Client {
                         //this.server.getLogger().info("len: " + ((RedirectPacket) packet).mcpeBuffer.length + "  reliability: " + send.reliability.name() + "  channel: " + send.getChannel());
                     }
 
-                    this.players.get(uuid).sendDataPacket(send, ((RedirectPacket) packet).direct);
+                    this.players.get(uuid).sendDataPacket(send);
                     //this.server.getLogger().warning("Send to player: " + Binary.bytesToHexString(new byte[]{((RedirectPacket) packet).mcpeBuffer[0]}) + "  len: " + ((RedirectPacket) packet).mcpeBuffer.length);
                 }/*else{
 					this.server.getLogger().error("Error RedirectPacket 0x" + bin2hex(packet.buffer));

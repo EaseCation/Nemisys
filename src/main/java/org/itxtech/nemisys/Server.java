@@ -822,10 +822,12 @@ public class Server {
         return synapse;
     }
 
+    @Deprecated
     public void batchPackets(Player[] players, DataPacket[] packets) {
         this.batchPackets(players, packets, false);
     }
 
+    @Deprecated
     public void batchPackets(Player[] players, DataPacket[] packets, boolean forceSync) {
         if (players == null || packets == null || players.length == 0 || packets.length == 0) {
             return;
@@ -835,9 +837,7 @@ public class Server {
         for (int i = 0; i < packets.length; i++) {
             DataPacket p = packets[i];
             int idx = i * 2;
-            if (!p.isEncoded) {
-                p.encode(players[0].getProtocol());
-            }
+            p.tryEncode(players[0].getProtocol());
             byte[] buf = p.getBuffer();
             payload[idx] = Binary.writeUnsignedVarInt(buf.length);
             payload[idx + 1] = buf;
@@ -853,8 +853,8 @@ public class Server {
         }
 
         try {
-            if (players[0].getProtocol() < 407) this.broadcastPacketsCallback(Zlib.deflate(data, 4), targets);
-            else this.broadcastPacketsCallback(Network.deflateRaw(data, 4), targets);
+            if (players[0].getProtocol() < 407) this.broadcastPacketsCallback(Zlib.deflate(data, 6), targets);
+            else this.broadcastPacketsCallback(Network.deflateRaw(data, 6), targets);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

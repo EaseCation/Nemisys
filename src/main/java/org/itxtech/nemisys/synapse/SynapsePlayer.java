@@ -66,11 +66,11 @@ public class SynapsePlayer extends Player {
     }
 
     @Override
-    public void sendDataPacket(DataPacket pk, boolean direct) {
+    public void sendDataPacket(DataPacket pk) {
         DataPacketSendEvent ev = new DataPacketSendEvent(this, pk);
         this.getServer().getPluginManager().callEvent(ev);
         if (!ev.isCancelled()) {
-            super.sendDataPacket(pk, direct);
+            super.sendDataPacket(pk);
         }
     }
 

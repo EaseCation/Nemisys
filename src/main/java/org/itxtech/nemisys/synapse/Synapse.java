@@ -87,7 +87,7 @@ public class Synapse {
 
     public DataPacket getPacket(byte[] buffer) {
         DataPacket packet;
-        if ((packet = this.getServer().getNetwork().getPacket(buffer[0])) != null) {
+        if ((packet = this.getServer().getNetwork().getPacket(buffer[0] & 0xff)) != null) {
                     /*System.out.println("first bits: "+buf[1]+"   "+buf[2]);
                     System.out.println("other bits: "+ Arrays.toString(buf));*/
             packet.setBuffer(buffer, 3);
