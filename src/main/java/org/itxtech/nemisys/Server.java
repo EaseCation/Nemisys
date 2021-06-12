@@ -613,7 +613,11 @@ public class Server {
     }
 
     public String getSubMotd() {
-        return this.getPropertyString("sub-motd", "Powered by Nemisys");
+        String subMotd = this.getPropertyString("sub-motd", "Powered by Nemisys");
+        if (subMotd.isEmpty()) {
+            subMotd = "Powered by Nemisys"; // The client doesn't allow empty sub-motd in 1.16.210
+        }
+        return subMotd;
     }
 
     public MainLogger getLogger() {
