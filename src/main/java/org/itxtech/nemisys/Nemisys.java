@@ -18,6 +18,8 @@ import org.itxtech.nemisys.utils.ServerKiller;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.Properties;
 
 @Log4j2
@@ -46,6 +48,9 @@ public class Nemisys {
     public static void main(String[] args) {
         System.setProperty("log4j.skipJansi", "false");
         System.getProperties().putIfAbsent("io.netty.allocator.type", "unpooled"); // Disable memory pooling unless specified
+
+        // DO NOT REMOVE THIS
+        removeJceLimit();
 
         // Netty logger for debug info
         InternalLoggerFactory.setDefaultFactory(Log4J2LoggerFactory.INSTANCE);
@@ -162,5 +167,23 @@ public class Nemisys {
         LoggerConfig loggerConfig = log4jConfig.getLoggerConfig(org.apache.logging.log4j.LogManager.ROOT_LOGGER_NAME);
         loggerConfig.setLevel(level);
         ctx.updateLoggers();
+    }
+
+    /**
+     * 网易机子提供的是 Oracle JDK (8u144), 需要特殊处理.
+     */
+    private static void removeJceLimit() {
+        try {
+            Field field = Class.forName("javax.crypto.JceSecurity").getDeclaredField("isRestricted");
+            field.setAccessible(true);
+
+            Field modifiersField = Field.class.getDeclaredField("modifiers");
+            modifiersField.setAccessible(true);
+            modifiersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
+
+            field.set(null, false);
+        } catch (Throwable ignored) {
+            // 其它环境比如开发时用的 Open JDK 不需要
+        }
     }
 }

@@ -3,6 +3,7 @@ package org.itxtech.nemisys;
 import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
 import io.netty.buffer.ByteBuf;
+import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
 import org.apache.logging.log4j.Level;
 import org.itxtech.nemisys.command.*;
@@ -57,6 +58,8 @@ public class Server {
     private int maxPlayers;
     private RCON rcon;
     private Network network;
+    @Getter
+    private boolean networkEncryptionEnabled;
     private BaseLang baseLang;
     private boolean forceLanguage = false;
     private UUID serverID;
@@ -126,6 +129,7 @@ public class Server {
                 put("enable-synapse-client", false);
                 put("xbox-auth", true);
                 put("enable-jmx-monitoring", false);
+                put("enable-network-encryption", true);
             }
         });
 
@@ -189,6 +193,8 @@ public class Server {
         this.pluginManager = new PluginManager(this, this.commandMap);
         this.pluginManager.registerInterface(JavaPluginLoader.class);
         this.queryRegenerateEvent = new QueryRegenerateEvent(this, 5);
+
+        this.networkEncryptionEnabled = this.getPropertyBoolean("enable-network-encryption");
 
         //this.network.registerInterface(new RakNettyInterface(this));
         this.network.registerInterface(new RakNetInterface(this));

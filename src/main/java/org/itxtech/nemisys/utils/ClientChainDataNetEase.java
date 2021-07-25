@@ -174,6 +174,7 @@ public final class ClientChainDataNetEase implements LoginChainData {
             this.xuid = profile.XUID;
             this.clientUUID = profile.identity;
             this.username = profile.displayName;
+            this.identityPublicKey = profile.clientPubKey;
         }catch (Exception e) {
             // TODO: handle exception,认证失败
             this.clientUUID = null;//若认证失败，则clientUUID为null。

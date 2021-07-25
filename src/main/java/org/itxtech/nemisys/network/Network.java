@@ -269,7 +269,7 @@ public class Network {
 
                     packets.add(pk);
                 } else {
-                    log.debug("Received unknown packet with ID: {}", Integer.toHexString(packetId));
+//                    log.debug("Received unknown packet with ID: {}", Integer.toHexString(packetId));
                 }
             }
         } catch (Exception e) {

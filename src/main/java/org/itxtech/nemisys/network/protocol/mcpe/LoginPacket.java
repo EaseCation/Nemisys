@@ -26,6 +26,7 @@ public class LoginPacket extends DataPacket {
     public UUID clientUUID;
     public long clientId;
     public String xuid;
+    public String identityPublicKey;
 
     public Skin skin;
     public byte[] cacheBuffer;
@@ -76,6 +77,8 @@ public class LoginPacket extends DataPacket {
                     if (extra.has("identity")) this.clientUUID = UUID.fromString(extra.get("identity").getAsString());
                     if (extra.has("XUID")) this.xuid = extra.get("XUID").getAsString();
                 }
+                if (chainMap.has("identityPublicKey"))
+                    this.identityPublicKey = chainMap.get("identityPublicKey").getAsString();
             }
         } catch (Exception e) {
             //Server.getInstance().getLogger().logException(e);
@@ -114,6 +117,7 @@ public class LoginPacket extends DataPacket {
             this.xuid = profile.XUID;
             this.clientUUID = profile.identity;
             this.username = profile.displayName;
+            this.identityPublicKey = profile.clientPubKey;
         }catch (Exception e) {
             Server.getInstance().getLogger().logException(e);
             // TODO: handle exception,认证失败

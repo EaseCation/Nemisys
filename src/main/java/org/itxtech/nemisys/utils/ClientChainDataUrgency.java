@@ -23,6 +23,7 @@ public final class ClientChainDataUrgency implements LoginChainData {
         data.username = pk.username;
         data.clientUUID = pk.clientUUID;
         data.xuid = pk.xuid;
+        data.identityPublicKey = pk.identityPublicKey;
         return data;
     }
 

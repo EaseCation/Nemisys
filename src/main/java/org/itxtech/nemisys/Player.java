@@ -5,6 +5,7 @@ import org.itxtech.nemisys.event.player.PlayerAsyncLoginEvent;
 import org.itxtech.nemisys.event.player.PlayerLoginEvent;
 import org.itxtech.nemisys.event.player.PlayerLogoutEvent;
 import org.itxtech.nemisys.event.player.PlayerTransferEvent;
+import org.itxtech.nemisys.network.RakNetInterface;
 import org.itxtech.nemisys.network.SourceInterface;
 import org.itxtech.nemisys.network.protocol.mcpe.*;
 import org.itxtech.nemisys.network.protocol.spp.PlayerLoginPacket;
@@ -124,6 +125,11 @@ public class Player {
                         this.neteaseClient = false;
                     }
                 }
+
+                if (this.server.isNetworkEncryptionEnabled()) {
+                    this.setupNetworkEncryption();
+                }
+
                 this.uuid = this.loginChainData.getClientUUID();
                 if (this.uuid == null) {
                     this.close(TextFormat.RED + "Please choose another name and try again!");
@@ -407,5 +413,11 @@ public class Player {
 
     public LoginChainData getLoginChainData() {
         return loginChainData;
+    }
+
+    protected void setupNetworkEncryption() {
+        if (this.interfaz instanceof RakNetInterface) {
+            ((RakNetInterface) this.interfaz).enableEncryption(this);
+        }
     }
 }
