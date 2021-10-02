@@ -28,11 +28,16 @@ public abstract class Command {
     }
 
     public Command(String name, String description, String usageMessage, String[] aliases) {
-        this.name = name;
+        this.name = name.toLowerCase();
         this.nextLabel = name;
         this.label = name;
         this.description = description;
         this.usageMessage = usageMessage == null ? "/" + name : usageMessage;
+        if (aliases != null && aliases.length > 0) {
+            for (int i = 0; i < aliases.length; i++) {
+                aliases[i] = aliases[i].toLowerCase();
+            }
+        }
         this.aliases = aliases;
         this.activeAliases = aliases;
     }
