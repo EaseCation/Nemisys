@@ -42,6 +42,7 @@ public class Player {
     private Skin skin;
     private LoginChainData loginChainData;
     protected boolean neteaseClient;
+    protected String hideName;
 
     private final AtomicBoolean ticking = new AtomicBoolean();
 
@@ -148,7 +149,7 @@ public class Player {
                         TextFormat.AQUA + this.name + TextFormat.WHITE,
                         this.getIp(),
                         String.valueOf(this.getPort()),
-                        ""+TextFormat.GREEN + this.getUUID() + TextFormat.WHITE,
+                        "" + TextFormat.GREEN + this.getUUID() + TextFormat.WHITE,
                 }));
 
                 Map<String, Client> c = this.server.getMainClients();
@@ -254,6 +255,14 @@ public class Player {
         return this.name;
     }
 
+    public String getHideName() {
+        return hideName;
+    }
+
+    public void setHideName(String hideName) {
+        this.hideName = hideName;
+    }
+
     public void removeAllPlayers() {
         PlayerListPacket pk = new PlayerListPacket();
         pk.type = PlayerListPacket.TYPE_REMOVE;
@@ -294,11 +303,15 @@ public class Player {
             pk.isFirstTime = this.isFirstTimeLogin;
             pk.cachedLoginPacket = this.cachedLoginPacket;
             pk.protocol = this.getProtocol();
-            if (extra != null) pk.extra = extra;
-            else {
+            if (extra != null) {
+                pk.extra = extra;
+            } else {
                 pk.extra.addProperty("username", this.getName());
                 pk.extra.addProperty("xuid", this.xuid);
                 pk.extra.addProperty("netease", this.isNeteaseClient());
+            }
+            if (this.hideName != null) {
+                pk.extra.addProperty("hideName", this.hideName);
             }
 
             this.client.sendDataPacket(pk);
