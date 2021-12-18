@@ -350,7 +350,7 @@ public class Client {
                     entries.add(new PlayerListPacket.Entry(entry.uuid));
                 }
             }
-            playerListPacket.entries = entries.stream().toArray(PlayerListPacket.Entry[]::new);
+            playerListPacket.entries = entries.toArray(new PlayerListPacket.Entry[0]);
             sendTo.sendDataPacket(playerListPacket);
         }
     }

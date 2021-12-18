@@ -274,7 +274,7 @@ public class Player {
             entries.add(new PlayerListPacket.Entry(p.getUUID()));
         }
 
-        pk.entries = entries.stream().toArray(PlayerListPacket.Entry[]::new);
+        pk.entries = entries.toArray(new PlayerListPacket.Entry[0]);
         this.sendDataPacket(pk);
     }
 
