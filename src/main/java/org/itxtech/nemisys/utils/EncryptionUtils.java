@@ -5,7 +5,7 @@ import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.JWSObject;
 import com.nimbusds.jose.crypto.ECDSASigner;
-import com.nimbusds.jose.jwk.ECKey;
+import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 
@@ -72,7 +72,7 @@ public final class EncryptionUtils {
      * @throws JOSEException invalid key provided
      */
     public static void signJwt(JWSObject jws, ECPrivateKey key) throws JOSEException {
-        jws.sign(new ECDSASigner(key, ECKey.Curve.P_384));
+        jws.sign(new ECDSASigner(key, Curve.P_384));
     }
 
     /**
