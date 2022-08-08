@@ -32,6 +32,7 @@ import org.itxtech.nemisys.utils.BinaryStream;
 import org.itxtech.nemisys.utils.EncryptionUtils;
 import org.itxtech.nemisys.utils.Utils;
 
+import javax.annotation.Nonnegative;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.security.auth.DestroyFailedException;
@@ -234,6 +235,9 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
 
         if (session != null) {
             packet.tryEncode();
+            if (immediate) {
+                packet.priority = RakNetPriority.IMMEDIATE;
+            }
             session.outbound.offer(packet);
         }
 
@@ -408,7 +412,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                         toBatch.clear();
                     }
 
-                    this.sendPacket(((BatchPacket) packet).payload);
+                    this.sendPacket(((BatchPacket) packet).payload, true, RakNetPriority.MEDIUM, packet.reliability, packet.getChannel());
                 } else {
                     toBatch.add(packet);
                 }
@@ -420,10 +424,10 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
         }
 
         private void sendPackets(Collection<DataPacket> packets) {
-            this.sendPackets(packets, true);
+            this.sendPackets(packets, true, RakNetPriority.IMMEDIATE, RakNetReliability.RELIABLE, 0);
         }
 
-        private void sendPackets(Collection<DataPacket> packets, boolean encrypt) {
+        private void sendPackets(Collection<DataPacket> packets, boolean encrypt, RakNetPriority priority, RakNetReliability reliability, @Nonnegative int orderingChannel) {
             BinaryStream batched = new BinaryStream();
             for (DataPacket packet : packets) {
                 Preconditions.checkArgument(!(packet instanceof BatchPacket), "Cannot batch BatchPacket");
@@ -434,17 +438,13 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
             }
 
             try {
-                this.sendPacket(Network.deflateRaw(batched.getBuffer(), 1), encrypt);
+                this.sendPacket(Network.deflateRaw(batched.getBuffer(), 1), encrypt, priority, reliability, orderingChannel);
             } catch (IOException e) {
                 log.error("Unable to compress batched packets", e);
             }
         }
 
-        private void sendPacket(byte[] payload) {
-            this.sendPacket(payload, true);
-        }
-
-        private void sendPacket(byte[] payload, boolean encrypt) {
+        private void sendPacket(byte[] payload, boolean encrypt, RakNetPriority priority, RakNetReliability reliability, @Nonnegative int orderingChannel) {
             ByteBuf byteBuf = ByteBufAllocator.DEFAULT.ioBuffer(1 + payload.length + 8);
             byteBuf.writeByte(0xfe);
             Cipher encryptCipher = this.encryptCipher;
@@ -469,7 +469,8 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
             } else {
                 byteBuf.writeBytes(payload);
             }
-            this.raknet.send(byteBuf);
+            // log.info("Sending packet, priority: {}, reliability: {}, ordering channel: {}", priority, reliability, orderingChannel);
+            this.raknet.send(byteBuf, priority, reliability, orderingChannel);
         }
 
         private synchronized void enableEncryption(String clientPublicKey, int protocol) {
@@ -500,7 +501,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
             handshake.jwt = jwt.serialize();
             handshake.tryEncode(protocol);
             // This is sent in cleartext to complete the Diffie Hellman key exchange.
-            this.sendPackets(Collections.singletonList(handshake), false);
+            this.sendPackets(Collections.singletonList(handshake), false, RakNetPriority.MEDIUM, RakNetReliability.RELIABLE, 0);
         }
 
         private byte[] calculateChecksum(long count, ByteBuf payload) {

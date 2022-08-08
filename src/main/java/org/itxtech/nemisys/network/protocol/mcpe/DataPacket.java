@@ -1,5 +1,6 @@
 package org.itxtech.nemisys.network.protocol.mcpe;
 
+import com.nukkitx.network.raknet.RakNetPriority;
 import com.nukkitx.network.raknet.RakNetReliability;
 import org.itxtech.nemisys.utils.BinaryStream;
 
@@ -10,6 +11,7 @@ import org.itxtech.nemisys.utils.BinaryStream;
 public abstract class DataPacket extends BinaryStream implements Cloneable {
 
     public volatile boolean isEncoded = false;
+    public RakNetPriority priority = RakNetPriority.MEDIUM;
     public RakNetReliability reliability = RakNetReliability.RELIABLE_ORDERED;
     private int channel = 0;
 

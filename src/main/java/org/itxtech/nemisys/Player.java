@@ -323,17 +323,17 @@ public class Player {
     }
 
     public void sendDataPacket(DataPacket pk) {
-        this.interfaz.putPacket(this, pk, false, true);
+        this.sendDataPacket(pk, false);
     }
 
     @Deprecated
     public void sendDataPacket(DataPacket pk, boolean direct) {
-        this.sendDataPacket(pk);
+        this.sendDataPacket(pk, direct, false);
     }
 
     @Deprecated
     public void sendDataPacket(DataPacket pk, boolean direct, boolean needACK) {
-        this.sendDataPacket(pk);
+        this.interfaz.putPacket(this, pk, needACK, direct);
     }
 
     public int getPing() {
@@ -354,7 +354,7 @@ public class Player {
                 DisconnectPacket pk = new DisconnectPacket();
                 pk.hideDisconnectionScreen = false;
                 pk.message = reason;
-                this.sendDataPacket(pk);
+                this.sendDataPacket(pk, true);
             }
 
             this.server.getPluginManager().callEvent(new PlayerLogoutEvent(this));
