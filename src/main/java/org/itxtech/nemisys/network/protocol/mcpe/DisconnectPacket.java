@@ -22,7 +22,7 @@ public class DisconnectPacket extends DataPacket {
 
     @Override
     public void encode(int protocol) {
-        this.reset(protocol);
+         this.reset(protocol);
         this.putBoolean(this.hideDisconnectionScreen);
         if (!this.hideDisconnectionScreen) {
             this.putString(this.message);
