@@ -468,9 +468,11 @@ public class Config {
         return content;
     }
 
+    private static final Pattern REGEX = Pattern.compile("[a-zA-Z0-9\\-_\\.]*+=+[^\\r\\n]*");
+
     private void parseProperties(String content) {
         for (String line : content.split("\n")) {
-            if (Pattern.compile("[a-zA-Z0-9\\-_\\.]*+=+[^\\r\\n]*").matcher(line).matches()) {
+            if (REGEX.matcher(line).matches()) {
                 String[] b = line.split("=", -1);
                 String k = b[0];
                 String v = b[1].trim();

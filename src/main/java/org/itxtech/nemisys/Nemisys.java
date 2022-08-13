@@ -8,6 +8,7 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import lombok.extern.log4j.Log4j2;
+import lombok.val;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
@@ -162,6 +163,10 @@ public class Nemisys {
 
     public static void setLogLevel(Level level) {
         Preconditions.checkNotNull(level, "level");
+        val context = LogManager.getContext(false);
+        if (!(context instanceof LoggerContext)) {
+            return;
+        }
         LoggerContext ctx = (LoggerContext) LogManager.getContext(false);
         Configuration log4jConfig = ctx.getConfiguration();
         LoggerConfig loggerConfig = log4jConfig.getLoggerConfig(org.apache.logging.log4j.LogManager.ROOT_LOGGER_NAME);
