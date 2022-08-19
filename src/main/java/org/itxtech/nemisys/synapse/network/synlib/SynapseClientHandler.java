@@ -13,7 +13,7 @@ import java.net.InetSocketAddress;
 public class SynapseClientHandler extends ChannelInboundHandlerAdapter {
 
     //static final ChannelGroup channels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
-    private SynapseClient synapseClient;
+    private final SynapseClient synapseClient;
 
     public SynapseClientHandler(SynapseClient synapseClient) {
         this.synapseClient = synapseClient;
@@ -51,7 +51,7 @@ public class SynapseClientHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        if (cause instanceof Exception) Server.getInstance().getLogger().logException((Exception) cause);
+        if (cause instanceof Exception) Server.getInstance().getLogger().logException(cause);
         ctx.close();
         this.getSynapseClient().setConnected(false);
     }

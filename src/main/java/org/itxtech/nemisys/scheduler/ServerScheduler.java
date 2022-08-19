@@ -4,6 +4,7 @@ import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.plugin.Plugin;
 import org.itxtech.nemisys.utils.PluginException;
 
+import java.util.Comparator;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
@@ -30,7 +31,7 @@ public class ServerScheduler {
     public ServerScheduler() {
         this.pending = new ConcurrentLinkedQueue<>();
         this.currentTaskId = new AtomicInteger();
-        this.queue = new PriorityQueue<>(11, (left, right) -> left.getNextRunTick() - right.getNextRunTick());
+        this.queue = new PriorityQueue<>(11, Comparator.comparingInt(TaskHandler::getNextRunTick));
         this.taskMap = new ConcurrentHashMap<>();
         this.asyncPool = new AsyncPool(Server.getInstance(), WORKERS);
     }

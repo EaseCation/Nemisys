@@ -1,5 +1,7 @@
 package org.itxtech.nemisys.command;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.command.defaults.*;
 import org.itxtech.nemisys.event.TranslationContainer;
@@ -14,9 +16,9 @@ import java.util.*;
  * Nukkit Project
  */
 public class SimpleCommandMap implements CommandMap {
-    protected Map<String, Command> knownCommands = new HashMap<>();
+    protected Map<String, Command> knownCommands = new Object2ObjectOpenHashMap<>();
 
-    private Server server;
+    private final Server server;
 
     public SimpleCommandMap(Server server) {
         this.server = server;
@@ -57,7 +59,7 @@ public class SimpleCommandMap implements CommandMap {
 
         boolean registered = this.registerAlias(command, false, fallbackPrefix, label);
 
-        List<String> aliases = new ArrayList<>(Arrays.asList(command.getAliases()));
+        List<String> aliases = new ObjectArrayList<>(Arrays.asList(command.getAliases()));
 
         for (Iterator<String> iterator = aliases.iterator(); iterator.hasNext(); ) {
             String alias = iterator.next();
@@ -65,7 +67,7 @@ public class SimpleCommandMap implements CommandMap {
                 iterator.remove();
             }
         }
-        command.setAliases(aliases.stream().toArray(String[]::new));
+        command.setAliases(aliases.toArray(new String[0]));
 
         if (!registered) {
             command.setLabel(fallbackPrefix + ":" + label);

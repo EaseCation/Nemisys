@@ -35,19 +35,19 @@ public abstract class AbstractSession implements Session {
     SessionListener listener;
     SessionManager sessionManager;
     ChannelHandlerContext ctx;
-    private ScheduledFuture tickTask;
+    private final ScheduledFuture tickTask;
 
     private boolean idle = true;
     private long lastUpdateTime = System.currentTimeMillis();
 
-    private PriorityBlockingQueue<PacketFuture> resendQueue = new PriorityBlockingQueue<>();
-    private FragmentAggregator aggregator = new FragmentAggregator(this);
+    private final PriorityBlockingQueue<PacketFuture> resendQueue = new PriorityBlockingQueue<>();
+    private final FragmentAggregator aggregator = new FragmentAggregator(this);
 
     //Inbound indexes
     private int inboundIndexSequenced = -1;
-    private IndexWindow frameSetWindow = new IndexWindow();
-    private IndexWindow reliableWindow = new IndexWindow();
-    private HashMap<Integer, OrderChannel> orderChannels = new HashMap<>();
+    private final IndexWindow frameSetWindow = new IndexWindow();
+    private final IndexWindow reliableWindow = new IndexWindow();
+    private final HashMap<Integer, OrderChannel> orderChannels = new HashMap<>();
 
     //Outbound indexes
     private int outboundIndexFrameSet;
@@ -350,7 +350,7 @@ public abstract class AbstractSession implements Session {
         RakNetByteBuf buf = RakNetByteBuf.buffer();
         packet.write(buf);
 
-        MainLogger.getLogger().info(reliability.id() + " " + buf.toString());
+        MainLogger.getLogger().info(reliability.id() + " " + buf);
         if (packet instanceof GameWrapperPacket) {
             MainLogger.getLogger().info("Sending GameWrapperPacket: compressed=" + ((GameWrapperPacket) packet).compressed + " len=" + ((GameWrapperPacket) packet).body.length + " " + Binary.bytesToHexString(((GameWrapperPacket) packet).body));
         }

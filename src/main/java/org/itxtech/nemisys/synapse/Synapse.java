@@ -1,5 +1,6 @@
 package org.itxtech.nemisys.synapse;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.itxtech.nemisys.Server;
 //import org.itxtech.nemisys.network.RakNettyInterface;
 import org.itxtech.nemisys.network.SourceInterface;
@@ -9,7 +10,6 @@ import org.itxtech.nemisys.utils.ConfigSection;
 import org.itxtech.nemisys.utils.MainLogger;
 
 import java.io.File;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,10 +24,10 @@ import java.util.Map;
  */
 public class Synapse {
 
-    private Server server;
-    private Config config;
+    private final Server server;
+    private final Config config;
 
-    private Map<String, SynapseEntry> synapseEntries = new HashMap<>();
+    private final Map<String, SynapseEntry> synapseEntries = new Object2ObjectOpenHashMap<>();
 
     public Synapse(Server server) {
         this.server = server;

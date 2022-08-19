@@ -1,5 +1,7 @@
 package org.itxtech.nemisys.plugin;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.itxtech.nemisys.utils.PluginException;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
@@ -112,13 +114,13 @@ public class PluginDescription {
     private String main;
     private boolean signed;
     private List<String> api;
-    private List<String> depend = new ArrayList<>();
-    private List<String> softDepend = new ArrayList<>();
-    private List<String> loadBefore = new ArrayList<>();
+    private List<String> depend = new ObjectArrayList<>();
+    private List<String> softDepend = new ObjectArrayList<>();
+    private List<String> loadBefore = new ObjectArrayList<>();
     private String version;
-    private Map<String, Object> commands = new HashMap<>();
+    private Map<String, Object> commands = new Object2ObjectOpenHashMap<>();
     private String description;
-    private List<String> authors = new ArrayList<>();
+    private final List<String> authors = new ObjectArrayList<>();
     private String website;
     private String prefix;
     private PluginLoadOrder order = PluginLoadOrder.POSTWORLD;
@@ -146,7 +148,7 @@ public class PluginDescription {
         if (api instanceof List) {
             this.api = (List<String>) api;
         } else {
-            List<String> list = new ArrayList<>();
+            List<String> list = new ObjectArrayList<>();
             list.add((String) api);
             this.api = list;
         }
@@ -155,7 +157,7 @@ public class PluginDescription {
         }
 
         if (plugin.containsKey("code_signing")) {
-            this.signed = Boolean.valueOf((String) plugin.get("code_signing"));
+            this.signed = Boolean.parseBoolean((String) plugin.get("code_signing"));
         }
 
         if (plugin.containsKey("commands") && plugin.get("commands") instanceof Map) {

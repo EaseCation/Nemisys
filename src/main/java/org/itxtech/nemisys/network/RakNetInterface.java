@@ -16,6 +16,9 @@ import io.netty.channel.socket.DatagramPacket;
 import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.FastThreadLocal;
 import io.netty.util.internal.PlatformDependent;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.apache.logging.log4j.message.FormattedMessage;
@@ -65,12 +68,12 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
 
     private final RakNetServer raknet;
 
-    private final Map<InetSocketAddress, NemisysRakNetSession> sessions = new HashMap<>();
+    private final Map<InetSocketAddress, NemisysRakNetSession> sessions = new Object2ObjectOpenHashMap<>();
 
     private final Queue<NemisysRakNetSession> sessionCreationQueue = PlatformDependent.newMpscQueue();
 
 
-    private final Set<ScheduledFuture<?>> tickFutures = new HashSet<>();
+    private final Set<ScheduledFuture<?>> tickFutures = new ObjectOpenHashSet<>();
 
     private final FastThreadLocal<Set<NemisysRakNetSession>> sessionsToTick = new FastThreadLocal<Set<NemisysRakNetSession>>() {
         @Override
@@ -399,7 +402,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
         }
 
         private void sendOutbound() {
-            List<DataPacket> toBatch = new ArrayList<>();
+            List<DataPacket> toBatch = new ObjectArrayList<>();
             DataPacket packet;
             while ((packet = this.outbound.poll()) != null) {
                 if (packet.pid() == ProtocolInfo.BATCH_PACKET) {

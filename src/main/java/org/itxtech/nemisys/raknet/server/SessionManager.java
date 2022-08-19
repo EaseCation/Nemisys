@@ -2,10 +2,13 @@ package org.itxtech.nemisys.raknet.server;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.socket.DatagramPacket;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.raknet.RakNet;
 import org.itxtech.nemisys.raknet.protocol.EncapsulatedPacket;
 import org.itxtech.nemisys.raknet.protocol.Packet;
+import org.itxtech.nemisys.raknet.protocol.Packet.PacketFactory;
 import org.itxtech.nemisys.raknet.protocol.packet.*;
 import org.itxtech.nemisys.utils.Binary;
 import org.itxtech.nemisys.utils.Hex;
@@ -15,6 +18,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * author: MagicDroidX
@@ -30,7 +34,7 @@ public class SessionManager {
     protected int receiveBytes = 0;
     protected int sendBytes = 0;
 
-    protected Map<String, Session> sessions = new HashMap<>();
+    protected Map<String, Session> sessions = new Object2ObjectOpenHashMap<>();
 
     protected String name = "";
 
@@ -41,8 +45,8 @@ public class SessionManager {
     protected long ticks = 0;
     protected long lastMeasure;
 
-    protected Map<String, Long> block = new HashMap<>();
-    protected Map<String, Integer> ipSec = new HashMap<>();
+    protected Map<String, Long> block = new Object2ObjectOpenHashMap<>();
+    protected Map<String, Integer> ipSec = new Object2ObjectOpenHashMap<>();
 
     public boolean portChecking = true;
 
@@ -55,7 +59,7 @@ public class SessionManager {
         this.socket = socket;
         this.registerPackets();
 
-        this.serverId = new Random().nextLong();
+        this.serverId = ThreadLocalRandom.current().nextLong();
 
         this.run();
     }
@@ -114,7 +118,7 @@ public class SessionManager {
 
     private void tick() throws Exception {
         long time = System.currentTimeMillis();
-        for (Session session : new ArrayList<>(this.sessions.values())) {
+        for (Session session : new ObjectArrayList<>(this.sessions.values())) {
             session.update(time);
         }
 
@@ -135,7 +139,7 @@ public class SessionManager {
 
             if (!this.block.isEmpty()) {
                 long now = System.currentTimeMillis();
-                for (String address : new ArrayList<>(this.block.keySet())) {
+                for (String address : new ObjectArrayList<>(this.block.keySet())) {
                     long timeout = this.block.get(address);
                     if (timeout <= now) {
                         this.block.remove(address);
@@ -310,7 +314,7 @@ public class SessionManager {
     private void checkSessions() {
         int size = this.sessions.size();
         if (size > 4096) {
-            List<String> keyToRemove = new ArrayList<>();
+            List<String> keyToRemove = new ObjectArrayList<>();
             for (String i : this.sessions.keySet()) {
                 Session s = this.sessions.get(i);
                 if (s.isTemporal()) {
@@ -381,10 +385,10 @@ public class SessionManager {
                             this.name = value;
                             break;
                         case "portChecking":
-                            this.portChecking = Boolean.valueOf(value);
+                            this.portChecking = Boolean.parseBoolean(value);
                             break;
                         case "packetLimit":
-                            this.packetLimit = Integer.valueOf(value);
+                            this.packetLimit = Integer.parseInt(value);
                             break;
                     }
                     break;
@@ -396,7 +400,7 @@ public class SessionManager {
                     this.blockAddress(address, timeout);
                     break;
                 case RakNet.PACKET_SHUTDOWN:
-                    for (Session session : new ArrayList<>(this.sessions.values())) {
+                    for (Session session : new ObjectArrayList<>(this.sessions.values())) {
                         this.removeSession(session);
                     }
 
@@ -484,13 +488,7 @@ public class SessionManager {
 
     private void registerPackets() {
         // fill with dummy returning null
-        Arrays.fill(this.packetPool, new Packet.PacketFactory() {
-
-            @Override
-            public Packet create() {
-                return null;
-            }
-        });
+        Arrays.fill(this.packetPool, (PacketFactory) () -> null);
 
         //this.registerPacket(UNCONNECTED_PING.ID, UNCONNECTED_PING.class);
         this.registerPacket(UNCONNECTED_PING_OPEN_CONNECTIONS.ID, new UNCONNECTED_PING_OPEN_CONNECTIONS.Factory());

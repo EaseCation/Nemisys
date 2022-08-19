@@ -1,7 +1,6 @@
 package org.itxtech.nemisys.scheduler;
 
 import org.itxtech.nemisys.Server;
-import org.itxtech.nemisys.utils.ThreadStore;
 
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -52,20 +51,6 @@ public abstract class AsyncTask implements Runnable {
 
     public void setTaskId(int taskId) {
         this.taskId = taskId;
-    }
-
-    public Object getFromThreadStore(String identifier) {
-        return this.isFinished() ? null : ThreadStore.store.get(identifier);
-    }
-
-    public void saveToThreadStore(String identifier, Object value) {
-        if (!this.isFinished()) {
-            if (value == null) {
-                ThreadStore.store.remove(identifier);
-            } else {
-                ThreadStore.store.put(identifier, value);
-            }
-        }
     }
 
     public abstract void onRun();

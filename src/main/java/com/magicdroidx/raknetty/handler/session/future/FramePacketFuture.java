@@ -9,7 +9,7 @@ import com.magicdroidx.raknetty.protocol.raknet.session.FramePacket;
  */
 public class FramePacketFuture extends PacketFuture<FramePacket> {
 
-    private Reliability reliability;
+    private final Reliability reliability;
 
     public FramePacketFuture(FramePacket packet, long sendTime, Reliability reliability) {
         super(packet, sendTime);

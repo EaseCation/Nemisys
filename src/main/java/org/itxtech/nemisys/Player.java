@@ -1,6 +1,7 @@
 package org.itxtech.nemisys;
 
 import com.google.gson.JsonObject;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.itxtech.nemisys.event.player.PlayerAsyncLoginEvent;
 import org.itxtech.nemisys.event.player.PlayerLoginEvent;
 import org.itxtech.nemisys.event.player.PlayerLogoutEvent;
@@ -17,6 +18,7 @@ import org.itxtech.nemisys.utils.*;
 import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -28,14 +30,14 @@ public class Player {
     protected UUID uuid;
     private byte[] cachedLoginPacket = new byte[0];
     protected String name;
-    private InetSocketAddress socketAddress;
-    private long clientId;
+    private final InetSocketAddress socketAddress;
+    private final long clientId;
     private long randomClientId;
     private String xuid;
     private int protocol;
-    private SourceInterface interfaz;
+    private final SourceInterface interfaz;
     private Client client;
-    private Server server;
+    private final Server server;
     private byte[] rawUUID;
     protected boolean isFirstTimeLogin = true;
     private long lastUpdate;
@@ -156,7 +158,7 @@ public class Player {
 
                 String clientHash;
                 if (c.size() > 0) {
-                    clientHash = new ArrayList<>(c.keySet()).get(new Random().nextInt(c.size()));
+                    clientHash = new ObjectArrayList<>(c.keySet()).get(ThreadLocalRandom.current().nextInt(c.size()));
                 } else {
                     clientHash = "";
                 }
@@ -266,7 +268,7 @@ public class Player {
     public void removeAllPlayers() {
         PlayerListPacket pk = new PlayerListPacket();
         pk.type = PlayerListPacket.TYPE_REMOVE;
-        List<PlayerListPacket.Entry> entries = new ArrayList<>();
+        List<PlayerListPacket.Entry> entries = new ObjectArrayList<>();
         for (Player p : this.client.getPlayers().values()) {
             if (p == this) {
                 continue;

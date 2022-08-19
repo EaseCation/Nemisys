@@ -17,9 +17,9 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class SessionManager extends RakNetPacketHandler<SessionPacket> {
 
-    private RakNetServer server;
+    private final RakNetServer server;
 
-    private Map<InetSocketAddress, ServerSession> sessions = new ConcurrentHashMap<>();
+    private final Map<InetSocketAddress, ServerSession> sessions = new ConcurrentHashMap<>();
 
     private ChannelHandlerContext ctx;
 
@@ -41,11 +41,11 @@ public class SessionManager extends RakNetPacketHandler<SessionPacket> {
     }
 
     Session get(InetSocketAddress address, boolean create) {
-        Session session = sessions.get(address);
+        ServerSession session = sessions.get(address);
         if (session == null && create) {
 
             session = new ServerSession(this, address, ctx);
-            this.sessions.put(address, (ServerSession) session);
+            this.sessions.put(address, session);
 
             if (server().listener() != null) {
                 server().listener().onSessionCreated(session);

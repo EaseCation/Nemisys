@@ -177,7 +177,7 @@ public final class ClientChainData implements LoginChainData {
 
     private String capeData;
 
-    private BinaryStream bs = new BinaryStream();
+    private final BinaryStream bs = new BinaryStream();
 
     private ClientChainData(byte[] buffer) {
         bs.setBuffer(buffer, 0);

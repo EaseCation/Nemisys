@@ -109,7 +109,7 @@ public class Skin {
     }
 
     public Skin(String base64) {
-    	byte[] decode = null;
+    	byte[] decode;
     	try {
         	decode = Base64.getUrlDecoder().decode(base64);
         } catch(IllegalArgumentException e) {

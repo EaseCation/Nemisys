@@ -2,6 +2,8 @@ package org.itxtech.nemisys.network;
 
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import lombok.extern.log4j.Log4j2;
 import org.itxtech.nemisys.Nemisys;
 import org.itxtech.nemisys.Player;
@@ -33,11 +35,11 @@ public class Network {
 
     private Class<? extends DataPacket>[] packetPool = new Class[256];
 
-    private Server server;
+    private final Server server;
 
-    private Set<SourceInterface> interfaces = new HashSet<>();
+    private final Set<SourceInterface> interfaces = new ObjectOpenHashSet<>();
 
-    private Set<AdvancedSourceInterface> advancedInterfaces = new HashSet<>();
+    private final Set<AdvancedSourceInterface> advancedInterfaces = new ObjectOpenHashSet<>();
 
     private double upload = 0;
     private double download = 0;
@@ -204,7 +206,7 @@ public class Network {
     }
 
     public void processBatch(BatchPacket packet, Player player) {
-        List<DataPacket> packets = new ArrayList<>();
+        List<DataPacket> packets = new ObjectArrayList<>();
         try {
             processBatch(packet.payload, packets);
         } catch (ProtocolException e) {

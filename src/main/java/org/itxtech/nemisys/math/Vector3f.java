@@ -138,7 +138,7 @@ public class Vector3f implements Cloneable {
     }
 
     public Vector3f ceil() {
-        return new Vector3f((int) Math.ceil(this.x), (int) Math.ceil(this.y), (int) Math.ceil(this.z));
+        return new Vector3f(Mth.ceil(this.x), Mth.ceil(this.y), Mth.ceil(this.z));
     }
 
     public Vector3f floor() {

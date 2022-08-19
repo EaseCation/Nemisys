@@ -1,6 +1,8 @@
 package org.itxtech.nemisys.synapse;
 
 import com.google.gson.Gson;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.itxtech.nemisys.Nemisys;
 import org.itxtech.nemisys.Player;
 import org.itxtech.nemisys.Server;
@@ -18,13 +20,14 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Created by boybook on 16/8/21.
  */
 public class SynapseEntry {
 
-    private Synapse synapse;
+    private final Synapse synapse;
 
     private boolean enable;
     private String serverIp;
@@ -35,7 +38,7 @@ public class SynapseEntry {
     private boolean verified = false;
     private long lastUpdate;
     private long lastRecvInfo;
-    private Map<UUID, SynapsePlayer> players = new HashMap<>();
+    private final Map<UUID, SynapsePlayer> players = new Object2ObjectOpenHashMap<>();
     private final Map<UUID, Integer> networkLatency = new ConcurrentHashMap<>();
     private SynLibInterface synLibInterface;
     private ClientData clientData;
@@ -64,8 +67,8 @@ public class SynapseEntry {
 
     public static String getRandomString(int length) { //length表示生成字符串的长度
         String base = "abcdefghijklmnopqrstuvwxyz0123456789";
-        Random random = new Random();
-        StringBuffer sb = new StringBuffer();
+        Random random = ThreadLocalRandom.current();
+        StringBuilder sb = new StringBuilder();
         for (int i = 0; i < length; i++) {
             int number = random.nextInt(base.length());
             sb.append(base.charAt(number));
@@ -150,7 +153,7 @@ public class SynapseEntry {
         BroadcastPacket broadcastPacket = new BroadcastPacket();
         broadcastPacket.direct = direct;
         broadcastPacket.payload = packet.getBuffer();
-        broadcastPacket.entries = new ArrayList<>();
+        broadcastPacket.entries = new ObjectArrayList<>();
         for (SynapsePlayer player : players) {
             broadcastPacket.entries.add(player.getUniqueId());
         }
@@ -201,10 +204,10 @@ public class SynapseEntry {
         }
 
         /*
-        for (int i = 0; i < new Random().nextInt(10) + 1; i++) {
+        for (int i = 0; i < ThreadLocalRandom.current().nextInt(10) + 1; i++) {
             InformationPacket test = new InformationPacket();
             test.type = InformationPacket.TYPE_PLUGIN_MESSAGE;
-            test.message = getRandomString(1024 * (new Random().nextInt(20) + 110));
+            test.message = getRandomString(1024 * (ThreadLocalRandom.current().nextInt(20) + 110));
             this.sendDataPacket(test);
         }*/
 
@@ -270,11 +273,11 @@ public class SynapseEntry {
                 PlayerLoginPacket playerLoginPacket = (PlayerLoginPacket) pk;
 
                 InetSocketAddress socketAddress = InetSocketAddress.createUnresolved(playerLoginPacket.address, playerLoginPacket.port);
-                SynapsePlayerCreationEvent ev = new SynapsePlayerCreationEvent(this.synLibInterface, SynapsePlayer.class, SynapsePlayer.class, new Random().nextLong(), socketAddress);
+                SynapsePlayerCreationEvent ev = new SynapsePlayerCreationEvent(this.synLibInterface, SynapsePlayer.class, SynapsePlayer.class, ThreadLocalRandom.current().nextLong(), socketAddress);
                 this.getSynapse().getServer().getPluginManager().callEvent(ev);
                 Class<? extends SynapsePlayer> clazz = ev.getPlayerClass();
                 try {
-                    Constructor constructor = clazz.getConstructor(SourceInterface.class, SynapseEntry.class, Long.class, InetSocketAddress.class);
+                    Constructor<?> constructor = clazz.getConstructor(SourceInterface.class, SynapseEntry.class, Long.class, InetSocketAddress.class);
                     SynapsePlayer player = (SynapsePlayer) constructor.newInstance(this.synLibInterface, this, ev.getClientId(), ev.getSocketAddress());
                     player.setUniqueId(playerLoginPacket.uuid);
                     this.players.put(playerLoginPacket.uuid, player);

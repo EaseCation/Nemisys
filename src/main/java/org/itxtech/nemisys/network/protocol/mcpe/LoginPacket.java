@@ -122,9 +122,7 @@ public class LoginPacket extends DataPacket {
             Server.getInstance().getLogger().logException(e);
             // TODO: handle exception,认证失败
             this.clientUUID = null;//若认证失败，则clientUUID为null。
-            return;
         }
-        return;
     }
 
     private void decodeSkinData() {

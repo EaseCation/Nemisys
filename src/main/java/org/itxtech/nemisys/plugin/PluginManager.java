@@ -1,5 +1,8 @@
 package org.itxtech.nemisys.plugin;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.command.PluginCommand;
 import org.itxtech.nemisys.command.SimpleCommandMap;
@@ -23,9 +26,9 @@ public class PluginManager {
 
     public static boolean useTimings = false;
     protected Map<String, Plugin> plugins = new LinkedHashMap<>();
-    protected Map<String, PluginLoader> fileAssociations = new HashMap<>();
-    private Server server;
-    private SimpleCommandMap commandMap;
+    protected Map<String, PluginLoader> fileAssociations = new Object2ObjectOpenHashMap<>();
+    private final Server server;
+    private final SimpleCommandMap commandMap;
 
     public PluginManager(Server server, SimpleCommandMap commandMap) {
         this.server = server;
@@ -42,7 +45,7 @@ public class PluginManager {
     public boolean registerInterface(Class<? extends PluginLoader> loaderClass) {
         if (loaderClass != null) {
             try {
-                Constructor constructor = loaderClass.getDeclaredConstructor(Server.class);
+                Constructor<?> constructor = loaderClass.getDeclaredConstructor(Server.class);
                 constructor.setAccessible(true);
                 this.fileAssociations.put(loaderClass.getName(), (PluginLoader) constructor.newInstance(this.server));
                 return true;
@@ -133,16 +136,13 @@ public class PluginManager {
             }
 
             for (final PluginLoader loader : loaders.values()) {
-                for (File file : dictionary.listFiles(new FilenameFilter() {
-                    @Override
-                    public boolean accept(File dir, String name) {
-                        for (Pattern pattern : loader.getPluginFilters()) {
-                            if (pattern.matcher(name).matches()) {
-                                return true;
-                            }
+                for (File file : dictionary.listFiles((dir, name) -> {
+                    for (Pattern pattern : loader.getPluginFilters()) {
+                        if (pattern.matcher(name).matches()) {
+                            return true;
                         }
-                        return false;
                     }
+                    return false;
                 })) {
                     if (file.isDirectory() && !includeDir) {
                         continue;
@@ -177,12 +177,12 @@ public class PluginManager {
                                 String[] apiVersion = this.server.getApiVersion().split("\\.");
 
                                 //Completely different API version
-                                if (!Objects.equals(Integer.valueOf(versionArray[0]), Integer.valueOf(apiVersion[0]))) {
+                                if (Integer.parseInt(versionArray[0]) != Integer.parseInt(apiVersion[0])) {
                                     continue;
                                 }
 
                                 //If the plugin requires new API features, being backwards compatible
-                                if (Integer.valueOf(versionArray[1]) > Integer.valueOf(apiVersion[1])) {
+                                if (Integer.parseInt(versionArray[1]) > Integer.parseInt(apiVersion[1])) {
                                     continue;
                                 }
 
@@ -204,7 +204,7 @@ public class PluginManager {
                                 if (softDependencies.containsKey(before)) {
                                     softDependencies.get(before).add(name);
                                 } else {
-                                    List<String> list = new ArrayList<>();
+                                    List<String> list = new ObjectArrayList<>();
                                     list.add(name);
                                     softDependencies.put(before, list);
                                 }
@@ -224,10 +224,10 @@ public class PluginManager {
 
             while (!plugins.isEmpty()) {
                 boolean missingDependency = true;
-                for (String name : new ArrayList<>(plugins.keySet())) {
+                for (String name : new ObjectArrayList<>(plugins.keySet())) {
                     File file = plugins.get(name);
                     if (dependencies.containsKey(name)) {
-                        for (String dependency : new ArrayList<>(dependencies.get(name))) {
+                        for (String dependency : new ObjectArrayList<>(dependencies.get(name))) {
                             if (loadedPlugins.containsKey(dependency) || this.getPlugin(dependency) != null) {
                                 dependencies.get(name).remove(dependency);
                             } else if (!plugins.containsKey(dependency)) {
@@ -243,11 +243,7 @@ public class PluginManager {
                     }
 
                     if (softDependencies.containsKey(name)) {
-                        for (String dependency : new ArrayList<>(softDependencies.get(name))) {
-                            if (loadedPlugins.containsKey(dependency) || this.getPlugin(dependency) != null) {
-                                softDependencies.get(name).remove(dependency);
-                            }
-                        }
+                        softDependencies.get(name).removeIf(dependency -> loadedPlugins.containsKey(dependency) || this.getPlugin(dependency) != null);
 
                         if (softDependencies.get(name).isEmpty()) {
                             softDependencies.remove(name);
@@ -267,7 +263,7 @@ public class PluginManager {
                 }
 
                 if (missingDependency) {
-                    for (String name : new ArrayList<>(plugins.keySet())) {
+                    for (String name : new ObjectArrayList<>(plugins.keySet())) {
                         File file = plugins.get(name);
                         if (!dependencies.containsKey(name)) {
                             softDependencies.remove(name);
@@ -292,10 +288,8 @@ public class PluginManager {
             }
 
             return loadedPlugins;
-        } else {
-
-            return new HashMap<>();
         }
+        return new Object2ObjectOpenHashMap<>();
     }
 
     public boolean isPluginEnabled(Plugin plugin) {
@@ -321,7 +315,7 @@ public class PluginManager {
     }
 
     protected List<PluginCommand> parseYamlCommands(Plugin plugin) {
-        List<PluginCommand> pluginCmds = new ArrayList<>();
+        List<PluginCommand> pluginCmds = new ObjectArrayList<>();
 
         for (Map.Entry entry : plugin.getDescription().getCommands().entrySet()) {
             String key = (String) entry.getKey();
@@ -344,7 +338,7 @@ public class PluginManager {
                 if (((Map) data).containsKey("aliases")) {
                     Object aliases = ((Map) data).get("aliases");
                     if (aliases instanceof List) {
-                        List<String> aliasList = new ArrayList<>();
+                        List<String> aliasList = new ObjectArrayList<>();
                         for (String alias : (List<String>) aliases) {
                             if (alias.contains(":")) {
                                 this.server.getLogger().critical(this.server.getLanguage().translateString("nemisys.plugin.aliasError", new String[]{alias, plugin.getDescription().getFullName()}));
@@ -353,7 +347,7 @@ public class PluginManager {
                             aliasList.add(alias);
                         }
 
-                        newCmd.setAliases(aliasList.stream().toArray(String[]::new));
+                        newCmd.setAliases(aliasList.toArray(new String[0]));
                     }
                 }
 
@@ -419,12 +413,12 @@ public class PluginManager {
             throw new PluginException("Plugin attempted to register " + listener.getClass().getName() + " while not enabled");
         }
 
-        Map<Class<? extends Event>, Set<RegisteredListener>> ret = new HashMap<>();
+        Map<Class<? extends Event>, Set<RegisteredListener>> ret = new Object2ObjectOpenHashMap<>();
         Set<Method> methods;
         try {
             Method[] publicMethods = listener.getClass().getMethods();
             Method[] privateMethods = listener.getClass().getDeclaredMethods();
-            methods = new HashSet<>(publicMethods.length + privateMethods.length, 1.0f);
+            methods = new ObjectOpenHashSet<>(publicMethods.length + privateMethods.length, 0.999999f);
             Collections.addAll(methods, publicMethods);
             Collections.addAll(methods, privateMethods);
         } catch (NoClassDefFoundError e) {
@@ -449,14 +443,14 @@ public class PluginManager {
             method.setAccessible(true);
             Set<RegisteredListener> eventSet = ret.get(eventClass);
             if (eventSet == null) {
-                eventSet = new HashSet<>();
+                eventSet = new ObjectOpenHashSet<>();
                 ret.put(eventClass, eventSet);
             }
 
             for (Class<?> clazz = eventClass; Event.class.isAssignableFrom(clazz); clazz = clazz.getSuperclass()) {
                 // This loop checks for extending deprecated events
                 if (clazz.getAnnotation(Deprecated.class) != null) {
-                    if (Boolean.valueOf(String.valueOf(this.server.getConfig("settings.deprecated-verbpse", true)))) {
+                    if (Boolean.parseBoolean(String.valueOf(this.server.getConfig("settings.deprecated-verbpse", true)))) {
                         this.server.getLogger().warning(this.server.getLanguage().translateString("nemisys.plugin.deprecatedEvent", new String[]{plugin.getName(), clazz.getName(), listener.getClass().getName() + "." + method.getName() + "()"}));
                     }
                     break;

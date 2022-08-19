@@ -1,5 +1,6 @@
 package org.itxtech.nemisys.event;
 
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.itxtech.nemisys.plugin.Plugin;
 import org.itxtech.nemisys.plugin.RegisteredListener;
 
@@ -10,14 +11,14 @@ import java.util.*;
  */
 public class HandlerList {
 
-    private static final ArrayList<HandlerList> allLists = new ArrayList<>();
-    private final EnumMap<EventPriority, ArrayList<RegisteredListener>> handlerslots;
+    private static final List<HandlerList> allLists = new ObjectArrayList<>();
+    private final EnumMap<EventPriority, List<RegisteredListener>> handlerslots;
     private volatile RegisteredListener[] handlers = null;
 
     public HandlerList() {
         handlerslots = new EnumMap<>(EventPriority.class);
         for (EventPriority o : EventPriority.values()) {
-            handlerslots.put(o, new ArrayList<>());
+            handlerslots.put(o, new ObjectArrayList<>());
         }
         synchronized (allLists) {
             allLists.add(this);
@@ -61,8 +62,8 @@ public class HandlerList {
         }
     }
 
-    public static ArrayList<RegisteredListener> getRegisteredListeners(Plugin plugin) {
-        ArrayList<RegisteredListener> listeners = new ArrayList<>();
+    public static List<RegisteredListener> getRegisteredListeners(Plugin plugin) {
+        List<RegisteredListener> listeners = new ObjectArrayList<>();
         synchronized (allLists) {
             for (HandlerList h : allLists) {
                 synchronized (h) {
@@ -79,9 +80,9 @@ public class HandlerList {
         return listeners;
     }
 
-    public static ArrayList<HandlerList> getHandlerLists() {
+    public static List<HandlerList> getHandlerLists() {
         synchronized (allLists) {
-            return new ArrayList<>(allLists);
+            return new ObjectArrayList<>(allLists);
         }
     }
 
@@ -132,11 +133,11 @@ public class HandlerList {
 
     public synchronized void bake() {
         if (handlers != null) return; // don't re-bake when still valid
-        List<RegisteredListener> entries = new ArrayList<>();
-        for (Map.Entry<EventPriority, ArrayList<RegisteredListener>> entry : handlerslots.entrySet()) {
+        List<RegisteredListener> entries = new ObjectArrayList<>();
+        for (Map.Entry<EventPriority, List<RegisteredListener>> entry : handlerslots.entrySet()) {
             entries.addAll(entry.getValue());
         }
-        handlers = entries.toArray(new RegisteredListener[entries.size()]);
+        handlers = entries.toArray(new RegisteredListener[0]);
     }
 
     public RegisteredListener[] getRegisteredListeners() {

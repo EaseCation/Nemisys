@@ -2,16 +2,18 @@ package org.itxtech.nemisys.network.synlib;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import lombok.extern.log4j.Log4j2;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.network.protocol.spp.SynapseDataPacket;
 
 /**
  * Handles a server-side channel.
  */
+@Log4j2
 public class SynapseServerHandler extends ChannelInboundHandlerAdapter {
 
     //static final ChannelGroup channels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
-    private SessionManager sessionManager;
+    private final SessionManager sessionManager;
 
     public SynapseServerHandler(SessionManager sessionManager) {
         this.sessionManager = sessionManager;
@@ -49,7 +51,7 @@ public class SynapseServerHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        cause.printStackTrace();
+        log.throwing(cause);
         ctx.close();
     }
 }

@@ -1,5 +1,6 @@
 package org.itxtech.nemisys.raknet.protocol;
 
+import org.itxtech.nemisys.math.Mth;
 import org.itxtech.nemisys.utils.Binary;
 
 import java.io.ByteArrayOutputStream;
@@ -47,7 +48,7 @@ public class EncapsulatedPacket implements Cloneable {
             packet.identifierACK = Binary.readInt(Binary.subBytes(binary, 5, 4));
             offset = 9;
         } else {
-            length = (int) Math.ceil(((double) Binary.readShort(Binary.subBytes(binary, 1, 2)) / 8));
+            length = Mth.ceil(((double) Binary.readShort(Binary.subBytes(binary, 1, 2)) / 8));
             offset = 3;
             packet.identifierACK = null;
         }

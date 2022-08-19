@@ -6,7 +6,6 @@ import org.itxtech.nemisys.network.protocol.spp.*;
 import org.itxtech.nemisys.network.synlib.SynapseClientPacket;
 import org.itxtech.nemisys.network.synlib.SynapseServer;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -15,23 +14,26 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class SynapseInterface {
 
-    private static Map<Byte, SynapseDataPacket> packetPool = new HashMap<>();
-    private Server server;
-    private String ip;
-    private int port;
-    private Map<String, Client> clients = new ConcurrentHashMap<>();
-    private SynapseServer interfaz;
+    private static final SynapseDataPacket[] packetPool = new SynapseDataPacket[SynapseInfo.COUNT];
+    private final Server server;
+    private final String ip;
+    private final int port;
+    private final Map<String, Client> clients = new ConcurrentHashMap<>();
+    private final SynapseServer interfaz;
 
     public SynapseInterface(Server server, String ip, int port) {
         this.server = server;
         this.ip = ip;
         this.port = port;
-        this.registerPackets();
         this.interfaz = new SynapseServer(server.getLogger(), this, port, ip);
     }
 
     public static SynapseDataPacket getPacket(byte pid, byte[] buffer) {
-        SynapseDataPacket clazz = packetPool.get(pid);
+        if (pid < 0 || pid >= SynapseInfo.COUNT) {
+            return null;
+        }
+
+        SynapseDataPacket clazz = packetPool[pid];
         if (clazz != null) {
             SynapseDataPacket pk = clazz.clone();
             pk.setBuffer(buffer, 0);
@@ -40,8 +42,8 @@ public class SynapseInterface {
         return null;
     }
 
-    public static void registerPacket(byte id, SynapseDataPacket packet) {
-        packetPool.put(id, packet);
+    private static void registerPacket(byte id, SynapseDataPacket packet) {
+        packetPool[id] = packet;
     }
 
     public SynapseServer getInterface() {
@@ -116,8 +118,7 @@ public class SynapseInterface {
         }
     }
 
-    private void registerPackets() {
-        packetPool.clear();
+    static {
         registerPacket(SynapseInfo.HEARTBEAT_PACKET, new HeartbeatPacket());
         registerPacket(SynapseInfo.CONNECT_PACKET, new ConnectPacket());
         registerPacket(SynapseInfo.DISCONNECT_PACKET, new DisconnectPacket());

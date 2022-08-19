@@ -1,9 +1,10 @@
 package org.itxtech.nemisys.utils;
 
-import com.google.common.collect.Maps;
+import it.unimi.dsi.fastutil.chars.Char2ObjectMap;
+import it.unimi.dsi.fastutil.chars.Char2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectRBTreeMap;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.regex.Pattern;
 
 public enum TextFormat {
@@ -102,9 +103,9 @@ public enum TextFormat {
      */
     public static final char ESCAPE = '\u00A7';
 
-    private static final Pattern CLEAN_PATTERN = Pattern.compile("(?i)" + String.valueOf(ESCAPE) + "[0-9A-FK-OR]");
-    private final static Map<Integer, TextFormat> BY_ID = Maps.newTreeMap();
-    private final static Map<Character, TextFormat> BY_CHAR = new HashMap<>();
+    private static final Pattern CLEAN_PATTERN = Pattern.compile("(?i)" + ESCAPE + "[0-9A-FK-OR]");
+    private final static Int2ObjectMap<TextFormat> BY_ID = new Int2ObjectRBTreeMap<>();
+    private final static Char2ObjectMap<TextFormat> BY_CHAR = new Char2ObjectOpenHashMap<>();
 
     static {
         for (TextFormat color : values()) {
@@ -210,7 +211,7 @@ public enum TextFormat {
      * @return Any remaining chat color to pass onto the next line.
      */
     public static String getLastColors(String input) {
-        String result = "";
+        StringBuilder result = new StringBuilder();
         int length = input.length();
 
         // Search backwards from the end as it is faster
@@ -221,7 +222,7 @@ public enum TextFormat {
                 TextFormat color = getByChar(c);
 
                 if (color != null) {
-                    result = color.toString() + result;
+                    result.insert(0, color);
 
                     // Once we find a color or reset we can stop searching
                     if (color.isColor() || color.equals(RESET)) {
@@ -231,7 +232,7 @@ public enum TextFormat {
             }
         }
 
-        return result;
+        return result.toString();
     }
 
     /**

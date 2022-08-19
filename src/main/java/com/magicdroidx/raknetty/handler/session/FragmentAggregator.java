@@ -14,9 +14,9 @@ import java.util.HashMap;
  */
 public class FragmentAggregator {
 
-    private Session session;
+    private final Session session;
 
-    private HashMap<Integer, ByteBuf[]> fragmentPool = new HashMap<>();
+    private final HashMap<Integer, ByteBuf[]> fragmentPool = new HashMap<>();
 
     public FragmentAggregator(Session session) {
         this.session = session;

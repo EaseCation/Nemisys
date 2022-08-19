@@ -10,7 +10,7 @@ import io.netty.buffer.ByteBuf;
  */
 public class GamePacket implements Packet {
 
-    private int id;
+    private final int id;
 
     public GamePacket(int id) {
         this.id = id;

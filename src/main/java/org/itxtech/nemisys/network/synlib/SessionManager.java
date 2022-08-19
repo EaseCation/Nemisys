@@ -1,12 +1,12 @@
 package org.itxtech.nemisys.network.synlib;
 
 import io.netty.channel.Channel;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.math.NemisysMath;
 import org.itxtech.nemisys.utils.MainLogger;
 
 import java.net.InetSocketAddress;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -14,12 +14,12 @@ import java.util.Map;
  * Nemisys Project
  */
 public class SessionManager {
-    private SynapseServer server;
-    private Map<String, Channel> sessions = new HashMap<>();
+    private final SynapseServer server;
+    private final Map<String, Channel> sessions = new Object2ObjectOpenHashMap<>();
     private long nextTick;
     private int tickCounter;
-    private float[] tickAverage = {100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100};
-    private float[] useAverage = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    private final float[] tickAverage = {100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100};
+    private final float[] useAverage = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     private float maxTick = 100;
     private float maxUse = 0;
     public SessionManager(SynapseServer server) {

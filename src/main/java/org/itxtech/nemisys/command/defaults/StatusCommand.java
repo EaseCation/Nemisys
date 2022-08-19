@@ -3,6 +3,7 @@ package org.itxtech.nemisys.command.defaults;
 import org.itxtech.nemisys.Nemisys;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.command.CommandSender;
+import org.itxtech.nemisys.math.Mth;
 import org.itxtech.nemisys.math.NemisysMath;
 import org.itxtech.nemisys.utils.TextFormat;
 
@@ -23,10 +24,10 @@ public class StatusCommand extends VanillaCommand {
         sender.sendMessage(TextFormat.GREEN + "---- " + TextFormat.WHITE + "Server status" + TextFormat.GREEN + " ----");
 
         long time = (System.currentTimeMillis() - Nemisys.START_TIME) / 1000;
-        int seconds = NemisysMath.floorDouble(time % 60);
-        int minutes = NemisysMath.floorDouble((time % 3600) / 60);
-        int hours = NemisysMath.floorDouble(time % (3600 * 24) / 3600);
-        int days = NemisysMath.floorDouble(time / (3600 * 24));
+        int seconds = Mth.floor(time % 60);
+        int minutes = Mth.floor((time % 3600) / 60);
+        int hours = Mth.floor(time % (3600 * 24) / 3600);
+        int days = Mth.floor(time / (3600 * 24));
         String upTimeString = ""+TextFormat.RED + days + TextFormat.GOLD + " days " +
                 TextFormat.RED + hours + TextFormat.GOLD + " hours " +
                 TextFormat.RED + minutes + TextFormat.GOLD + " minutes " +

@@ -1,5 +1,6 @@
 package org.itxtech.nemisys.plugin;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.event.plugin.PluginDisableEvent;
 import org.itxtech.nemisys.event.plugin.PluginEnableEvent;
@@ -21,10 +22,10 @@ import java.util.regex.Pattern;
  */
 public class JavaPluginLoader implements PluginLoader {
 
-    private Server server;
+    private final Server server;
 
-    private Map<String, Class> classes = new HashMap<>();
-    private Map<String, PluginClassLoader> classLoaders = new HashMap<>();
+    private final Map<String, Class> classes = new Object2ObjectOpenHashMap<>();
+    private final Map<String, PluginClassLoader> classLoaders = new Object2ObjectOpenHashMap<>();
 
     public JavaPluginLoader(Server server) {
         this.server = server;
@@ -37,7 +38,7 @@ public class JavaPluginLoader implements PluginLoader {
             this.server.getLogger().info(this.server.getLanguage().translateString("nemisys.plugin.load", description.getFullName()));
             File dataFolder = new File(file.getParentFile(), description.getName());
             if (dataFolder.exists() && !dataFolder.isDirectory()) {
-                throw new IllegalStateException("Projected dataFolder '" + dataFolder.toString() + "' for " + description.getName() + " exists and is not a directory");
+                throw new IllegalStateException("Projected dataFolder '" + dataFolder + "' for " + description.getName() + " exists and is not a directory");
             }
 
             String className = description.getMain();

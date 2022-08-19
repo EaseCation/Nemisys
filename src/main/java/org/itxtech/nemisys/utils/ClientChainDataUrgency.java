@@ -132,7 +132,7 @@ public final class ClientChainDataUrgency implements LoginChainData {
 
     private String capeData;
 
-    private BinaryStream bs = new BinaryStream();
+    private final BinaryStream bs = new BinaryStream();
 
     private ClientChainDataUrgency(byte[] buffer) {
         bs.setBuffer(buffer, 0);

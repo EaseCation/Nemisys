@@ -20,11 +20,10 @@ public final class MathUtil {
     public static double getMax(double[] inputData) {
         if (inputData == null || inputData.length == 0)
             return -1;
-        int len = inputData.length;
         double max = inputData[0];
-        for (int i = 0; i < len; i++) {
-            if (max < inputData[i])
-                max = inputData[i];
+        for (double inputDatum : inputData) {
+            if (max < inputDatum)
+                max = inputDatum;
         }
         return max;
     }
@@ -39,11 +38,10 @@ public final class MathUtil {
     public static double getMin(double[] inputData) {
         if (inputData == null || inputData.length == 0)
             return -1;
-        int len = inputData.length;
         double min = inputData[0];
-        for (int i = 0; i < len; i++) {
-            if (min > inputData[i])
-                min = inputData[i];
+        for (double inputDatum : inputData) {
+            if (min > inputDatum)
+                min = inputDatum;
         }
         return min;
     }
@@ -58,10 +56,9 @@ public final class MathUtil {
     public static double getSum(double[] inputData) {
         if (inputData == null || inputData.length == 0)
             return -1;
-        int len = inputData.length;
         double sum = 0;
-        for (int i = 0; i < len; i++) {
-            sum = sum + inputData[i];
+        for (double inputDatum : inputData) {
+            sum = sum + inputDatum;
         }
 
         return sum;
@@ -108,12 +105,10 @@ public final class MathUtil {
     public static double getSquareSum(double[] inputData) {
         if(inputData==null||inputData.length==0)
             return -1;
-        int len=inputData.length;
         double sqrsum = 0.0;
-        for (int i = 0; i <len; i++) {
-            sqrsum = sqrsum + inputData[i] * inputData[i];
+        for (double inputDatum : inputData) {
+            sqrsum = sqrsum + inputDatum * inputDatum;
         }
-
 
         return sqrsum;
     }

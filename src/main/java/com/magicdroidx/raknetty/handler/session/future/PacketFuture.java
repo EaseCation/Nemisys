@@ -8,7 +8,7 @@ import com.magicdroidx.raknetty.protocol.Packet;
  */
 public class PacketFuture<I extends Packet> implements Comparable<PacketFuture> {
 
-    private I packet;
+    private final I packet;
     private long sendTime;
 
     PacketFuture(I packet, long sendTime) {

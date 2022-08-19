@@ -5,6 +5,7 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import lombok.extern.log4j.Log4j2;
 import org.itxtech.nemisys.InterruptibleThread;
 import org.itxtech.nemisys.Nemisys;
 import org.itxtech.nemisys.Server;
@@ -14,6 +15,7 @@ import org.itxtech.nemisys.utils.ThreadedLogger;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+@Log4j2
 public class SynapseServer extends Thread implements InterruptibleThread {
 
     public static final String VERSION = "0.3.0";
@@ -24,12 +26,12 @@ public class SynapseServer extends Thread implements InterruptibleThread {
     protected ConcurrentLinkedQueue<String> clientOpenQueue;
     protected ConcurrentLinkedQueue<String> internalClientCloseQueue;
     protected ConcurrentLinkedQueue<String> externalClientCloseQueue;
-    private ThreadedLogger logger;
-    private String interfaz;
-    private int port;
+    private final ThreadedLogger logger;
+    private final String interfaz;
+    private final int port;
     private boolean shutdown = false;
-    private String mainPath;
-    private SynapseInterface server;
+    private final String mainPath;
+    private final SynapseInterface server;
     private SessionManager sessionManager;
 
     public SynapseServer(ThreadedLogger logger, SynapseInterface server, int port) {
@@ -137,7 +139,7 @@ public class SynapseServer extends Thread implements InterruptibleThread {
                 Server.getInstance().shutdown();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            log.throwing(e);
         }
     }
 

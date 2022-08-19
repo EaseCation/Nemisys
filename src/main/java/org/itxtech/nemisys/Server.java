@@ -3,6 +3,8 @@ package org.itxtech.nemisys;
 import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
 import io.netty.buffer.ByteBuf;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
 import org.apache.logging.log4j.Level;
@@ -26,6 +28,7 @@ import org.itxtech.nemisys.scheduler.ServerScheduler;
 import org.itxtech.nemisys.synapse.Synapse;
 import org.itxtech.nemisys.synapse.SynapseEntry;
 import org.itxtech.nemisys.utils.*;
+import org.itxtech.nemisys.utils.ClientData.Entry;
 
 import java.io.File;
 import java.net.InetSocketAddress;
@@ -40,43 +43,42 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class Server {
 
     private static Server instance = null;
-    public int uptime = 0;
-    private AtomicBoolean isRunning = new AtomicBoolean(true);
+    private final AtomicBoolean isRunning = new AtomicBoolean(true);
     private boolean hasStopped = false;
-    private PluginManager pluginManager;
-    private ServerScheduler scheduler;
+    private final PluginManager pluginManager;
+    private final ServerScheduler scheduler;
     private int tickCounter;
     private long nextTick;
     private final float[] tickAverage = {20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20};
-    private float[] useAverage = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    private final float[] useAverage = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     private float maxTick = 20;
     private float maxUse = 0;
     private final NemisysConsole console;
     private final ConsoleThread consoleThread;
-    private SimpleCommandMap commandMap;
-    private ConsoleCommandSender consoleSender;
-    private int maxPlayers;
+    private final SimpleCommandMap commandMap;
+    private final ConsoleCommandSender consoleSender;
+    private final int maxPlayers;
     private RCON rcon;
-    private Network network;
+    private final Network network;
     @Getter
-    private boolean networkEncryptionEnabled;
-    private BaseLang baseLang;
-    private boolean forceLanguage = false;
-    private UUID serverID;
-    private String filePath;
-    private String dataPath;
-    private String pluginPath;
+    private final boolean networkEncryptionEnabled;
+    private final BaseLang baseLang;
+    private final boolean forceLanguage = false;
+    private final UUID serverID;
+    private final String filePath;
+    private final String dataPath;
+    private final String pluginPath;
     private QueryHandler queryHandler;
     private QueryRegenerateEvent queryRegenerateEvent;
-    private Config properties;
-    private Map<InetSocketAddress, Player> players = new HashMap<>();
-    private SynapseInterface synapseInterface;
-    private Map<String, Client> clients = new HashMap<>();
+    private final Config properties;
+    private final Map<InetSocketAddress, Player> players = new Object2ObjectOpenHashMap<>();
+    private final SynapseInterface synapseInterface;
+    private final Map<String, Client> clients = new Object2ObjectOpenHashMap<>();
     private ClientData clientData = new ClientData();
     private String clientDataJson = "";
-    private Map<String, Client> mainClients = new HashMap<>();
+    private final Map<String, Client> mainClients = new Object2ObjectOpenHashMap<>();
     private Synapse synapse;
-    private boolean enableJmxMonitoring = false;
+    private final boolean enableJmxMonitoring;
     /**
      * 过去 100 tick 的耗时 (ns). 用于 JMX Monitoring.
      */
@@ -273,7 +275,7 @@ public class Server {
         if (this.clients.size() > 0) {
             this.clientData = new ClientData();
             for (Client client : this.clients.values()) {
-                ClientData.Entry entry = this.clientData.new Entry(client.getIp(), client.getPort(), client.getPlayers().size(),
+                ClientData.Entry entry = new Entry(client.getIp(), client.getPort(), client.getPlayers().size(),
                         client.getMaxPlayers(), client.getDescription(), client.getTicksPerSecond(), client.getTickUsage(), client.getUpTime());
                 this.clientData.clientList.put(client.getHash(), entry);
             }
@@ -339,8 +341,8 @@ public class Server {
                 this.rcon.close();
             }
 
-            for (Client client : new ArrayList<>(this.clients.values())) {
-                for (Player player : new ArrayList<>(client.getPlayers().values())) {
+            for (Client client : new ObjectArrayList<>(this.clients.values())) {
+                for (Player player : new ObjectArrayList<>(client.getPlayers().values())) {
                     player.close((String) this.getConfig("settings.shutdown-message", "Proxy closed"));
                 }
                 client.close("Synapse server closed");
@@ -360,7 +362,7 @@ public class Server {
             this.consoleThread.interrupt();
 
             log.debug("Stopping network interfaces");
-            for (SourceInterface interfaz : new ArrayList<>(this.network.getInterfaces())) {
+            for (SourceInterface interfaz : new ObjectArrayList<>(this.network.getInterfaces())) {
                 interfaz.shutdown();
                 this.network.unregisterInterface(interfaz);
             }
@@ -455,11 +457,11 @@ public class Server {
 
         this.scheduler.mainThreadHeartbeat(this.tickCounter);
 
-        for (Player player : new ArrayList<>(this.players.values())) {
+        for (Player player : new ObjectArrayList<>(this.players.values())) {
             player.onUpdate(this.tickCounter);
         }
 
-        for (Client client : new ArrayList<>(this.clients.values())) {
+        for (Client client : new ObjectArrayList<>(this.clients.values())) {
             client.onUpdate(this.tickCounter);
         }
 
@@ -709,7 +711,7 @@ public class Server {
 
     public Player[] matchPlayer(String partialName) {
         partialName = partialName.toLowerCase();
-        List<Player> matchedPlayer = new ArrayList<>();
+        List<Player> matchedPlayer = new ObjectArrayList<>();
         for (Player player : this.getOnlinePlayers().values()) {
             if (player.getName().toLowerCase().equals(partialName)) {
                 return new Player[]{player};
@@ -727,7 +729,7 @@ public class Server {
             return;
         }
 
-        for (InetSocketAddress socketAddress : new ArrayList<>(this.players.keySet())) {
+        for (InetSocketAddress socketAddress : new ObjectArrayList<>(this.players.keySet())) {
             Player p = this.players.get(socketAddress);
             if (player == p) {
                 this.players.remove(socketAddress);
@@ -855,7 +857,7 @@ public class Server {
         byte[] data;
         data = Binary.appendBytes(payload);
 
-        List<InetSocketAddress> targets = new ArrayList<>();
+        List<InetSocketAddress> targets = new ObjectArrayList<>();
         for (Player p : players) {
             if (!p.closed) {
                 targets.add(p.getSocketAddress());

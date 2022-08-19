@@ -969,7 +969,7 @@ class WrappedBuf extends ByteBuf {
 
     @Override
     public String toString() {
-        return StringUtil.simpleClassName(this) + '(' + buf.toString() + ')';
+        return StringUtil.simpleClassName(this) + '(' + buf + ')';
     }
 
     @Override

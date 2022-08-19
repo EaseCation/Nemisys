@@ -14,9 +14,9 @@ public class OrderChannel {
     private static final int MAX_SIZE = 128;
     private int start = -1;
     private int end = -1;
-    private HashMap<Integer, FramePacket> packets = new HashMap<>();
+    private final HashMap<Integer, FramePacket> packets = new HashMap<>();
 
-    private Session session;
+    private final Session session;
 
     public OrderChannel(Session session) {
         this.session = session;

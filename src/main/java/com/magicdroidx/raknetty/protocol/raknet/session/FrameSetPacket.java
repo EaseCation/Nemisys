@@ -16,7 +16,7 @@ public final class FrameSetPacket extends SessionPacket {
 
     public int index;
 
-    private List<FramePacket> frames = new ArrayList<>();
+    private final List<FramePacket> frames = new ArrayList<>();
 
     public FrameSetPacket() {
         super(FrameSetPacket.ID);

@@ -5,6 +5,7 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import lombok.extern.log4j.Log4j2;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.network.protocol.spp.SynapseDataPacket;
 import org.itxtech.nemisys.utils.ThreadedLogger;
@@ -14,15 +15,16 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 /**
  * Created by boybook on 16/6/24.
  */
+@Log4j2
 public class SynapseClient extends Thread {
 
     public static final String VERSION = "0.3.0";
     public boolean needReconnect = false;
     protected ConcurrentLinkedQueue<SynapseDataPacket> externalQueue;
     protected ConcurrentLinkedQueue<SynapseDataPacket> internalQueue;
-    private ThreadedLogger logger;
-    private String interfaz;
-    private int port;
+    private final ThreadedLogger logger;
+    private final String interfaz;
+    private final int port;
     private boolean shutdown = false;
     private boolean needAuth = true;
     private boolean connected = false;
@@ -131,7 +133,7 @@ public class SynapseClient extends Thread {
             this.connect();
             this.session.run();
         } catch (Exception e) {
-            e.printStackTrace();
+            log.throwing(e);
         }
     }
 

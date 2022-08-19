@@ -24,7 +24,7 @@ public class QueryHandler {
     public static final byte HANDSHAKE = 0x09;
     public static final byte STATISTICS = 0x00;
 
-    private Server server;
+    private final Server server;
     private byte[] lastToken;
     private byte[] token;
     private byte[] longData;
@@ -71,7 +71,7 @@ public class QueryHandler {
         this.lastToken = this.token;
         byte[] token = new byte[16];
         for (int i = 0; i < 16; i++) {
-            token[i] = (byte) new Random().nextInt(255);
+            token[i] = (byte) ThreadLocalRandom.current().nextInt(255);
         }
         this.token = token;
     }

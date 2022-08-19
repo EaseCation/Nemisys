@@ -1,5 +1,8 @@
 package org.itxtech.nemisys.network.rcon;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import org.itxtech.nemisys.Server;
 
 import java.io.IOException;
@@ -12,7 +15,7 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
@@ -25,13 +28,13 @@ public class RCONServer extends Thread {
     private static final int SERVERDATA_AUTH_RESPONSE = 2;
     private static final int SERVERDATA_EXECCOMMAND = 2;
     private static final int SERVERDATA_RESPONSE_VALUE = 0;
-    private final List<RCONCommand> receiveQueue = new ArrayList<>();
-    private final Map<SocketChannel, List<RCONPacket>> sendQueues = new HashMap<>();
+    private final List<RCONCommand> receiveQueue = new ObjectArrayList<>();
+    private final Map<SocketChannel, List<RCONPacket>> sendQueues = new Object2ObjectOpenHashMap<>();
     private volatile boolean running;
-    private ServerSocketChannel serverChannel;
-    private Selector selector;
-    private String password;
-    private Set<SocketChannel> rconSessions = new HashSet<>();
+    private final ServerSocketChannel serverChannel;
+    private final Selector selector;
+    private final String password;
+    private final Set<SocketChannel> rconSessions = new ObjectOpenHashSet<>();
 
     public RCONServer(String address, int port, String password) throws IOException {
         this.setName("RCON");
@@ -128,24 +131,16 @@ public class RCONServer extends Thread {
         } catch (IOException exception) {
             key.cancel();
             channel.close();
-            if (this.rconSessions.contains(channel)) {
-                this.rconSessions.remove(channel);
-            }
-            if (this.sendQueues.containsKey(channel)) {
-                this.sendQueues.remove(channel);
-            }
+            this.rconSessions.remove(channel);
+            this.sendQueues.remove(channel);
             return;
         }
 
         if (bytesRead == -1) {
             key.cancel();
             channel.close();
-            if (this.rconSessions.contains(channel)) {
-                this.rconSessions.remove(channel);
-            }
-            if (this.sendQueues.containsKey(channel)) {
-                this.sendQueues.remove(channel);
-            }
+            this.rconSessions.remove(channel);
+            this.sendQueues.remove(channel);
             return;
         }
 
@@ -157,9 +152,8 @@ public class RCONServer extends Thread {
         switch (packet.getType()) {
             case SERVERDATA_AUTH:
                 byte[] payload = new byte[1];
-                payload[0] = 0;
 
-                if (new String(packet.getPayload(), Charset.forName("UTF-8")).equals(this.password)) {
+                if (new String(packet.getPayload(), StandardCharsets.UTF_8).equals(this.password)) {
                     this.rconSessions.add(channel);
                     this.send(channel, new RCONPacket(packet.getId(), SERVERDATA_AUTH_RESPONSE, payload));
                     return;
@@ -172,7 +166,7 @@ public class RCONServer extends Thread {
                     return;
                 }
 
-                String command = new String(packet.getPayload(), Charset.forName("UTF-8")).trim();
+                String command = new String(packet.getPayload(), StandardCharsets.UTF_8).trim();
                 synchronized (this.receiveQueue) {
                     this.receiveQueue.add(new RCONCommand(channel, packet.getId(), command));
                 }
@@ -193,12 +187,8 @@ public class RCONServer extends Thread {
             } catch (IOException exception) {
                 key.cancel();
                 channel.close();
-                if (this.rconSessions.contains(channel)) {
-                    this.rconSessions.remove(channel);
-                }
-                if (this.sendQueues.containsKey(channel)) {
-                    this.sendQueues.remove(channel);
-                }
+                this.rconSessions.remove(channel);
+                this.sendQueues.remove(channel);
                 return;
             }
 
@@ -218,7 +208,7 @@ public class RCONServer extends Thread {
         synchronized (this.sendQueues) {
             List<RCONPacket> queue = sendQueues.get(channel);
             if (queue == null) {
-                queue = new ArrayList<>();
+                queue = new ObjectArrayList<>();
                 sendQueues.put(channel, queue);
             }
             queue.add(packet);

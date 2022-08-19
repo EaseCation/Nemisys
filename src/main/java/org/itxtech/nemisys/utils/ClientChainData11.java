@@ -134,7 +134,7 @@ public final class ClientChainData11 implements LoginChainData {
 
     private int UIProfile;
 
-    private BinaryStream bs = new BinaryStream();
+    private final BinaryStream bs = new BinaryStream();
 
     private ClientChainData11(byte[] buffer) {
         bs.setBuffer(buffer, 0);

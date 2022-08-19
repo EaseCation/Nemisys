@@ -18,7 +18,7 @@ import java.net.InetSocketAddress;
 @SuppressWarnings({"unused", "WeakerAccess"})
 public class RakNetPacket implements Packet {
 
-    private int id;
+    private final int id;
 
     public RakNetPacket(int id) {
         this.id = id;

@@ -20,7 +20,7 @@ import java.util.UUID;
 
 public class SynapsePlayer extends Player {
 
-    private SynapseEntry synapseEntry;
+    private final SynapseEntry synapseEntry;
     private JsonObject cachedExtra;
 
     public SynapsePlayer(SourceInterface interfaz, SynapseEntry synapseEntry, Long clientID, InetSocketAddress socketAddress) {

@@ -4,6 +4,7 @@ import java.io.*;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.UUID;
 
 /**
@@ -56,7 +57,7 @@ public class Utils {
         if (!file.exists() || file.isDirectory()) {
             throw new FileNotFoundException();
         }
-        return readFile(new FileInputStream(file));
+        return readFile(Files.newInputStream(file.toPath()));
     }
 
     public static String readFile(String filename) throws IOException {
@@ -64,7 +65,7 @@ public class Utils {
         if (!file.exists() || file.isDirectory()) {
             throw new FileNotFoundException();
         }
-        return readFile(new FileInputStream(file));
+        return readFile(Files.newInputStream(file.toPath()));
     }
 
     public static String readFile(InputStream inputStream) throws IOException {

@@ -1,5 +1,7 @@
 package org.itxtech.nemisys.event.server;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.itxtech.nemisys.Player;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.event.HandlerList;
@@ -24,16 +26,16 @@ public class QueryRegenerateEvent extends ServerEvent {
     private boolean listPlugins;
     private Plugin[] plugins;
     private Player[] players;
-    private String gameType;
-    private String version;
-    private String server_engine;
+    private final String gameType;
+    private final String version;
+    private final String serverEngine;
     private String map;
     private int numPlayers;
     private int maxPlayers;
-    private String whitelist;
-    private int port;
-    private String ip;
-    private Map<String, String> extraData = new HashMap<>();
+    private final String whitelist;
+    private final int port;
+    private final String ip;
+    private Map<String, String> extraData = new Object2ObjectOpenHashMap<>();
 
     public QueryRegenerateEvent(Server server) {
         this(server, 5);
@@ -43,16 +45,14 @@ public class QueryRegenerateEvent extends ServerEvent {
         this.timeout = timeout;
         this.serverName = server.getMotd();
         this.listPlugins = (boolean) server.getConfig("settings.query-plugins", true);
-        this.plugins = server.getPluginManager().getPlugins().values().toArray(new Plugin[server.getPluginManager().getPlugins().values().size()]);
-        List<Player> players = new ArrayList<>();
-        for (Player player : server.getOnlinePlayers().values()) {
-            players.add(player);
-        }
-        this.players = players.toArray(new Player[players.size()]);
+        this.plugins = server.getPluginManager().getPlugins().values().toArray(new Plugin[0]);
+        List<Player> players = new ObjectArrayList<>();
+        players.addAll(server.getOnlinePlayers().values());
+        this.players = players.toArray(new Player[0]);
 
         this.gameType = "SMP";
         this.version = server.getVersion();
-        this.server_engine = server.getName() + " " + server.getNemisysVersion();
+        this.serverEngine = server.getName() + " " + server.getNemisysVersion();
         this.map = "Nemisys";
         this.numPlayers = this.players.length;
         if (server.getPropertyBoolean("plus-one-max-count", false)) {
@@ -143,14 +143,14 @@ public class QueryRegenerateEvent extends ServerEvent {
 
     public byte[] getLongQuery() {
         ByteBuffer query = ByteBuffer.allocate(65536);
-        String plist = this.server_engine;
+        StringBuilder plist = new StringBuilder(this.serverEngine);
         if (this.plugins.length > 0 && this.listPlugins) {
-            plist += ":";
+            plist.append(":");
             for (Plugin p : this.plugins) {
                 PluginDescription d = p.getDescription();
-                plist += " " + d.getName().replace(";", "").replace(":", "").replace(" ", "_") + " " + d.getVersion().replace(";", "").replace(":", "").replace(" ", "_") + ";";
+                plist.append(" ").append(d.getName().replace(";", "").replace(":", "").replace(" ", "_")).append(" ").append(d.getVersion().replace(";", "").replace(":", "").replace(" ", "_")).append(";");
             }
-            plist = plist.substring(0, plist.length() - 2);
+            plist = new StringBuilder(plist.substring(0, plist.length() - 2));
         }
 
         query.put("splitnum".getBytes());
@@ -163,8 +163,8 @@ public class QueryRegenerateEvent extends ServerEvent {
         KVdata.put("gametype", this.gameType);
         KVdata.put("game_id", GAME_ID);
         KVdata.put("version", this.version);
-        KVdata.put("server_engine", this.server_engine);
-        KVdata.put("plugins", plist);
+        KVdata.put("server_engine", this.serverEngine);
+        KVdata.put("plugins", plist.toString());
         KVdata.put("map", this.map);
         KVdata.put("numplayers", String.valueOf(this.numPlayers));
         KVdata.put("maxplayers", String.valueOf(this.maxPlayers));

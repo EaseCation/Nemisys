@@ -1,5 +1,7 @@
 package org.itxtech.nemisys.network.protocol.spp;
 
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -36,7 +38,7 @@ public class BroadcastPacket extends SynapseDataPacket {
     public void decode() {
         this.direct = this.getBoolean();
         int len = this.getShort();
-        this.entries = new ArrayList<>();
+        this.entries = new ObjectArrayList<>();
         for (int i = 0; i < len; i++) {
             this.entries.add(this.getUUID());
         }

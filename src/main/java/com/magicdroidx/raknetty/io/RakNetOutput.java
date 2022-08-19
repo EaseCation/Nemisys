@@ -9,11 +9,11 @@ import java.io.IOException;
  */
 public interface RakNetOutput extends DataOutput {
 
-    public static int encodeZigZag32(final int n) {
+    static int encodeZigZag32(final int n) {
         return (n << 1) ^ (n >> 31);
     }
 
-    public static long encodeZigZag64(final long n) {
+    static long encodeZigZag64(final long n) {
         return (n << 1) ^ (n >> 63);
     }
 

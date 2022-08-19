@@ -12,7 +12,7 @@ import io.netty.channel.ChannelHandlerContext;
  */
 public class UnconnectedPingHandler extends RakNetPacketHandler<UnconnectedPingPacket> {
 
-    private RakNetServer server;
+    private final RakNetServer server;
     private String serverName = "";
 
     public UnconnectedPingHandler(RakNetServer server) {

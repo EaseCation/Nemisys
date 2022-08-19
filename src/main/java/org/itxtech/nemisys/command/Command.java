@@ -8,7 +8,7 @@ public abstract class Command {
 
     protected String description = "";
     protected String usageMessage = "";
-    private String name;
+    private final String name;
     private String nextLabel;
     private String label;
     private String[] aliases = new String[0];

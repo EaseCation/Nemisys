@@ -4,6 +4,8 @@ import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 import com.google.gson.Gson;
 import com.nukkitx.network.raknet.RakNetReliability;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.itxtech.nemisys.event.client.ClientAuthEvent;
 import org.itxtech.nemisys.event.client.ClientConnectEvent;
 import org.itxtech.nemisys.event.client.ClientDisconnectEvent;
@@ -24,11 +26,11 @@ import java.util.*;
  * Nemisys Project
  */
 public class Client {
-    private Server server;
-    private SynapseInterface interfaz;
-    private String ip;
-    private int port;
-    private Map<UUID, Player> players = new HashMap<>();
+    private final Server server;
+    private final SynapseInterface interfaz;
+    private final String ip;
+    private final int port;
+    private final Map<UUID, Player> players = new Object2ObjectOpenHashMap<>();
     private boolean verified = false;
     private boolean isMainServer = false;
     private int maxPlayers;
@@ -267,7 +269,7 @@ public class Client {
                             case "GetServers":
                                 out.writeUTF("GetServers");
 
-                                List<String> names = new ArrayList<>();
+                                List<String> names = new ObjectArrayList<>();
                                 this.server.getClients().values().forEach(c -> names.add(c.getDescription()));
 
                                 out.writeUTF(String.join(", ", names));
@@ -338,7 +340,7 @@ public class Client {
         if (sendTo != null) {
             PlayerListPacket playerListPacket = new PlayerListPacket();
             playerListPacket.type = fastPlayerListPacket.type;
-            List<PlayerListPacket.Entry> entries = new ArrayList<>();
+            List<PlayerListPacket.Entry> entries = new ObjectArrayList<>();
             if (fastPlayerListPacket.type == FastPlayerListPacket.TYPE_ADD) {
                 for (FastPlayerListPacket.Entry entry : fastPlayerListPacket.entries) {
                     Player player = this.getPlayers().get(entry.uuid);
@@ -396,7 +398,7 @@ public class Client {
     }
 
     public void closeAllPlayers(String reason) {
-        for (Player player : new ArrayList<>(this.players.values())) {
+        for (Player player : new ObjectArrayList<>(this.players.values())) {
             player.close("Server Closed" + (reason.equals("") ? "" : ": " + TextFormat.YELLOW + reason));
         }
     }
@@ -437,7 +439,7 @@ public class Client {
     }
 
     public class HandleFastPlayerListPacketRunnable implements Runnable {
-        private FastPlayerListPacket pk;
+        private final FastPlayerListPacket pk;
 
         public HandleFastPlayerListPacketRunnable(FastPlayerListPacket pk) {
             this.pk = pk;

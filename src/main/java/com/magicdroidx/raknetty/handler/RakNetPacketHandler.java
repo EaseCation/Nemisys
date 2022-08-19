@@ -11,7 +11,7 @@ import io.netty.channel.SimpleChannelInboundHandler;
  */
 public abstract class RakNetPacketHandler<I extends RakNetPacket> extends SimpleChannelInboundHandler<AddressedRakNetPacket<I>> {
 
-    private Class<I> packetClass;
+    private final Class<I> packetClass;
 
     public RakNetPacketHandler(Class<I> packetClass) {
         this.packetClass = packetClass;

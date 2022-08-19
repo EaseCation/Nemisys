@@ -1,5 +1,7 @@
 package org.itxtech.nemisys.raknet.server;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.raknet.RakNet;
 import org.itxtech.nemisys.raknet.protocol.DataPacket;
@@ -31,13 +33,13 @@ public class Session {
     public static boolean recordClientPingQueue = true;
 
     private int messageIndex = 0;
-    private Map<Integer, Integer> channelIndex = new ConcurrentHashMap<>();
+    private final Map<Integer, Integer> channelIndex = new ConcurrentHashMap<>();
 
     private SessionManager sessionManager;
-    private String address;
-    private int port;
+    private final String address;
+    private final int port;
     private int state = STATE_UNCONNECTED;
-    //private List<EncapsulatedPacket> preJoinQueue = new ArrayList<>();
+    //private List<EncapsulatedPacket> preJoinQueue = new ObjectArrayList<>();
     private int mtuSize = 548; //Min size
     private long id = 0;
     private int splitID = 0;
@@ -46,33 +48,33 @@ public class Session {
     private int lastSeqNumber = -1;
 
     private long lastUpdate;
-    private Queue<Long> clientPingQueue = new LinkedBlockingQueue<>();
-    private long startTime;
+    private final Queue<Long> clientPingQueue = new LinkedBlockingQueue<>();
+    private final long startTime;
 
     private boolean isTemporal = true;
 
-    private List<DataPacket> packetToSend = new ArrayList<>();
+    private final List<DataPacket> packetToSend = new ObjectArrayList<>();
 
     private boolean isActive;
 
-    private Map<Integer, Integer> ACKQueue = new HashMap<>();
-    private Map<Integer, Integer> NACKQueue = new HashMap<>();
+    private Map<Integer, Integer> ACKQueue = new Object2ObjectOpenHashMap<>();
+    private Map<Integer, Integer> NACKQueue = new Object2ObjectOpenHashMap<>();
 
-    private Map<Integer, DataPacket> recoveryQueue = new TreeMap<>();
+    private final Map<Integer, DataPacket> recoveryQueue = new TreeMap<>();
 
-    private Map<Integer, Map<Integer, EncapsulatedPacket>> splitPackets = new HashMap<>();
+    private final Map<Integer, Map<Integer, EncapsulatedPacket>> splitPackets = new Object2ObjectOpenHashMap<>();
 
-    private Map<Integer, Map<Integer, Integer>> needACK = new TreeMap<>();
+    private final Map<Integer, Map<Integer, Integer>> needACK = new TreeMap<>();
 
     private DataPacket sendQueue;
 
     private int windowStart;
-    private Map<Integer, Integer> receivedWindow = new TreeMap<>();
+    private final Map<Integer, Integer> receivedWindow = new TreeMap<>();
     private int windowEnd;
 
     private int reliableWindowStart;
     private int reliableWindowEnd;
-    private Map<Integer, EncapsulatedPacket> reliableWindow = new TreeMap<>();
+    private final Map<Integer, EncapsulatedPacket> reliableWindow = new TreeMap<>();
     private int lastReliableIndex = -1;
 
     public Session(SessionManager sessionManager, String address, int port) {
@@ -118,14 +120,14 @@ public class Session {
             ACK pk = new ACK();
             pk.packets = new TreeMap<>(this.ACKQueue);
             this.sendPacket(pk);
-            this.ACKQueue = new HashMap<>();
+            this.ACKQueue = new Object2ObjectOpenHashMap<>();
         }
 
         if (!this.NACKQueue.isEmpty()) {
             NACK pk = new NACK();
             pk.packets = new TreeMap<>(this.NACKQueue);
             this.sendPacket(pk);
-            this.NACKQueue = new HashMap<>();
+            this.NACKQueue = new Object2ObjectOpenHashMap<>();
         }
 
         if (!this.packetToSend.isEmpty()) {
@@ -149,7 +151,7 @@ public class Session {
         }
 
         if (!this.needACK.isEmpty()) {
-            for (int identifierACK : new ArrayList<>(this.needACK.keySet())) {
+            for (int identifierACK : new ObjectArrayList<>(this.needACK.keySet())) {
                 Map<Integer, Integer> indexes = this.needACK.get(identifierACK);
                 if (indexes.isEmpty()) {
                     this.needACK.remove(identifierACK);
@@ -158,7 +160,7 @@ public class Session {
             }
         }
 
-        for (int seq : new ArrayList<>(this.recoveryQueue.keySet())) {
+        for (int seq : new ObjectArrayList<>(this.recoveryQueue.keySet())) {
             DataPacket pk = this.recoveryQueue.get(seq);
             if (pk.sendTime < System.currentTimeMillis() - 8000) {
                 this.packetToSend.add(pk);
@@ -168,7 +170,7 @@ public class Session {
             }
         }
 
-        for (int seq : new ArrayList<>(this.receivedWindow.keySet())) {
+        for (int seq : new ObjectArrayList<>(this.receivedWindow.keySet())) {
             if (seq < this.windowStart) {
                 this.receivedWindow.remove(seq);
             } else {
@@ -209,7 +211,7 @@ public class Session {
         int priority = flags & 0b0000111;
         if (pk.needACK && pk.messageIndex != null) {
             if (!this.needACK.containsKey(pk.identifierACK)) {
-                this.needACK.put(pk.identifierACK, new HashMap<>());
+                this.needACK.put(pk.identifierACK, new Object2ObjectOpenHashMap<>());
             }
             this.needACK.get(pk.identifierACK).put(pk.messageIndex, pk.messageIndex);
         }
@@ -249,7 +251,7 @@ public class Session {
 
     public void addEncapsulatedToQueue(EncapsulatedPacket packet, int flags) throws Exception {
         if ((packet.needACK = (flags & RakNet.FLAG_NEED_ACK) > 0)) {
-            this.needACK.put(packet.identifierACK, new HashMap<>());
+            this.needACK.put(packet.identifierACK, new Object2ObjectOpenHashMap<>());
         }
 
         if (packet.reliability == 2 ||
@@ -307,7 +309,7 @@ public class Session {
             if (this.splitPackets.size() >= MAX_SPLIT_COUNT) {
                 return;
             }
-            this.splitPackets.put(packet.splitID, new HashMap<Integer, EncapsulatedPacket>() {{
+            this.splitPackets.put(packet.splitID, new Object2ObjectOpenHashMap<Integer, EncapsulatedPacket>() {{
                 put(packet.splitIndex, packet);
             }});
         } else {
@@ -537,7 +539,7 @@ public class Session {
             } else {
                 if (packet instanceof ACK) {
                     packet.decode();
-                    for (int seq : new ArrayList<>(((ACK) packet).packets.values())) {
+                    for (int seq : new ObjectArrayList<>(((ACK) packet).packets.values())) {
                         if (this.recoveryQueue.containsKey(seq)) {
                             for (Object pk : this.recoveryQueue.get(seq).packets) {
                                 if (pk instanceof EncapsulatedPacket && ((EncapsulatedPacket) pk).needACK && ((EncapsulatedPacket) pk).messageIndex != null) {
@@ -551,7 +553,7 @@ public class Session {
                     }
                 } else if (packet instanceof NACK) {
                     packet.decode();
-                    for (int seq : new ArrayList<>(((NACK) packet).packets.values())) {
+                    for (int seq : new ObjectArrayList<>(((NACK) packet).packets.values())) {
                         if (this.recoveryQueue.containsKey(seq)) {
                             DataPacket pk = this.recoveryQueue.get(seq);
                             pk.seqNumber = this.sendSeqNumber++;

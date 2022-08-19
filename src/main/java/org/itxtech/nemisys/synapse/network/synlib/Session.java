@@ -1,17 +1,19 @@
 package org.itxtech.nemisys.synapse.network.synlib;
 
 import io.netty.channel.Channel;
+import lombok.extern.log4j.Log4j2;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.network.protocol.spp.SynapseDataPacket;
 
 import java.net.InetSocketAddress;
 
+@Log4j2
 public class Session {
 
     public Channel channel;
     private String ip;
     private int port;
-    private SynapseClient client;
+    private final SynapseClient client;
     private long lastCheck;
     private boolean connected;
     private long tickUseTime = 0;
@@ -40,9 +42,8 @@ public class Session {
             long start = System.currentTimeMillis();
             try {
                 this.tick();
-
             } catch (Exception e) {
-                e.printStackTrace();
+                log.throwing(e);
             }
             long time = System.currentTimeMillis() - start;
             this.tickUseTime = time;

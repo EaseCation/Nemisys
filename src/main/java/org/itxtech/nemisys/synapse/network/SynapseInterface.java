@@ -4,27 +4,27 @@ import org.itxtech.nemisys.network.protocol.spp.*;
 import org.itxtech.nemisys.synapse.SynapseEntry;
 import org.itxtech.nemisys.synapse.network.synlib.SynapseClient;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * Created by boybook on 16/6/24.
  */
 public class SynapseInterface {
 
-    private static Map<Byte, SynapseDataPacket> packetPool = new HashMap<>();
-    private SynapseEntry synapse;
-    private SynapseClient client;
+    private static final SynapseDataPacket[] packetPool = new SynapseDataPacket[SynapseInfo.COUNT];
+    private final SynapseEntry synapse;
+    private final SynapseClient client;
     private boolean connected = false;
 
     public SynapseInterface(SynapseEntry server, String ip, int port) {
         this.synapse = server;
-        this.registerPackets();
         this.client = new SynapseClient(server.getSynapse().getLogger(), port, ip);
     }
 
     public static SynapseDataPacket getPacket(byte pid, byte[] buffer) {
-        SynapseDataPacket clazz = packetPool.get(pid);
+        if (pid < 0 || pid >= SynapseInfo.COUNT) {
+            return null;
+        }
+
+        SynapseDataPacket clazz = packetPool[pid];
         if (clazz != null) {
             SynapseDataPacket pk = clazz.clone();
             pk.setBuffer(buffer, 0);
@@ -33,8 +33,8 @@ public class SynapseInterface {
         return null;
     }
 
-    public static void registerPacket(byte id, SynapseDataPacket packet) {
-        packetPool.put(id, packet);
+    private static void registerPacket(byte id, SynapseDataPacket packet) {
+        packetPool[id] = packet;
     }
 
     public SynapseEntry getSynapse() {
@@ -82,8 +82,7 @@ public class SynapseInterface {
         }
     }
 
-    private void registerPackets() {
-        packetPool.clear();
+    static {
         registerPacket(SynapseInfo.HEARTBEAT_PACKET, new HeartbeatPacket());
         registerPacket(SynapseInfo.CONNECT_PACKET, new ConnectPacket());
         registerPacket(SynapseInfo.DISCONNECT_PACKET, new DisconnectPacket());

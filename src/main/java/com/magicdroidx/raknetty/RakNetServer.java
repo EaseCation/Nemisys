@@ -28,13 +28,13 @@ public class RakNetServer {
     private final UUID uuid = UUID.randomUUID();
     ServerListener listener;
     int port = 19132;
-    private int mtu;
-    private InetSocketAddress[] systemAddresses;
+    private final int mtu;
+    private final InetSocketAddress[] systemAddresses;
     private Channel channel;
-    private SessionManager sessionManager;
-    private UnconnectedPingHandler unconnectedPingHandler;
-    private NioEventLoopGroup bossGroup;
-    private NioEventLoopGroup workerGroup;
+    private final SessionManager sessionManager;
+    private final UnconnectedPingHandler unconnectedPingHandler;
+    private final NioEventLoopGroup bossGroup;
+    private final NioEventLoopGroup workerGroup;
 
     private RakNetServer() throws IOException {
         //Get mtu

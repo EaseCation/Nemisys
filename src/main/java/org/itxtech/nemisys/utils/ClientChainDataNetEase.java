@@ -136,7 +136,7 @@ public final class ClientChainDataNetEase implements LoginChainData {
 
     private int UIProfile;
 
-    private BinaryStream bs = new BinaryStream();
+    private final BinaryStream bs = new BinaryStream();
 
     private ClientChainDataNetEase(byte[] buffer) {
         bs.setBuffer(buffer, 0);
@@ -178,9 +178,7 @@ public final class ClientChainDataNetEase implements LoginChainData {
         }catch (Exception e) {
             // TODO: handle exception,认证失败
             this.clientUUID = null;//若认证失败，则clientUUID为null。
-            return;
         }
-        return;
     }
 
 
