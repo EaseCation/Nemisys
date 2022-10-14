@@ -115,5 +115,9 @@ public interface ProtocolInfo {
     byte MODAL_FORM_RESPONSE_PACKET = 0x65;
     byte SERVER_SETTINGS_REQUEST_PACKET = 0x66;
     byte SERVER_SETTINGS_RESPONSE_PACKET = 0x67;
+
+    byte NETWORK_SETTINGS_PACKET = (byte) 0x8f;
+    byte REQUEST_NETWORK_SETTINGS_PACKET = (byte) 0xc1;
+
     byte BATCH_PACKET = (byte) 0xfe;
 }

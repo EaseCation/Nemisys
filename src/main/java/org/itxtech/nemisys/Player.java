@@ -6,6 +6,7 @@ import org.itxtech.nemisys.event.player.PlayerAsyncLoginEvent;
 import org.itxtech.nemisys.event.player.PlayerLoginEvent;
 import org.itxtech.nemisys.event.player.PlayerLogoutEvent;
 import org.itxtech.nemisys.event.player.PlayerTransferEvent;
+import org.itxtech.nemisys.network.Compressor;
 import org.itxtech.nemisys.network.RakNetInterface;
 import org.itxtech.nemisys.network.SourceInterface;
 import org.itxtech.nemisys.network.protocol.mcpe.*;
@@ -17,7 +18,6 @@ import org.itxtech.nemisys.utils.*;
 
 import java.net.InetSocketAddress;
 import java.util.*;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -40,7 +40,6 @@ public class Player {
     private final Server server;
     private byte[] rawUUID;
     protected boolean isFirstTimeLogin = true;
-    private long lastUpdate;
     private Skin skin;
     private LoginChainData loginChainData;
     protected boolean neteaseClient;
@@ -50,16 +49,16 @@ public class Player {
 
     private AsyncTask preLoginEventTask = null;
 
-    protected final Queue<DataPacket> incomingPackets = new ConcurrentLinkedQueue<>();
-    protected final Queue<DataPacket> outgoingPackets = new ConcurrentLinkedQueue<>();
+    private Compressor compressor;
+    private boolean preHandshake = true;
 
-    public Player(SourceInterface interfaz, long clientId, InetSocketAddress socketAddress) {
+    public Player(SourceInterface interfaz, long clientId, InetSocketAddress socketAddress, Compressor compressor) {
         this.interfaz = interfaz;
         this.clientId = clientId;
         this.socketAddress = socketAddress;
+        this.compressor = compressor;
         this.name = "";
         this.server = Server.getInstance();
-        this.lastUpdate = System.currentTimeMillis();
     }
 
     public byte[] getCachedLoginPacket() {
@@ -86,15 +85,25 @@ public class Player {
         if (this.closed) {
             return;
         }
-        this.lastUpdate = System.currentTimeMillis();
 
         switch (packet.pid()) {
             case ProtocolInfo.BATCH_PACKET:
-                if (this.cachedLoginPacket.length == 0) {
-                    this.getServer().getNetwork().processBatch((BatchPacket) packet, this);
-                } else {
-                    if (this.client != null) this.redirectPacket(packet.getBuffer());
+                if (preHandshake || this.cachedLoginPacket.length == 0) {
+                    this.getServer().getNetwork().processBatch((BatchPacket) packet, this, compressor);
+                } else if (this.client != null) {
+                    this.redirectPacket(packet.getBuffer());
                 }
+                break;
+            case ProtocolInfo.REQUEST_NETWORK_SETTINGS_PACKET: // 1.19.30+
+                if (!preHandshake) {
+                    break;
+                }
+                preHandshake = false;
+
+                RequestNetworkSettingsPacket requestNetworkSettingsPacket = (RequestNetworkSettingsPacket) packet;
+                this.protocol = requestNetworkSettingsPacket.protocol;
+
+                this.setupNetworkSettings();
                 break;
             case ProtocolInfo.LOGIN_PACKET:
                 LoginPacket loginPacket = (LoginPacket) packet;
@@ -102,6 +111,11 @@ public class Player {
                 this.skin = loginPacket.skin;
                 this.name = loginPacket.username;
                 this.protocol = loginPacket.protocol;
+
+//                if (protocol < 554) {
+                    preHandshake = false;
+//                }
+
                 if (this.protocol <= 113) {
                     this.loginChainData = ClientChainDataNetEase.read(loginPacket);
                     if (this.loginChainData.getClientUUID() != null) {  //网易认证通过！
@@ -428,6 +442,23 @@ public class Player {
 
     public LoginChainData getLoginChainData() {
         return loginChainData;
+    }
+
+    public Compressor getCompressor() {
+        return compressor;
+    }
+
+    public void setCompressor(Compressor compressor) {
+        this.compressor = compressor;
+    }
+
+    protected void setupNetworkSettings() {
+        if (!(this.interfaz instanceof RakNetInterface)) {
+            return;
+        }
+
+        NetworkSettingsPacket networkSettingsPacket = new NetworkSettingsPacket();
+        ((RakNetInterface) this.interfaz).setupSettings(this, networkSettingsPacket);
     }
 
     protected void setupNetworkEncryption() {

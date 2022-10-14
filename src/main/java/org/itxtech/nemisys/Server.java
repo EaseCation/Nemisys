@@ -14,6 +14,7 @@ import org.itxtech.nemisys.event.HandlerList;
 import org.itxtech.nemisys.event.TranslationContainer;
 import org.itxtech.nemisys.event.server.QueryRegenerateEvent;
 import org.itxtech.nemisys.lang.BaseLang;
+import org.itxtech.nemisys.math.Mth;
 import org.itxtech.nemisys.math.NemisysMath;
 import org.itxtech.nemisys.network.*;
 import org.itxtech.nemisys.network.protocol.mcpe.BatchPacket;
@@ -62,6 +63,8 @@ public class Server {
     private final Network network;
     @Getter
     private final boolean networkEncryptionEnabled;
+    @Getter
+    private final int networkCompressionLevel;
     private final BaseLang baseLang;
     private final boolean forceLanguage = false;
     private final UUID serverID;
@@ -132,6 +135,7 @@ public class Server {
                 put("xbox-auth", true);
                 put("enable-jmx-monitoring", false);
                 put("enable-network-encryption", true);
+                put("network-compression-level", 7);
             }
         });
 
@@ -197,6 +201,7 @@ public class Server {
         this.queryRegenerateEvent = new QueryRegenerateEvent(this, 5);
 
         this.networkEncryptionEnabled = this.getPropertyBoolean("enable-network-encryption");
+        this.networkCompressionLevel = Mth.clamp(this.getPropertyInt("network-compression-level", 7), 0, 9);
 
         //this.network.registerInterface(new RakNettyInterface(this));
         this.network.registerInterface(new RakNetInterface(this));
@@ -865,8 +870,11 @@ public class Server {
         }
 
         try {
-            if (players[0].getProtocol() < 407) this.broadcastPacketsCallback(Zlib.deflate(data, 6), targets);
-            else this.broadcastPacketsCallback(Network.deflateRaw(data, 6), targets);
+            if (players[0].getProtocol() >= 407) {
+                this.broadcastPacketsCallback(Compressor.ZLIB_RAW.compress(data, networkCompressionLevel), targets);
+            } else {
+                this.broadcastPacketsCallback(Compressor.ZLIB.compress(data, networkCompressionLevel), targets);
+            }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

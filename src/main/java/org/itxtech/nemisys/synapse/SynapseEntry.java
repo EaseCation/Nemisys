@@ -7,6 +7,7 @@ import org.itxtech.nemisys.Nemisys;
 import org.itxtech.nemisys.Player;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.event.synapse.player.SynapsePlayerCreationEvent;
+import org.itxtech.nemisys.network.Compressor;
 import org.itxtech.nemisys.network.SourceInterface;
 import org.itxtech.nemisys.network.protocol.mcpe.DataPacket;
 import org.itxtech.nemisys.network.protocol.spp.*;
@@ -277,8 +278,9 @@ public class SynapseEntry {
                 this.getSynapse().getServer().getPluginManager().callEvent(ev);
                 Class<? extends SynapsePlayer> clazz = ev.getPlayerClass();
                 try {
-                    Constructor<?> constructor = clazz.getConstructor(SourceInterface.class, SynapseEntry.class, Long.class, InetSocketAddress.class);
-                    SynapsePlayer player = (SynapsePlayer) constructor.newInstance(this.synLibInterface, this, ev.getClientId(), ev.getSocketAddress());
+                    Constructor<?> constructor = clazz.getConstructor(SourceInterface.class, SynapseEntry.class, Long.class, InetSocketAddress.class, Comparable.class);
+                    SynapsePlayer player = (SynapsePlayer) constructor.newInstance(this.synLibInterface, this, ev.getClientId(), ev.getSocketAddress(),
+                            playerLoginPacket.protocol >= 407 ? Compressor.ZLIB_RAW : Compressor.ZLIB);
                     player.setUniqueId(playerLoginPacket.uuid);
                     this.players.put(playerLoginPacket.uuid, player);
                     this.getSynapse().getServer().addPlayer(socketAddress, player);

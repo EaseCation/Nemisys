@@ -1,9 +1,9 @@
 package org.itxtech.nemisys.utils;
 
 import lombok.extern.log4j.Log4j2;
+import org.itxtech.nemisys.Server;
 
 import java.io.IOException;
-import java.util.zip.Deflater;
 
 @Log4j2
 public abstract class Zlib {
@@ -41,10 +41,10 @@ public abstract class Zlib {
     }
 
     public static byte[] deflate(byte[] data) throws Exception {
-        return deflate(data, Deflater.DEFAULT_COMPRESSION);
+        return deflate(data, Server.getInstance().getNetworkCompressionLevel());
     }
 
-    public static byte[] deflate(byte[] data, int level) throws Exception {
+    public static byte[] deflate(byte[] data, int level) throws IOException {
         return provider.deflate(data, level);
     }
 

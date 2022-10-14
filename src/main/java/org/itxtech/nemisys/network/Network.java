@@ -33,7 +33,8 @@ public class Network {
     private static final ThreadLocal<Deflater> DEFLATER_RAW = ThreadLocal.withInitial(() -> new Deflater(7, true));
     private static final ThreadLocal<byte[]> BUFFER = ThreadLocal.withInitial(() -> new byte[2 * 1024 * 1024]);
 
-    private Class<? extends DataPacket>[] packetPool = new Class[256];
+    private final Class<? extends DataPacket>[] packetPool = new Class[256];
+    private final Class<? extends DataPacket>[] serverboundPacketPool = new Class[256];
 
     private final Server server;
 
@@ -198,17 +199,24 @@ public class Network {
     }
 
     public void registerPacket(byte id, Class<? extends DataPacket> clazz) {
+        registerPacket(id, clazz, false);
+    }
+
+    public void registerPacket(byte id, Class<? extends DataPacket> clazz, boolean serverbound) {
         this.packetPool[id & 0xff] = clazz;
+        if (serverbound) {
+            serverboundPacketPool[id & 0xff] = clazz;
+        }
     }
 
     public Server getServer() {
         return server;
     }
 
-    public void processBatch(BatchPacket packet, Player player) {
+    public void processBatch(BatchPacket packet, Player player, Compressor compressor) {
         List<DataPacket> packets = new ObjectArrayList<>();
         try {
-            processBatch(packet.payload, packets);
+            processBatch(packet.payload, packets, compressor);
         } catch (ProtocolException e) {
             player.close(e.getMessage());
             log.error("Unable to process player packets ", e);
@@ -216,18 +224,16 @@ public class Network {
         processPackets(player, packets);
     }
 
-    public void processBatch(byte[] payload, Collection<DataPacket> packets) throws ProtocolException {
+    public void processBatch(byte[] payload, Collection<DataPacket> packets, Compressor compressor) throws ProtocolException {
         byte[] data;
         try {
-            data = Network.inflateRaw(payload);
+            data = compressor.decompress(payload);
         } catch (Exception e) {
-            try {
-                data = Zlib.inflate(payload, 2 * 1024 * 1024); // Max 2MB
-            } catch (Exception e0) {
-//                log.debug("Exception while inflating (raw) batch packet", e);
-//                log.debug("Exception while inflating batch packet", e0);
-                return;
-            }
+//            log.debug("Exception while inflating batch packet", e0);
+            return;
+        }
+        if (data.length == 0) {
+            return;
         }
 
         BinaryStream stream = new BinaryStream(data);
@@ -247,7 +253,7 @@ public class Network {
                 // |   2 bits  |   2 bits  |  10 bits  |
                 int packetId = header & 0x3ff;
 
-                DataPacket pk = this.getPacket(packetId);
+                DataPacket pk = this.getServerboundPacket(packetId);
 
                 if (pk != null) {
                     /*System.out.println("first bits: "+buf[1]+"   "+buf[2]);
@@ -312,6 +318,18 @@ public class Network {
         return new GenericPacket();
     }
 
+    public DataPacket getServerboundPacket(int id) {
+        Class<? extends DataPacket> clazz = this.serverboundPacketPool[id];
+        if (clazz != null) {
+            try {
+                return clazz.newInstance();
+            } catch (Exception e) {
+                Server.getInstance().getLogger().logException(e);
+            }
+        }
+        return new GenericPacket();
+    }
+
     public void sendPacket(InetSocketAddress socketAddress, ByteBuf payload) {
         for (AdvancedSourceInterface sourceInterface : this.advancedInterfaces) {
             sourceInterface.sendRawPacket(socketAddress, payload);
@@ -331,11 +349,10 @@ public class Network {
     }
 
     private void registerPackets() {
-        this.packetPool = new Class[256];
-
-        this.registerPacket(ProtocolInfo.LOGIN_PACKET, LoginPacket.class);
+        this.registerPacket(ProtocolInfo.LOGIN_PACKET, LoginPacket.class, true);
         this.registerPacket(ProtocolInfo.DISCONNECT_PACKET, DisconnectPacket.class);
-        this.registerPacket(ProtocolInfo.BATCH_PACKET, BatchPacket.class);
+        this.registerPacket(ProtocolInfo.BATCH_PACKET, BatchPacket.class, true);
         this.registerPacket(ProtocolInfo.PLAYER_LIST_PACKET, PlayerListPacket.class);
+        this.registerPacket(ProtocolInfo.REQUEST_NETWORK_SETTINGS_PACKET, RequestNetworkSettingsPacket.class, true);
     }
 }
