@@ -278,7 +278,7 @@ public class SynapseEntry {
                 this.getSynapse().getServer().getPluginManager().callEvent(ev);
                 Class<? extends SynapsePlayer> clazz = ev.getPlayerClass();
                 try {
-                    Constructor<?> constructor = clazz.getConstructor(SourceInterface.class, SynapseEntry.class, Long.class, InetSocketAddress.class, Comparable.class);
+                    Constructor<?> constructor = clazz.getConstructor(SourceInterface.class, SynapseEntry.class, Long.class, InetSocketAddress.class, Compressor.class);
                     SynapsePlayer player = (SynapsePlayer) constructor.newInstance(this.synLibInterface, this, ev.getClientId(), ev.getSocketAddress(),
                             playerLoginPacket.protocol >= 407 ? Compressor.ZLIB_RAW : Compressor.ZLIB);
                     player.setUniqueId(playerLoginPacket.uuid);
