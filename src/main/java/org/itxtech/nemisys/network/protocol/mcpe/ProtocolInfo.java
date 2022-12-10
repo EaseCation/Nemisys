@@ -117,6 +117,7 @@ public interface ProtocolInfo {
     byte SERVER_SETTINGS_RESPONSE_PACKET = 0x67;
 
     byte NETWORK_SETTINGS_PACKET = (byte) 0x8f;
+    byte PACKET_VIOLATION_WARNING_PACKET = (byte) 0x9c;
     byte REQUEST_NETWORK_SETTINGS_PACKET = (byte) 0xc1;
 
     byte BATCH_PACKET = (byte) 0xfe;

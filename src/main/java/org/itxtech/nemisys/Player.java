@@ -2,6 +2,7 @@ package org.itxtech.nemisys;
 
 import com.google.gson.JsonObject;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import lombok.extern.log4j.Log4j2;
 import org.itxtech.nemisys.event.player.PlayerAsyncLoginEvent;
 import org.itxtech.nemisys.event.player.PlayerLoginEvent;
 import org.itxtech.nemisys.event.player.PlayerLogoutEvent;
@@ -25,6 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Author: PeratX
  * Nemisys Project
  */
+@Log4j2
 public class Player {
     public boolean closed;
     protected UUID uuid;
@@ -217,6 +219,10 @@ public class Player {
 
 
                 break;
+//            case ProtocolInfo.PACKET_VIOLATION_WARNING_PACKET:
+//                PacketViolationWarningPacket packetViolationWarning = (PacketViolationWarningPacket) packet;
+//                log.warn("{} | {}", getSocketAddress(), packetViolationWarning);
+//                break;
             default:
                 if (this.client != null) this.redirectPacket(packet.getBuffer());
         }
