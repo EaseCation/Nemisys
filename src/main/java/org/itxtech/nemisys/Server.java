@@ -1,5 +1,6 @@
 package org.itxtech.nemisys;
 
+import com.dosse.upnp.UPnP;
 import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
 import io.netty.buffer.ByteBuf;
@@ -71,6 +72,7 @@ public class Server {
     private final String filePath;
     private final String dataPath;
     private final String pluginPath;
+    private boolean upnpEnabled;
     private QueryHandler queryHandler;
     private QueryRegenerateEvent queryRegenerateEvent;
     private final Config properties;
@@ -127,6 +129,7 @@ public class Server {
                 put("max-players", 20);
                 put("plus-one-max-count", false);
                 put("dynamic-player-count", false);
+                put("enable-upnp", false);
                 put("enable-query", true);
                 put("enable-rcon", false);
                 put("rcon.password", Base64.getEncoder().encodeToString(UUID.randomUUID().toString().replace("-", "").getBytes()).substring(3, 13));
@@ -366,6 +369,13 @@ public class Server {
             log.debug("Closing console");
             this.consoleThread.interrupt();
 
+            if (this.upnpEnabled) {
+                log.debug("Closing UPnP port");
+                if (UPnP.closePortUDP(this.getPort())) {
+                    log.info("Removed forwarding rule for UDP Port {} using UPnP.", getPort());
+                }
+            }
+
             log.debug("Stopping network interfaces");
             for (SourceInterface interfaz : new ObjectArrayList<>(this.network.getInterfaces())) {
                 interfaz.shutdown();
@@ -385,6 +395,25 @@ public class Server {
     }
 
     public void start() {
+        if (this.getPropertyBoolean("enable-upnp", false)) {
+            if (UPnP.isUPnPAvailable()) {
+                log.debug("UPnP enabled. Attempting to port-forward with UPnP.");
+                if (UPnP.openPortUDP(getPort(), "Cloudburst")) {
+                    this.upnpEnabled = true; // Saved to disable the port-forwarding on shutdown
+                    log.info("Successfully forwarded UDP Port {} using UPnP.", getPort());
+                } else {
+                    this.upnpEnabled = false;
+                    log.warn("Failed to forward UDP Port {} using UPnP.", getPort());
+                }
+            } else {
+                this.upnpEnabled = false;
+                log.warn("UPnP is enabled, but no UPnP enabled gateway was found.");
+            }
+        } else {
+            this.upnpEnabled = false;
+            log.debug("UPnP is disabled.");
+        }
+
         if (this.getPropertyBoolean("enable-query", true)) {
             this.queryHandler = new QueryHandler();
         }

@@ -3,8 +3,8 @@ package org.itxtech.nemisys.plugin;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.itxtech.nemisys.utils.PluginException;
-import org.yaml.snakeyaml.DumperOptions;
-import org.yaml.snakeyaml.Yaml;
+import org.snakeyaml.engine.v2.api.Load;
+import org.snakeyaml.engine.v2.api.LoadSettings;
 
 import java.util.*;
 
@@ -130,10 +130,11 @@ public class PluginDescription {
     }
 
     public PluginDescription(String yamlString) {
-        DumperOptions dumperOptions = new DumperOptions();
-        dumperOptions.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-        Yaml yaml = new Yaml(dumperOptions);
-        this.loadMap(yaml.loadAs(yamlString, LinkedHashMap.class));
+        LoadSettings settings = LoadSettings.builder()
+                .setParseComments(false)
+                .build();
+        Load yaml = new Load(settings);
+        this.loadMap((Map<String, Object>) yaml.loadFromString(yamlString));
     }
 
     private void loadMap(Map<String, Object> plugin) throws PluginException {

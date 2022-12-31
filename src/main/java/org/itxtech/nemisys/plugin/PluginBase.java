@@ -6,8 +6,8 @@ import org.itxtech.nemisys.command.CommandSender;
 import org.itxtech.nemisys.command.PluginIdentifiableCommand;
 import org.itxtech.nemisys.utils.Config;
 import org.itxtech.nemisys.utils.Utils;
-import org.yaml.snakeyaml.DumperOptions;
-import org.yaml.snakeyaml.Yaml;
+import org.snakeyaml.engine.v2.api.Load;
+import org.snakeyaml.engine.v2.api.LoadSettings;
 
 import java.io.File;
 import java.io.IOException;
@@ -235,11 +235,12 @@ abstract public class PluginBase implements Plugin {
         this.config = new Config(this.configFile);
         InputStream configStream = this.getResource("config.yml");
         if (configStream != null) {
-            DumperOptions dumperOptions = new DumperOptions();
-            dumperOptions.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-            Yaml yaml = new Yaml(dumperOptions);
+            LoadSettings settings = LoadSettings.builder()
+                    .setParseComments(false)
+                    .build();
+            Load yaml = new Load(settings);
             try {
-                this.config.setDefault(yaml.loadAs(Utils.readFile(this.configFile), LinkedHashMap.class));
+                this.config.setDefault((LinkedHashMap<String, Object>) yaml.loadFromString(Utils.readFile(this.configFile)));
             } catch (IOException e) {
                 Server.getInstance().getLogger().logException(e);
             }

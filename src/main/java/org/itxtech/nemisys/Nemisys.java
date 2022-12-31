@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.Locale;
 import java.util.Properties;
 
 @Log4j2
@@ -47,6 +48,8 @@ public class Nemisys {
     public static int DEBUG = 1;
 
     public static void main(String[] args) {
+        Locale.setDefault(Locale.ENGLISH);
+
         System.setProperty("log4j.skipJansi", "false");
         System.getProperties().putIfAbsent("io.netty.allocator.type", "unpooled"); // Disable memory pooling unless specified
 

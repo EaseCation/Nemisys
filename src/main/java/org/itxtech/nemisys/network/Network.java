@@ -30,7 +30,7 @@ import java.util.zip.Inflater;
 public class Network {
 
     private static final ThreadLocal<Inflater> INFLATER_RAW = ThreadLocal.withInitial(() -> new Inflater(true));
-    private static final ThreadLocal<Deflater> DEFLATER_RAW = ThreadLocal.withInitial(() -> new Deflater(7, true));
+    private static final ThreadLocal<Deflater> DEFLATER_RAW = ThreadLocal.withInitial(() -> new Deflater(Server.getInstance().getNetworkCompressionLevel(), true));
     private static final ThreadLocal<byte[]> BUFFER = ThreadLocal.withInitial(() -> new byte[2 * 1024 * 1024]);
 
     private final Class<? extends DataPacket>[] packetPool = new Class[256];
@@ -241,7 +241,7 @@ public class Network {
             int count = 0;
             while (!stream.feof()) {
                 count++;
-                if (count >= 1000) {
+                if (count >= 1300) {
                     throw new ProtocolException("Illegal batch with " + count + " packets");
                 }
                 byte[] buf = stream.getByteArray();
