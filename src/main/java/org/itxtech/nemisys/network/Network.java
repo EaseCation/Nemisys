@@ -215,34 +215,41 @@ public class Network {
 
     public void processBatch(BatchPacket packet, Player player, Compressor compressor) {
         List<DataPacket> packets = new ObjectArrayList<>();
+        boolean valid;
         try {
-            processBatch(packet.payload, packets, compressor);
+            valid = processBatch(packet.payload, packets, compressor);
         } catch (ProtocolException e) {
             player.close(e.getMessage());
             log.error("Unable to process player packets ", e);
+            return;
+        }
+        if (!valid) {
+            player.close("malformed packet");
+            return;
         }
         processPackets(player, packets);
     }
 
-    public void processBatch(byte[] payload, Collection<DataPacket> packets, Compressor compressor) throws ProtocolException {
+    public boolean processBatch(byte[] payload, Collection<DataPacket> packets, Compressor compressor) throws ProtocolException {
         byte[] data;
         try {
             data = compressor.decompress(payload);
         } catch (Exception e) {
 //            log.debug("Exception while inflating batch packet", e0);
-            return;
+            return false;
         }
         if (data.length == 0) {
-            return;
+            return false;
         }
 
         BinaryStream stream = new BinaryStream(data);
+        int count = 0;
         try {
-            int count = 0;
             while (!stream.feof()) {
                 count++;
                 if (count >= 1300) {
-                    throw new ProtocolException("Illegal batch with " + count + " packets");
+//                    throw new ProtocolException("Illegal batch with " + count + " packets");
+                    return false;
                 }
                 byte[] buf = stream.getByteArray();
 
@@ -271,7 +278,8 @@ public class Network {
                                 log.trace("Dumping Packet\n{}", ByteBufUtil.prettyHexDump(Unpooled.wrappedBuffer(buf)));
                             }
                             log.error("Unable to decode packet", e);
-                            throw new IllegalStateException("Unable to decode " + pk.getClass().getSimpleName());
+//                            throw new IllegalStateException("Unable to decode " + pk.getClass().getSimpleName());
+                            return false;
                         }
                     }
 
@@ -280,11 +288,13 @@ public class Network {
 //                    log.debug("Received unknown packet with ID: {}", Integer.toHexString(packetId));
                 }
             }
+            return true;
         } catch (Exception e) {
             if (log.isDebugEnabled()) {
                 log.debug("Error whilst decoding batch packet", e);
             }
         }
+        return false;
     }
 
     /**

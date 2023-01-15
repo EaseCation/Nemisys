@@ -62,6 +62,8 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 @Log4j2
 public class RakNetInterface implements RakNetServerListener, AdvancedSourceInterface {
+    private static final int INCOMING_PACKET_BATCH_PER_TICK = 2; // usually max 1 per tick, but transactions may arrive separately
+    private static final int INCOMING_PACKET_BATCH_MAX_BUDGET = 100 * INCOMING_PACKET_BATCH_PER_TICK; // enough to account for a 5-second lag spike
 
     private final Server server;
 
@@ -117,6 +119,8 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
     public boolean process() {
         NemisysRakNetSession session;
         while ((session = this.sessionCreationQueue.poll()) != null) {
+            session.lastPacketBudgetUpdateTimeNs = System.nanoTime();
+
             InetSocketAddress address = session.raknet.getAddress();
             PlayerCreationEvent ev = new PlayerCreationEvent(this, Player.class, Player.class, -1, address);
             this.server.getPluginManager().callEvent(ev);
@@ -142,14 +146,29 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                 iterator.remove();
                 continue;
             }
+
             DataPacket packet;
             while ((packet = nemisysSession.inbound.poll()) != null && nemisysSession.readable) {
+                if (nemisysSession.incomingPacketBatchBudget <= 0) {
+                    player.close("Receiving packets too fast");
+                    break;
+                }
+                nemisysSession.incomingPacketBatchBudget--;
+
                 try {
                     nemisysSession.player.handleDataPacket(packet);
                 } catch (Exception e) {
                     log.error(new FormattedMessage("An error occurred whilst handling {} for {}",
                             new Object[]{packet.getClass().getSimpleName(), nemisysSession.player.getName()}, e));
                 }
+            }
+
+            long nowNs = System.nanoTime();
+            long timeSinceLastUpdateNs = nowNs - nemisysSession.lastPacketBudgetUpdateTimeNs;
+            if (timeSinceLastUpdateNs > 50_000_000) {
+                int ticksSinceLastUpdate = (int) (timeSinceLastUpdateNs / 50_000_000);
+                nemisysSession.incomingPacketBatchBudget = Math.min(nemisysSession.incomingPacketBatchBudget + INCOMING_PACKET_BATCH_PER_TICK * 2 * ticksSinceLastUpdate, INCOMING_PACKET_BATCH_MAX_BUDGET);
+                nemisysSession.lastPacketBudgetUpdateTimeNs = nowNs;
             }
         }
         return true;
@@ -274,6 +293,13 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
         this.server.handlePacket(datagramPacket.sender(), datagramPacket.content());
     }
 
+    public void closeReader(Player player) {
+        NemisysRakNetSession session = this.sessions.get(player.getSocketAddress());
+        if (session != null) {
+            session.readable = false;
+        }
+    }
+
     public void setupSettings(Player player, NetworkSettingsPacket settings) {
         NemisysRakNetSession session = this.sessions.get(player.getSocketAddress());
         if (session != null) {
@@ -302,6 +328,14 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
         private volatile Cipher decryptCipher;
         private final AtomicLong encryptCounter = new AtomicLong();
         private final AtomicLong decryptCounter = new AtomicLong();
+
+        /**
+         * At most this many more packets can be received.
+         * If this reaches zero, any additional packets received will cause the player to be kicked from the server.
+         * This number is increased every tick up to a maximum limit.
+         */
+        private int incomingPacketBatchBudget = INCOMING_PACKET_BATCH_MAX_BUDGET;
+        private long lastPacketBudgetUpdateTimeNs;
 
         private NemisysRakNetSession(RakNetServerSession raknet, Compressor compressor) {
             this.raknet = raknet;

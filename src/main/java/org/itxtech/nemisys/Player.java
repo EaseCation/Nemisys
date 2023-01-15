@@ -372,6 +372,10 @@ public class Player {
 
     public void close(String reason, boolean notify) {
         if (!this.closed) {
+            if (interfaz instanceof RakNetInterface) {
+                ((RakNetInterface) interfaz).closeReader(this);
+            }
+
             if (notify && reason.length() > 0) {
                 DisconnectPacket pk = new DisconnectPacket();
                 pk.hideDisconnectionScreen = false;
