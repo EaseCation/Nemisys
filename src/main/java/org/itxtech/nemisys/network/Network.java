@@ -263,8 +263,14 @@ public class Network {
                 DataPacket pk = this.getServerboundPacket(packetId);
 
                 if (pk != null) {
+                    if (pk.pid() == ProtocolInfo.BATCH_PACKET) {
+//                        throw new ProtocolException("nested batch");
+                        return false;
+                    }
+
                     /*System.out.println("first bits: "+buf[1]+"   "+buf[2]);
                     System.out.println("other bits: "+ Arrays.toString(buf));*/
+
                     pk.setBuffer(buf, buf.length - bais.available());
                     try {
                         pk.decode();
