@@ -150,7 +150,9 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
             DataPacket packet;
             while ((packet = nemisysSession.inbound.poll()) != null && nemisysSession.readable) {
                 if (nemisysSession.incomingPacketBatchBudget <= 0) {
-                    player.close("Receiving packets too fast");
+//                    player.close("Receiving packets too fast");
+                    log.warn("{} receiving packets too fast", player.getName());
+                    //TODO: 远程日志上报
                     break;
                 }
                 nemisysSession.incomingPacketBatchBudget--;
