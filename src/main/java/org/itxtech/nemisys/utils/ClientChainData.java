@@ -251,8 +251,10 @@ public final class ClientChainData implements LoginChainData {
     }
 
     private static boolean verifyChain(List<String> chains) throws Exception {
+        long now = System.currentTimeMillis() / 1000;
         ECPublicKey lastKey = null;
         boolean mojangKeyVerified = false;
+
         Iterator<String> iterator = chains.iterator();
         while (iterator.hasNext()) {
             JWSObject jws = JWSObject.parse(iterator.next());
@@ -283,9 +285,31 @@ public final class ClientChainData implements LoginChainData {
             }
 
             Map<String, Object> payload = jws.getPayload().toJSONObject();
+
+            Object nbf = payload.get("nbf");
+            if (!(nbf instanceof Number)) {
+//                throw new IllegalStateException("Invalid nbf");
+                return false;
+            }
+            if (((Number) nbf).longValue() > now) {
+                // premature
+                return false;
+            }
+
+            Object exp = payload.get("exp");
+            if (!(exp instanceof Number)) {
+//                throw new IllegalStateException("Invalid exp");
+                return false;
+            }
+            if (((Number) exp).longValue() < now) {
+                // expire
+                return false;
+            }
+
             Object base64key = payload.get("identityPublicKey");
             if (!(base64key instanceof String)) {
-                throw new RuntimeException("No key found");
+//                throw new IllegalStateException("No key found");
+                return false;
             }
             lastKey = generateKey((String) base64key);
         }
