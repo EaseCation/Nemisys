@@ -47,9 +47,12 @@ public class Nemisys {
     public static boolean shortTitle = requiresShortTitle();
     public static int DEBUG = 1;
 
+    static volatile boolean STOPPED;
+
     public static void main(String[] args) {
         Locale.setDefault(Locale.ENGLISH);
 
+        System.setProperty("java.net.preferIPv4Stack" , "true");
         System.setProperty("log4j.skipJansi", "false");
         System.getProperties().putIfAbsent("io.netty.allocator.type", "unpooled"); // Disable memory pooling unless specified
 
@@ -130,6 +133,11 @@ public class Nemisys {
         }
 
         LogManager.shutdown();
+
+        if (Boolean.getBoolean("nemisys.docker")) {
+            System.out.println("Nemisys has exited.");
+        }
+        STOPPED = true;
 
         System.exit(0);
     }

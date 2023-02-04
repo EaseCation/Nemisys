@@ -12,8 +12,8 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <log4j2.version>2.17.2</log4j2.version>
-        <jackson.version>2.14.1</jackson.version>
-        <jline.version>3.21.0</jline.version>
+        <jackson.version>2.14.2</jackson.version>
+        <jline.version>3.22.0</jline.version>
     </properties>
 
     <repositories>
@@ -58,13 +58,15 @@
             <build>
                 <plugins>
                     <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-antrun-plugin</artifactId>
+                        <version>3.1.0</version>
                         <executions>
                             <execution>
                                 <id>copy</id>
                                 <phase>package</phase>
                                 <configuration>
-                                    <tasks>
+                                    <target>
                                         <echo message="正在复制 ${project.build.finalName} 至本地 Proxy代理 服务端目录..."/>
                                         <mkdir dir="${dir.login-proxy}"/>
                                         <mkdir dir="${dir.proxy}/plugins"/>
@@ -78,7 +80,7 @@
                                                 <include name="${project.build.finalName}.jar" />
                                             </fileset>
                                         </copy>
-                                    </tasks>
+                                    </target>
                                 </configuration>
                                 <goals>
                                     <goal>run</goal>
@@ -102,20 +104,22 @@
             <build>
                 <plugins>
                     <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-antrun-plugin</artifactId>
+                        <version>3.1.0</version>
                         <executions>
                             <execution>
                                 <id>copy</id>
                                 <phase>package</phase>
                                 <configuration>
-                                    <tasks>
+                                    <target>
                                         <echo message="正在复制 ${project.build.finalName} 至本地 Proxy代理 服务端目录..."/>
                                         <copy todir="${dir.proxy}" overwrite="true">
                                             <fileset dir="${project.build.directory}">
                                                 <include name="${project.build.finalName}.jar" />
                                             </fileset>
                                         </copy>
-                                    </tasks>
+                                    </target>
                                 </configuration>
                                 <goals>
                                     <goal>run</goal>
@@ -127,13 +131,37 @@
             </build>
         </profile>
 
+        <profile>
+            <id>java17</id>
+
+            <activation>
+                <jdk>17</jdk>
+            </activation>
+
+            <properties>
+                <maven.compiler.source>17</maven.compiler.source>
+                <maven.compiler.target>17</maven.compiler.target>
+            </properties>
+        </profile>
+        <profile>
+            <id>java-next</id>
+
+            <activation>
+                <jdk>19</jdk>
+            </activation>
+
+            <properties>
+                <maven.compiler.source>19</maven.compiler.source>
+                <maven.compiler.target>19</maven.compiler.target>
+            </properties>
+        </profile>
     </profiles>
 
     <dependencies>
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
-            <version>2.10</version>
+            <version>2.10.1</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -169,7 +197,7 @@
         <dependency>
             <groupId>org.snakeyaml</groupId>
             <artifactId>snakeyaml-engine</artifactId>
-            <version>2.5</version>
+            <version>2.6</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -181,7 +209,7 @@
         <dependency>
             <groupId>com.nimbusds</groupId>
             <artifactId>nimbus-jose-jwt</artifactId>
-            <version>9.26</version>
+            <version>9.30.1</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -229,7 +257,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.24</version>
+            <version>1.18.26</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -245,14 +273,6 @@
                 <exclusion>
                     <groupId>org.jline</groupId>
                     <artifactId>jline-reader</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.jline</groupId>
-                    <artifactId>jline-terminal-jna</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.jline</groupId>
-                    <artifactId>jline-terminal</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>

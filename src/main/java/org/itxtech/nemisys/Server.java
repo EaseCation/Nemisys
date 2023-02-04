@@ -31,6 +31,7 @@ import org.itxtech.nemisys.synapse.Synapse;
 import org.itxtech.nemisys.synapse.SynapseEntry;
 import org.itxtech.nemisys.utils.*;
 import org.itxtech.nemisys.utils.ClientData.Entry;
+import org.itxtech.nemisys.utils.bugreport.ExceptionHandler;
 
 import java.io.File;
 import java.net.InetSocketAddress;
@@ -83,6 +84,8 @@ public class Server {
     private String clientDataJson = "";
     private final Map<String, Client> mainClients = new Object2ObjectOpenHashMap<>();
     private Synapse synapse;
+    private final Thread currentThread;
+    private Watchdog watchdog;
     private final boolean enableJmxMonitoring;
     /**
      * 过去 100 tick 的耗时 (ns). 用于 JMX Monitoring.
@@ -95,6 +98,7 @@ public class Server {
 
     public Server(final String filePath, String dataPath, String pluginPath) {
         Preconditions.checkState(instance == null, "Already initialized!");
+        currentThread = Thread.currentThread();
         instance = this;
 
         this.filePath = filePath;
@@ -134,6 +138,7 @@ public class Server {
                 put("enable-rcon", false);
                 put("rcon.password", Base64.getEncoder().encodeToString(UUID.randomUUID().toString().replace("-", "").getBytes()).substring(3, 13));
                 put("debug", 1);
+                put("bug-report", true);
                 put("enable-synapse-client", false);
                 put("xbox-auth", true);
                 put("enable-jmx-monitoring", false);
@@ -181,6 +186,10 @@ public class Server {
             }
         }
 
+        if (this.getPropertyBoolean("bug-report", true)) {
+            ExceptionHandler.registerExceptionHandler();
+        }
+
         this.enableJmxMonitoring = this.getPropertyBoolean("enable-jmx-monitoring", false);
         if (this.enableJmxMonitoring) {
             ServerStatistics.registerJmxMonitoring(this);
@@ -224,6 +233,11 @@ public class Server {
         }
 
         this.properties.save(true);
+
+        if (Nemisys.DEBUG < 2) {
+            this.watchdog = new Watchdog(this, 60000);
+            this.watchdog.start();
+        }
 
         this.start();
     }
@@ -388,7 +402,9 @@ public class Server {
             }
             this.synapseInterface.getInterface().shutdown();
 
-            //todo other things
+            if (this.watchdog != null) {
+                this.watchdog.kill();
+            }
         } catch (Exception e) {
             log.fatal("Exception happened while shutting down", e);
         }
@@ -419,6 +435,22 @@ public class Server {
         }
 
         this.tickCounter = 0;
+
+        if (Boolean.getBoolean("nemisys.docker")) {
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                shutdown();
+
+                System.out.println("Shutdown hook triggered...");
+                while (!Nemisys.STOPPED) {
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                System.out.println("Server Stopped.");
+            }, "Nemisys Shutdown Hook"));
+        }
 
         log.info(this.getLanguage().translateString("nemisys.server.startFinished", String.valueOf((double) (System.currentTimeMillis() - Nemisys.START_TIME) / 1000)));
 
@@ -554,6 +586,10 @@ public class Server {
         }
 
         return true;
+    }
+
+    public long getNextTick() {
+        return nextTick;
     }
 
     public void titleTick() {
@@ -920,7 +956,19 @@ public class Server {
         }
     }
 
+    public boolean isPrimaryThread() {
+        return Thread.currentThread() == currentThread;
+    }
+
+    public Thread getPrimaryThread() {
+        return currentThread;
+    }
+
     private class ConsoleThread extends Thread implements InterruptibleThread {
+        ConsoleThread() {
+            super("Console");
+            setDaemon(true);
+        }
 
         @Override
         public void run() {
