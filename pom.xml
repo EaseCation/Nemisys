@@ -14,6 +14,12 @@
         <log4j2.version>2.17.2</log4j2.version>
         <jackson.version>2.14.2</jackson.version>
         <jline.version>3.22.0</jline.version>
+        <!-- 本地测试服务端插件目录 -->
+        <dir.api>../../_api</dir.api>
+        <dir.server>../../_server</dir.server>
+        <dir.login>../../_login</dir.login>
+        <dir.proxy>../../_proxy</dir.proxy>
+        <dir.login-proxy>../../_proxy0</dir.login-proxy>
     </properties>
 
     <repositories>
@@ -40,58 +46,6 @@
     </repositories>
 
     <profiles>
-        <profile>
-            <id>default</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-
-            <properties>
-                <!-- 本地测试服务端插件目录 -->
-                <dir.api>../../_api</dir.api>
-                <dir.server>../../_server</dir.server>
-                <dir.login>../../_login</dir.login>
-                <dir.proxy>../../_proxy</dir.proxy>
-                <dir.login-proxy>../../_proxy0</dir.login-proxy>
-            </properties>
-
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-antrun-plugin</artifactId>
-                        <version>3.1.0</version>
-                        <executions>
-                            <execution>
-                                <id>copy</id>
-                                <phase>package</phase>
-                                <configuration>
-                                    <target>
-                                        <echo message="正在复制 ${project.build.finalName} 至本地 Proxy代理 服务端目录..."/>
-                                        <mkdir dir="${dir.login-proxy}"/>
-                                        <mkdir dir="${dir.proxy}/plugins"/>
-                                        <copy todir="${dir.login-proxy}" overwrite="true">
-                                            <fileset dir="${project.build.directory}">
-                                                <include name="${project.build.finalName}.jar" />
-                                            </fileset>
-                                        </copy>
-                                        <copy todir="${dir.proxy}" overwrite="true">
-                                            <fileset dir="${project.build.directory}">
-                                                <include name="${project.build.finalName}.jar" />
-                                            </fileset>
-                                        </copy>
-                                    </target>
-                                </configuration>
-                                <goals>
-                                    <goal>run</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-
         <profile>
             <id>homeland</id>
 
@@ -406,6 +360,37 @@
                     </transformers>
                     <dependencyReducedPomLocation>${project.build.directory}/dependency-reduced-pom.xml</dependencyReducedPomLocation>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>copy</id>
+                        <phase>package</phase>
+                        <configuration>
+                            <target>
+                                <echo message="正在复制 ${project.build.finalName} 至本地 Proxy代理 服务端目录..."/>
+                                <mkdir dir="${dir.login-proxy}"/>
+                                <mkdir dir="${dir.proxy}/plugins"/>
+                                <copy todir="${dir.login-proxy}" overwrite="true">
+                                    <fileset dir="${project.build.directory}">
+                                        <include name="${project.build.finalName}.jar" />
+                                    </fileset>
+                                </copy>
+                                <copy todir="${dir.proxy}" overwrite="true">
+                                    <fileset dir="${project.build.directory}">
+                                        <include name="${project.build.finalName}.jar" />
+                                    </fileset>
+                                </copy>
+                            </target>
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
