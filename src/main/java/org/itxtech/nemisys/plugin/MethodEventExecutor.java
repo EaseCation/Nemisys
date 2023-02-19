@@ -23,7 +23,9 @@ public class MethodEventExecutor implements EventExecutor {
     public void execute(Listener listener, Event event) {
         try {
             method.invoke(listener, event);
-        } catch (IllegalAccessException | InvocationTargetException e) {
+        } catch (InvocationTargetException e) {
+            Server.getInstance().getLogger().logException(e.getCause());
+        } catch (IllegalAccessException e) {
             Server.getInstance().getLogger().logException(e);
         }
     }
