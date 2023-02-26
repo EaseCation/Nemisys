@@ -12,7 +12,6 @@ import org.itxtech.nemisys.utils.PluginException;
 import org.itxtech.nemisys.utils.Utils;
 
 import java.io.File;
-import java.io.FilenameFilter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.*;
@@ -413,7 +412,7 @@ public class PluginManager {
             throw new PluginException("Plugin attempted to register " + listener.getClass().getName() + " while not enabled");
         }
 
-        Map<Class<? extends Event>, Set<RegisteredListener>> ret = new Object2ObjectOpenHashMap<>();
+        Map<Class<? extends Event>, Set<RegisteredListener>> ret = new IdentityHashMap<>();
         Set<Method> methods;
         try {
             Method[] publicMethods = listener.getClass().getMethods();
