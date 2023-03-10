@@ -185,11 +185,13 @@ public class Player {
                     this.close(ev.getKickMessage());
                     break;
                 }
+
+                /* // 堵塞入口攻击的临时解决方案. 未来预登录玩家需要与已登录玩家区分开
                 if (this.server.getMaxPlayers() <= this.server.getOnlinePlayers().size()) {
                     //this.close("Synapse Server: " + TextFormat.RED + "Synapse server is full!");
                     this.close("服务器现在压力山大T_T" + TextFormat.YELLOW + " 为了保证游戏体验，请稍后再试下哦:D");
                     break;
-                }
+                }*/
 
                 PlayerAsyncLoginEvent event = new PlayerAsyncLoginEvent(this, clientHash);
 
