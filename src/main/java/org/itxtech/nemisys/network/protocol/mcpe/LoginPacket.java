@@ -152,7 +152,7 @@ public class LoginPacket extends DataPacket {
     }
 
     private JsonObject decodeToken(String token) {
-        String[] base = token.split("\\.");
+        String[] base = token.split("\\.", 4);
         if (base.length < 2) return null;
         String forDecode = base[1];
         byte[] decode = null;
@@ -161,7 +161,7 @@ public class LoginPacket extends DataPacket {
         } catch(IllegalArgumentException e) {
         	decode = Base64.getDecoder().decode(forDecode);
         }
-        
+
         return new Gson().fromJson(new String(decode, StandardCharsets.UTF_8), JsonObject.class);
     }
 

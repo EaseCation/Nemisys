@@ -220,7 +220,7 @@ public final class ClientChainDataNetEase implements LoginChainData {
     }
 
     private JsonObject decodeToken(String token) {
-        String[] base = token.split("\\.");
+        String[] base = token.split("\\.", 4);
         if (base.length < 2) return null;
         String forDecode = base[1];
         byte[] decode = null;

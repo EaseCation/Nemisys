@@ -237,7 +237,7 @@ public final class ClientChainData implements LoginChainData {
     }
 
     private JsonObject decodeToken(String token) {
-        String[] base = token.split("\\.");
+        String[] base = token.split("\\.", 4);
         if (base.length < 2) return null;
         byte[] decode = null;
         try {
