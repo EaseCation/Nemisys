@@ -150,10 +150,24 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
             DataPacket packet;
             while ((packet = nemisysSession.inbound.poll()) != null && nemisysSession.readable) {
                 if (nemisysSession.incomingPacketBatchBudget <= 0) {
-//                    player.close("Receiving packets too fast");
-                    log.warn("{} receiving packets too fast", player.getName());
-                    //TODO: 远程日志上报
-                    break;
+                    long nowNs = System.nanoTime();
+                    long timeSinceLastUpdateNs = nowNs - nemisysSession.lastPacketBudgetUpdateTimeNs;
+                    if (timeSinceLastUpdateNs > 50_000_000) {
+                        int ticksSinceLastUpdate = (int) (timeSinceLastUpdateNs / 50_000_000);
+                        // If the server takes an abnormally long time to process a tick, add the budget for time difference to compensate.
+                        // This extra budget may be very large, but it will disappear the next time a normal update occurs.
+                        // This ensures that backlogs during a large lag spike don't cause everyone to get kicked.
+                        // As long as all the backlogged packets are processed before the next tick, everything should be OK for clients behaving normally.
+                        nemisysSession.incomingPacketBatchBudget = Math.min(nemisysSession.incomingPacketBatchBudget, INCOMING_PACKET_BATCH_MAX_BUDGET) + INCOMING_PACKET_BATCH_PER_TICK * 2 * ticksSinceLastUpdate;
+                        nemisysSession.lastPacketBudgetUpdateTimeNs = nowNs;
+                    }
+
+                    if (nemisysSession.incomingPacketBatchBudget <= 0) {
+                        log.warn("{} receiving packets too fast", player.getName());
+                        //TODO: 远程日志上报
+                        player.close("Receiving packets too fast");
+                        break;
+                    }
                 }
                 nemisysSession.incomingPacketBatchBudget--;
 
@@ -163,14 +177,6 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                     log.error(new FormattedMessage("An error occurred whilst handling {} for {}",
                             new Object[]{packet.getClass().getSimpleName(), nemisysSession.player.getName()}, e));
                 }
-            }
-
-            long nowNs = System.nanoTime();
-            long timeSinceLastUpdateNs = nowNs - nemisysSession.lastPacketBudgetUpdateTimeNs;
-            if (timeSinceLastUpdateNs > 50_000_000) {
-                int ticksSinceLastUpdate = (int) (timeSinceLastUpdateNs / 50_000_000);
-                nemisysSession.incomingPacketBatchBudget = Math.min(nemisysSession.incomingPacketBatchBudget + INCOMING_PACKET_BATCH_PER_TICK * 2 * ticksSinceLastUpdate, INCOMING_PACKET_BATCH_MAX_BUDGET);
-                nemisysSession.lastPacketBudgetUpdateTimeNs = nowNs;
             }
         }
         return true;
@@ -335,6 +341,9 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
          * At most this many more packets can be received.
          * If this reaches zero, any additional packets received will cause the player to be kicked from the server.
          * This number is increased every tick up to a maximum limit.
+         *
+         * @see #INCOMING_PACKET_BATCH_PER_TICK
+         * @see #INCOMING_PACKET_BATCH_MAX_BUDGET
          */
         private int incomingPacketBatchBudget = INCOMING_PACKET_BATCH_MAX_BUDGET;
         private long lastPacketBudgetUpdateTimeNs;

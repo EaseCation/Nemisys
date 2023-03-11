@@ -26,7 +26,7 @@ public enum Compressor {
 
         @Override
         public byte[] decompress(byte[] data) throws IOException {
-            return Zlib.inflate(data, 2 * 1024 * 1024); // Max 2MB
+            return Zlib.inflate(data, MAX_SIZE);
         }
     },
     ZLIB_RAW {
@@ -37,7 +37,7 @@ public enum Compressor {
 
         @Override
         public byte[] decompress(byte[] data) throws IOException, DataFormatException {
-            return Network.inflateRaw(data);
+            return Network.inflateRaw(data, MAX_SIZE);
         }
     },
     ZLIB_UNKNOWN {
@@ -70,6 +70,8 @@ public enum Compressor {
             return Snappy.uncompress(data);
         }
     };
+
+    public static final int MAX_SIZE = 12 * 1024 * 1024; // 12MB
 
     private static final byte[] EMPTY = new byte[0];
 

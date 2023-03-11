@@ -414,7 +414,7 @@ public class Server {
         if (this.getPropertyBoolean("enable-upnp", false)) {
             if (UPnP.isUPnPAvailable()) {
                 log.debug("UPnP enabled. Attempting to port-forward with UPnP.");
-                if (UPnP.openPortUDP(getPort(), "Cloudburst")) {
+                if (UPnP.openPortUDP(getPort(), "Nemisys")) {
                     this.upnpEnabled = true; // Saved to disable the port-forwarding on shutdown
                     log.info("Successfully forwarded UDP Port {} using UPnP.", getPort());
                 } else {
