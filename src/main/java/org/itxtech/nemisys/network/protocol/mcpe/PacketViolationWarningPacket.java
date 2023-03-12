@@ -23,7 +23,7 @@ public class PacketViolationWarningPacket extends DataPacket {
     public String context = "";
 
     @Override
-    public byte pid() {
+    public int pid() {
         return NETWORK_ID;
     }
 

@@ -2,13 +2,14 @@ package org.itxtech.nemisys.synapse;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.itxtech.nemisys.Server;
-//import org.itxtech.nemisys.network.RakNettyInterface;
-import org.itxtech.nemisys.network.SourceInterface;
 import org.itxtech.nemisys.network.protocol.mcpe.DataPacket;
+import org.itxtech.nemisys.network.protocol.mcpe.ProtocolInfo;
 import org.itxtech.nemisys.utils.Config;
 import org.itxtech.nemisys.utils.ConfigSection;
 import org.itxtech.nemisys.utils.MainLogger;
+import org.itxtech.nemisys.utils.VarInt;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -86,11 +87,18 @@ public class Synapse {
     }
 
     public DataPacket getPacket(byte[] buffer) {
-        DataPacket packet;
-        if ((packet = this.getServer().getNetwork().getPacket(buffer[0] & 0xff)) != null) {
+        ByteArrayInputStream bais = new ByteArrayInputStream(buffer);
+        int header;
+        try {
+            header = (int) VarInt.readUnsignedVarInt(bais);
+        } catch (Exception e) {
+            return null;
+        }
+        DataPacket packet = this.getServer().getNetwork().getPacket(header & 0x3ff);
+        if (packet != null) {
                     /*System.out.println("first bits: "+buf[1]+"   "+buf[2]);
                     System.out.println("other bits: "+ Arrays.toString(buf));*/
-            packet.setBuffer(buffer, 3);
+            packet.setBuffer(buffer, buffer.length - bais.available());
 
             try {
                 packet.decode();

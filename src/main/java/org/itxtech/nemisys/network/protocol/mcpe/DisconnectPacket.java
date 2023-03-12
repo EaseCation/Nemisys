@@ -10,7 +10,7 @@ public class DisconnectPacket extends DataPacket {
     public String message;
 
     @Override
-    public byte pid() {
+    public int pid() {
         return NETWORK_ID;
     }
 

@@ -10,7 +10,7 @@ public class BatchPacket extends DataPacket {
     public byte[] payload;
 
     @Override
-    public byte pid() {
+    public int pid() {
         return NETWORK_ID;
     }
 

@@ -33,8 +33,8 @@ public class Network {
     private static final ThreadLocal<Deflater> DEFLATER_RAW = ThreadLocal.withInitial(() -> new Deflater(Server.getInstance().getNetworkCompressionLevel(), true));
     private static final ThreadLocal<byte[]> BUFFER = ThreadLocal.withInitial(() -> new byte[2 * 1024 * 1024]);
 
-    private final Class<? extends DataPacket>[] packetPool = new Class[256];
-    private final Class<? extends DataPacket>[] serverboundPacketPool = new Class[256];
+    private final Class<? extends DataPacket>[] packetPool = new Class[ProtocolInfo.PACKET_COUNT];
+    private final Class<? extends DataPacket>[] serverboundPacketPool = new Class[ProtocolInfo.PACKET_COUNT];
 
     private final Server server;
 
@@ -54,6 +54,12 @@ public class Network {
     }
 
     public static byte[] inflateRaw(byte[] data, int maxSize) throws IOException, DataFormatException {
+        if (data.length == 0) {
+            throw new IOException("no data");
+        }
+        if (maxSize > 0 && data.length >= maxSize) {
+            throw new IOException("Input data exceeds maximum size");
+        }
         Inflater inflater = INFLATER_RAW.get();
         try {
             inflater.setInput(data);
@@ -204,14 +210,14 @@ public class Network {
         }
     }
 
-    public void registerPacket(byte id, Class<? extends DataPacket> clazz) {
+    public void registerPacket(int id, Class<? extends DataPacket> clazz) {
         registerPacket(id, clazz, false);
     }
 
-    public void registerPacket(byte id, Class<? extends DataPacket> clazz, boolean serverbound) {
-        this.packetPool[id & 0xff] = clazz;
+    public void registerPacket(int id, Class<? extends DataPacket> clazz, boolean serverbound) {
+        this.packetPool[id] = clazz;
         if (serverbound) {
-            serverboundPacketPool[id & 0xff] = clazz;
+            serverboundPacketPool[id] = clazz;
         }
     }
 

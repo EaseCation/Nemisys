@@ -452,7 +452,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                 }*/
 
                 // 直接丢给nukkit
-                DataPacket batchPacket = RakNetInterface.this.network.getServerboundPacket(ProtocolInfo.BATCH_PACKET & 0xff);
+                DataPacket batchPacket = RakNetInterface.this.network.getServerboundPacket(ProtocolInfo.BATCH_PACKET);
                 if (batchPacket == null) {
                     return;
                 }

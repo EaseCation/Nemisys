@@ -9,7 +9,7 @@ public class RequestNetworkSettingsPacket extends DataPacket {
     public int protocol;
 
     @Override
-    public byte pid() {
+    public int pid() {
         return NETWORK_ID;
     }
 

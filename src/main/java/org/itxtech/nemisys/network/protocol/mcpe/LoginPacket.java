@@ -1,8 +1,6 @@
 package org.itxtech.nemisys.network.protocol.mcpe;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import com.netease.mc.authlib.Profile;
@@ -32,7 +30,7 @@ public class LoginPacket extends DataPacket {
     public byte[] cacheBuffer;
 
     @Override
-    public byte pid() {
+    public int pid() {
         return NETWORK_ID;
     }
 

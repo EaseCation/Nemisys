@@ -8,7 +8,7 @@ public class ServerToClientHandshakePacket extends DataPacket {
     public static final int NETWORK_ID = ProtocolInfo.SERVER_TO_CLIENT_HANDSHAKE_PACKET;
 
     @Override
-    public byte pid() {
+    public int pid() {
         return NETWORK_ID;
     }
 

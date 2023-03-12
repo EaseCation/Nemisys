@@ -13,7 +13,7 @@ public abstract class DataPacket extends BinaryStream implements Cloneable {
     public RakNetReliability reliability = RakNetReliability.RELIABLE_ORDERED;
     private int channel = 0;
 
-    public abstract byte pid();
+    public abstract int pid();
 
     public void decode() {
 
@@ -51,12 +51,12 @@ public abstract class DataPacket extends BinaryStream implements Cloneable {
         super.reset();
 
         if (protocol >= 282) {
-            this.putUnsignedVarInt(this.pid() & 0xff);
+            this.putUnsignedVarInt(this.pid());
         } else if (protocol > 113) {
             this.putUnsignedVarInt(this.pid());
             this.putByte((byte) 0);
         } else {
-            this.putByte(this.pid());
+            this.putByte((byte) this.pid());
         }
     }
 
