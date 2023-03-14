@@ -18,10 +18,11 @@ public class SessionManager {
     private final Map<String, Channel> sessions = new Object2ObjectOpenHashMap<>();
     private long nextTick;
     private int tickCounter;
-    private final float[] tickAverage = {100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100};
+    private final float[] tickAverage = {20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20};
     private final float[] useAverage = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    private float maxTick = 100;
+    private float maxTick = 20;
     private float maxUse = 0;
+
     public SessionManager(SynapseServer server) {
         this.server = server;
     }
@@ -45,11 +46,15 @@ public class SessionManager {
                 this.tick();
             } catch (RuntimeException e) {
                 Server.getInstance().getLogger().logException(e);
-            }
-            try {
-                Thread.sleep(1);
-            } catch (InterruptedException e) {
-                //ignore
+            } finally {
+                long next = this.nextTick;
+                long current = System.currentTimeMillis();
+                if (next - 0.1 > current) {
+                    try {
+                        Thread.sleep(next - current - 1, 900000);
+                    } catch (InterruptedException ignored) {
+                    }
+                }
             }
         }
         this.server.bossGroup.shutdownGracefully();
@@ -92,7 +97,7 @@ public class SessionManager {
     public void tick() {
         long tickTime = System.currentTimeMillis();
         long tickTimeNano = System.nanoTime();
-        if ((tickTime - this.nextTick) < -5) {
+        if ((tickTime - this.nextTick) < -25) {
             return;
         }
 
@@ -105,7 +110,7 @@ public class SessionManager {
         }
 
         if ((this.tickCounter & 0b1111) == 0) {
-            this.maxTick = 100;
+            this.maxTick = 20;
             this.maxUse = 0;
         }
 
@@ -114,7 +119,7 @@ public class SessionManager {
         //float tick = Math.min(100, 1000 / Math.max(1, now - tickTime));
         //float use = Math.min(1, (now - tickTime) / 50);
 
-        float tick = (float) Math.min(100, 1000000000 / Math.max(1000000, ((double) nowNano - tickTimeNano)));
+        float tick = (float) Math.min(20, 1000000000 / Math.max(1000000, ((double) nowNano - tickTimeNano)));
         float use = (float) Math.min(1, ((double) (nowNano - tickTimeNano)) / 50000000);
 
         if (this.maxTick > tick) {
@@ -134,7 +139,7 @@ public class SessionManager {
         if ((this.nextTick - tickTime) < -1000) {
             this.nextTick = tickTime;
         } else {
-            this.nextTick += 10;
+            this.nextTick += 50;
         }
     }
 

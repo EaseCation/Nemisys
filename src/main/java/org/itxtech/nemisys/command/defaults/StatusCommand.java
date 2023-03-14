@@ -36,18 +36,18 @@ public class StatusCommand extends VanillaCommand {
 
         String tpsColor = ""+TextFormat.GREEN;
         float tps = server.getTicksPerSecond();
-        if (tps < 17) {
-            tpsColor = ""+TextFormat.GOLD;
-        } else if (tps < 12) {
-            tpsColor = ""+TextFormat.RED;
+        if (tps < 12) {
+            tpsColor = "" + TextFormat.RED;
+        } else if (tps < 17) {
+            tpsColor = "" + TextFormat.GOLD;
         }
 
         String synTpsColor = ""+TextFormat.GREEN;
         float synTps = server.getSynapseInterface().getInterface().getSessionManager().getTicksPerSecond();
-        if (tps < 17) {
-            synTpsColor = ""+TextFormat.GOLD;
-        } else if (tps < 12) {
+        if (tps < 12) {
             synTpsColor = ""+TextFormat.RED;
+        } else if (tps < 17) {
+            synTpsColor = ""+TextFormat.GOLD;
         }
 
         sender.sendMessage(TextFormat.GOLD + "Current TPS: " + tpsColor + NemisysMath.round(tps, 2));

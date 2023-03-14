@@ -14,6 +14,7 @@ import org.itxtech.nemisys.network.protocol.spp.SynapseInfo;
 import org.itxtech.nemisys.utils.ThreadedLogger;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Log4j2
 public class SynapseServer extends Thread implements InterruptibleThread {
@@ -29,7 +30,7 @@ public class SynapseServer extends Thread implements InterruptibleThread {
     private final ThreadedLogger logger;
     private final String interfaz;
     private final int port;
-    private boolean shutdown = false;
+    private final AtomicBoolean shutdown;
     private final String mainPath;
     private final SynapseInterface server;
     private SessionManager sessionManager;
@@ -46,7 +47,7 @@ public class SynapseServer extends Thread implements InterruptibleThread {
         if (port < 1 || port > 65536) {
             throw new IllegalArgumentException("Invalid port range");
         }
-        this.shutdown = false;
+        this.shutdown = new AtomicBoolean();
         this.externalQueue = new ConcurrentLinkedQueue<>();
         this.internalQueue = new ConcurrentLinkedQueue<>();
         this.clientOpenQueue = new ConcurrentLinkedQueue<>();
@@ -89,11 +90,11 @@ public class SynapseServer extends Thread implements InterruptibleThread {
     }
 
     public boolean isShutdown() {
-        return shutdown;
+        return shutdown.get();
     }
 
     public void shutdown() {
-        this.shutdown = true;
+        this.shutdown.compareAndSet(false, true);
     }
 
     public int getPort() {
@@ -172,7 +173,7 @@ public class SynapseServer extends Thread implements InterruptibleThread {
 
     private class ShutdownHandler extends Thread {
         public void run() {
-            if (!shutdown) {
+            if (!shutdown.get()) {
                 logger.emergency("SynLib crashed!");
             }
         }

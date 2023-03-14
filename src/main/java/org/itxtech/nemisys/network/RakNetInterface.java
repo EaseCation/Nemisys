@@ -327,7 +327,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
         private final Queue<DataPacket> inbound = PlatformDependent.newSpscQueue();
         private final Queue<DataPacket> outbound = PlatformDependent.newMpscQueue();
         private volatile boolean readable = true;
-        private String disconnectReason = null;
+        private volatile String disconnectReason = null;
         private Player player;
 
         private volatile Compressor compressor;
@@ -394,6 +394,14 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
             }
 
             ByteBuf buffer = packet.getBuffer();
+            int size = buffer.readableBytes();
+            if (size >= Compressor.MAX_SIZE) {
+                this.readable = false;
+                this.disconnect("Packet content exceeds maximum size");
+                log.debug("Packet size exceeds limit: {}", size);
+                return;
+            }
+
             short packetId = buffer.readUnsignedByte();
             if (packetId == 0xfe && buffer.isReadable()) {
                 Cipher decryptCipher = this.decryptCipher;
@@ -405,6 +413,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                     try {
                         decryptCipher.update(inBuffer, outBuffer);
                     } catch (GeneralSecurityException e) {
+                        this.readable = false;
                         this.disconnect("Bad decrypt");
                         log.debug("Unable to decrypt packet", e);
                         return;
@@ -418,6 +427,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                         buffer.readerIndex(trailerIndex);
                         buffer.readBytes(checksum);
                     } catch (Exception e) {
+                        this.readable = false;
                         this.disconnect("Bad checksum");
                         log.debug("Unable to verify checksum", e);
                         return;
@@ -427,6 +437,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                     byte[] expected = this.calculateChecksum(count, payload);
                     for (int i = 0; i < 8; i++) {
                         if (checksum[i] != expected[i]) {
+                            this.readable = false;
                             this.disconnect("Invalid checksum");
                             log.debug("Encrypted packet {} has invalid checksum (expected {}, got {})",
                                     count, Binary.bytesToHexString(expected), Binary.bytesToHexString(checksum));

@@ -2,7 +2,6 @@ package org.itxtech.nemisys.synapse.network.synlib;
 
 import io.netty.channel.Channel;
 import lombok.extern.log4j.Log4j2;
-import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.network.protocol.spp.SynapseDataPacket;
 
 import java.net.InetSocketAddress;
@@ -47,9 +46,9 @@ public class Session {
             }
             long time = System.currentTimeMillis() - start;
             this.tickUseTime = time;
-            if (time < 10) {
+            if (time < 50) {
                 try {
-                    Thread.sleep(10 - time);
+                    Thread.sleep(50 - time);
                 } catch (InterruptedException e) {
                     //ignore
                 }
@@ -123,15 +122,15 @@ public class Session {
 
     public void writePacket(SynapseDataPacket pk) {
         if (this.channel != null) {
-            Server.getInstance().getLogger().debug("client-ChannelWrite: pk=" + pk.getClass().getSimpleName() + " pkLen=" + pk.getBuffer().length);
+            //Server.getInstance().getLogger().debug("client-ChannelWrite: pk=" + pk.getClass().getSimpleName() + " pkLen=" + pk.getBuffer().length);
             this.channel.writeAndFlush(pk);
         }
     }
 
     public float getTicksPerSecond() {
-        long more = this.tickUseTime - 10;
-        if (more < 0) return 100;
-        return Math.round(10f / (float) this.tickUseTime) * 100;
+        long more = this.tickUseTime - 50;
+        if (more <= 0) return 20;
+        return Math.round(50f / (float) this.tickUseTime) * 20;
     }
 
 }
