@@ -94,7 +94,7 @@ public class SessionManager {
                     // else ignore
                 }
             }
-            if (this.socket.packets.size() > 0) {
+            if (!this.socket.packets.isEmpty()) {
                 Server.getInstance().getLogger().alert("RakNet线程 1Tick 内未处理完所有任务，队列剩余: " + this.socket.packets.size());
             }
             while (this.receiveStream()) ;
@@ -161,7 +161,7 @@ public class SessionManager {
             byte[] buffer = new byte[byteBuf.readableBytes()];
             byteBuf.readBytes(buffer);
             byteBuf.release();
-            log(buffer);
+            //log(buffer);
             int len = buffer.length;
             String source = datagramPacket.sender().getHostString();
             currentSource = source; //in order to block address

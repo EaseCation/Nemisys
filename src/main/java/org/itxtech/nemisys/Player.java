@@ -173,7 +173,7 @@ public class Player {
                 Map<String, Client> c = this.server.getMainClients();
 
                 String clientHash;
-                if (c.size() > 0) {
+                if (!c.isEmpty()) {
                     clientHash = new ObjectArrayList<>(c.keySet()).get(ThreadLocalRandom.current().nextInt(c.size()));
                 } else {
                     clientHash = "";
@@ -235,11 +235,12 @@ public class Player {
             this.close("Synapse Server: " + TextFormat.RED + "No target server!");
             return;
         }
-        if (!this.server.getClients().containsKey(clientHash)) {
+        Client client =this.server.getClients().get(clientHash);
+        if (client == null) {
             this.close("Synapse Server: " + TextFormat.RED + "Target server is not online!");
             return;
         }
-        this.transfer(this.server.getClients().get(clientHash));
+        this.transfer(client);
     }
 
     public void redirectPacket(byte[] buffer) {

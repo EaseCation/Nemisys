@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.google.gson.Gson;
 
 public class JsonUtil {
     public static final JsonMapper COMMON_JSON_MAPPER = JsonMapper.builder()
@@ -11,4 +12,6 @@ public class JsonUtil {
             .addModule(new Jdk8Module())
             .addModule(new GuavaModule())
             .build();
+
+    public static final Gson GSON = new Gson();
 }

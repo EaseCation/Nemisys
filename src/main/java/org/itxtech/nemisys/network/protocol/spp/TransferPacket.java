@@ -1,7 +1,7 @@
 package org.itxtech.nemisys.network.protocol.spp;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import org.itxtech.nemisys.utils.JsonUtil;
 
 import java.util.UUID;
 
@@ -25,13 +25,13 @@ public class TransferPacket extends SynapseDataPacket {
         this.reset();
         this.putUUID(this.uuid);
         this.putString(this.clientHash);
-        this.putString(new Gson().toJson(this.extra));
+        this.putString(JsonUtil.GSON.toJson(this.extra));
     }
 
     @Override
     public void decode() {
         this.uuid = this.getUUID();
         this.clientHash = this.getString();
-        this.extra = new Gson().fromJson(this.getString(), JsonObject.class);
+        this.extra = JsonUtil.GSON.fromJson(this.getString(), JsonObject.class);
     }
 }

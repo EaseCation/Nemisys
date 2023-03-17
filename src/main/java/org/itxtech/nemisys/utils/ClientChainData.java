@@ -1,6 +1,5 @@
 package org.itxtech.nemisys.utils;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import com.nimbusds.jose.JOSEException;
@@ -191,11 +190,13 @@ public final class ClientChainData implements LoginChainData {
     }
 
     private void decodeChainData() {
-        Map<String, List<String>> map = new Gson().fromJson(new String(bs.get(bs.getLInt()), StandardCharsets.UTF_8),
+        Map<String, List<String>> map = JsonUtil.GSON.fromJson(new String(bs.get(bs.getLInt()), StandardCharsets.UTF_8),
                 new TypeToken<Map<String, List<String>>>() {
                 }.getType());
-        if (map.isEmpty() || !map.containsKey("chain") || map.get("chain").isEmpty()) return;
         List<String> chains = map.get("chain");
+        if (chains == null || chains.isEmpty()) {
+            return;
+        }
 
         if (xboxAuth) {
             // Validate keys
@@ -208,15 +209,18 @@ public final class ClientChainData implements LoginChainData {
 
         for (String c : chains) {
             JsonObject chainMap = decodeToken(c);
-            if (chainMap == null) continue;
+            if (chainMap == null) {
+                continue;
+            }
             if (chainMap.has("extraData")) {
                 JsonObject extra = chainMap.get("extraData").getAsJsonObject();
                 if (extra.has("displayName")) this.username = extra.get("displayName").getAsString();
                 if (extra.has("identity")) this.clientUUID = UUID.fromString(extra.get("identity").getAsString());
                 if (extra.has("XUID")) this.xuid = extra.get("XUID").getAsString();
             }
-            if (chainMap.has("identityPublicKey"))
+            if (chainMap.has("identityPublicKey")) {
                 this.identityPublicKey = chainMap.get("identityPublicKey").getAsString();
+            }
         }
     }
 
@@ -239,7 +243,7 @@ public final class ClientChainData implements LoginChainData {
     private JsonObject decodeToken(String token) {
         String[] base = token.split("\\.", 4);
         if (base.length < 2) return null;
-        byte[] decode = null;
+        byte[] decode;
         try {
         	decode = Base64.getUrlDecoder().decode(base[1]);
         } catch(IllegalArgumentException e) {
@@ -247,7 +251,7 @@ public final class ClientChainData implements LoginChainData {
         }
         String json = new String(decode, StandardCharsets.UTF_8);
         //Server.getInstance().getLogger().debug(json);
-        return new Gson().fromJson(json, JsonObject.class);
+        return JsonUtil.GSON.fromJson(json, JsonObject.class);
     }
 
     private static boolean verifyChain(List<String> chains) throws Exception {

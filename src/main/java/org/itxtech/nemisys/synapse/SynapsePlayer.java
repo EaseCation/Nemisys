@@ -2,6 +2,7 @@ package org.itxtech.nemisys.synapse;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+import org.itxtech.nemisys.Client;
 import org.itxtech.nemisys.Player;
 import org.itxtech.nemisys.event.server.DataPacketSendEvent;
 import org.itxtech.nemisys.event.synapse.player.SynapsePlayerConnectEvent;
@@ -81,11 +82,12 @@ public class SynapsePlayer extends Player {
             this.close("Synapse Server: " + TextFormat.RED + "No target server!");
             return;
         }
-        if (!getServer().getClients().containsKey(clientHash)) {
+        Client client = getServer().getClients().get(clientHash);
+        if (client == null) {
             this.close("Synapse Server: " + TextFormat.RED + "Target server is not online!");
             return;
         }
-        this.transfer(getServer().getClients().get(clientHash), cachedExtra, true);
+        this.transfer(client, cachedExtra, true);
     }
 
     @Override

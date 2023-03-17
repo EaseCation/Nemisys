@@ -1,13 +1,13 @@
 package org.itxtech.nemisys.network.synlib;
 
 import io.netty.channel.Channel;
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.math.NemisysMath;
 import org.itxtech.nemisys.utils.MainLogger;
 
 import java.net.InetSocketAddress;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Author: PeratX
@@ -15,7 +15,7 @@ import java.util.Map;
  */
 public class SessionManager {
     private final SynapseServer server;
-    private final Map<String, Channel> sessions = new Object2ObjectOpenHashMap<>();
+    private final Map<String, Channel> sessions = new ConcurrentHashMap<>();
     private long nextTick;
     private int tickCounter;
     private final float[] tickAverage = {20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20};
@@ -73,9 +73,10 @@ public class SessionManager {
         SynapseClientPacket data = this.server.readMainToThreadPacket();
         if (data != null) {
             String hash = data.getHash();
-            if (this.sessions.containsKey(hash)) {
-                this.sessions.get(hash).writeAndFlush(data.getPacket());
-                Server.getInstance().getLogger().debug("server-writeAndFlush: hash=" + hash);
+            Channel channel = this.sessions.get(hash);
+            if (channel != null) {
+                channel.writeAndFlush(data.getPacket());
+                //Server.getInstance().getLogger().debug("server-writeAndFlush: hash=" + hash);
             }
             return true;
         }
@@ -85,9 +86,9 @@ public class SessionManager {
     private boolean closeSessions() {
         String hash = this.server.getExternalClientCloseRequest();
         if (hash != null) {
-            if (this.sessions.containsKey(hash)) {
-                this.sessions.get(hash).close();
-                this.sessions.remove(hash);
+            Channel channel = this.sessions.remove(hash);
+            if (channel != null) {
+                channel.close();
             }
             return true;
         }

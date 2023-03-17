@@ -33,7 +33,7 @@ public class KickCommand extends VanillaCommand {
             reason = new StringBuilder(reason.substring(0, reason.length() - 1));
         }
 
-        Player player = sender.getServer().getPlayer(name);
+        Player player = sender.getServer().getPlayerExact(name);
         if (player != null) {
             player.close(reason.toString());
             if (reason.length() >= 1) {

@@ -2,9 +2,7 @@ package org.itxtech.nemisys;
 
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
-import com.google.gson.Gson;
 import com.nukkitx.network.raknet.RakNetReliability;
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.itxtech.nemisys.event.client.ClientAuthEvent;
 import org.itxtech.nemisys.event.client.ClientConnectEvent;
@@ -20,6 +18,7 @@ import java.io.ByteArrayInputStream;
 import java.io.DataInput;
 import java.io.DataInputStream;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Author: PeratX
@@ -30,7 +29,7 @@ public class Client {
     private final SynapseInterface interfaz;
     private final String ip;
     private final int port;
-    private final Map<UUID, Player> players = new Object2ObjectOpenHashMap<>();
+    private final Map<UUID, Player> players = new ConcurrentHashMap<>();
     private boolean verified = false;
     private boolean isMainServer = false;
     private int maxPlayers;
@@ -95,7 +94,7 @@ public class Client {
             });
             InformationPacket pk = new InformationPacket();
             pk.type = InformationPacket.TYPE_PLAYER_NETWORK_LATENCY;
-            pk.message = new Gson().toJson(data);
+            pk.message = JsonUtil.GSON.toJson(data);
             this.sendDataPacket(pk);
             this.lastUpdatePlayerNetworkLatency = System.currentTimeMillis();
         }
@@ -112,8 +111,9 @@ public class Client {
                 GenericPacket gPacket = new GenericPacket();
                 gPacket.setBuffer(((BroadcastPacket) packet).payload);
                 for (UUID uniqueId : ((BroadcastPacket) packet).entries) {
-                    if (this.players.containsKey(uniqueId)) {
-                        this.players.get(uniqueId).sendDataPacket(gPacket);
+                    Player player = this.players.get(uniqueId);
+                    if (player != null) {
+                        player.sendDataPacket(gPacket);
                     }
                 }
                 break;
@@ -124,7 +124,7 @@ public class Client {
                 }
                 HeartbeatPacket heartbeatPacket = (HeartbeatPacket) packet;
                 this.lastUpdate = System.currentTimeMillis();
-                this.server.getLogger().debug("Received Heartbeat Packet from " + this.getIp() + ":" + this.getPort());
+                //this.server.getLogger().debug("Received Heartbeat Packet from " + this.getIp() + ":" + this.getPort());
                 this.tps = heartbeatPacket.tps;
                 this.load = heartbeatPacket.load;
                 this.upTime = heartbeatPacket.upTime;
@@ -169,7 +169,8 @@ public class Client {
                 break;
             case SynapseInfo.REDIRECT_PACKET:
                 UUID uuid = ((RedirectPacket) packet).uuid;
-                if (this.players.containsKey(uuid)) {
+                Player player = this.players.get(uuid);
+                if (player != null) {
                     byte[] buffer = ((RedirectPacket) packet).mcpeBuffer;
                     DataPacket send;
                     if (buffer.length > 0 && buffer[0] == (byte) 0xfe) {
@@ -188,7 +189,7 @@ public class Client {
                         //this.server.getLogger().info("len: " + ((RedirectPacket) packet).mcpeBuffer.length + "  reliability: " + send.reliability.name() + "  channel: " + send.getChannel());
                     }
 
-                    this.players.get(uuid).sendDataPacket(send);
+                    player.sendDataPacket(send);
                     //this.server.getLogger().warning("Send to player: " + Binary.bytesToHexString(new byte[]{((RedirectPacket) packet).mcpeBuffer[0]}) + "  len: " + ((RedirectPacket) packet).mcpeBuffer.length);
                 }/*else{
 					this.server.getLogger().error("Error RedirectPacket 0x" + bin2hex(packet.buffer));
@@ -196,11 +197,11 @@ public class Client {
                 break;
             case SynapseInfo.TRANSFER_PACKET:
                 Map<String, Client> clients = this.server.getClients();
-                UUID uuid0 = ((TransferPacket) packet).uuid;
-                if (this.players.containsKey(uuid0)) {
-                    Player player = this.players.get(uuid0);
-                    if (clients.containsKey(((TransferPacket) packet).clientHash)) {
-                        player.transfer(clients.get(((TransferPacket) packet).clientHash), ((TransferPacket) packet).extra, true);
+                player = this.players.get(((TransferPacket) packet).uuid);
+                if (player != null) {
+                    Client client = clients.get(((TransferPacket) packet).clientHash);
+                    if (client != null) {
+                        player.transfer(client, ((TransferPacket) packet).extra, true);
                     } else {
                         player.close("Synapse Server: " + TextFormat.RED + "Target server is not online!" + "\n" + TextFormat.YELLOW + ((TransferPacket) packet).clientHash);
                     }
@@ -228,10 +229,10 @@ public class Client {
 
                         switch (subChannel) {
                             case "TransferToPlayer":
-                                String player = input.readUTF();
+                                String playerName = input.readUTF();
                                 String target = input.readUTF();
 
-                                Player p = this.server.getPlayerExact(player);
+                                Player p = this.server.getPlayerExact(playerName);
                                 Player p2 = this.server.getPlayerExact(target);
 
                                 if (p == null || p2 == null) {
@@ -241,9 +242,9 @@ public class Client {
                                 p.transfer(p2.getClient());
                                 break;
                             case "IP":
-                                player = input.readUTF();
+                                playerName = input.readUTF();
 
-                                p = this.server.getPlayerExact(player);
+                                p = this.server.getPlayerExact(playerName);
 
                                 if (p == null) {
                                     break;
@@ -275,10 +276,10 @@ public class Client {
                                 out.writeUTF(String.join(", ", names));
                                 break;
                             case "Message":
-                                player = input.readUTF();
+                                playerName = input.readUTF();
                                 String message = input.readUTF();
 
-                                p = this.server.getPlayerExact(player);
+                                p = this.server.getPlayerExact(playerName);
 
                                 if (p == null) {
                                     break;
@@ -298,10 +299,10 @@ public class Client {
                             case "UUID":
                                 break;
                             case "KickPlayer":
-                                player = input.readUTF();
+                                playerName = input.readUTF();
                                 String reason = input.readUTF();
 
-                                p = this.server.getPlayerExact(player);
+                                p = this.server.getPlayerExact(playerName);
 
                                 if (p == null) {
                                     break;
@@ -325,9 +326,9 @@ public class Client {
                 break;
             case SynapseInfo.PLAYER_LOGOUT_PACKET:
                 PlayerLogoutPacket playerLogoutPacket = (PlayerLogoutPacket) packet;
-                UUID uuid1;
-                if (this.players.containsKey(uuid1 = playerLogoutPacket.uuid)) {
-                    this.players.get(uuid1).close(playerLogoutPacket.reason, true);
+                player = this.players.get(playerLogoutPacket.uuid);
+                if (player != null) {
+                    player.close(playerLogoutPacket.reason, true);
                 }
                 break;
             default:

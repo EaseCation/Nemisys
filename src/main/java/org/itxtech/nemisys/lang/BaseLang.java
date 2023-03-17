@@ -19,8 +19,8 @@ public class BaseLang {
 
     protected String langName;
 
-    protected Map<String, String> lang;
-    protected Map<String, String> fallbackLang;
+    protected final Map<String, String> lang;
+    protected final Map<String, String> fallbackLang;
 
     public BaseLang(String lang) {
         this(lang, null);
@@ -152,19 +152,21 @@ public class BaseLang {
     }
 
     public String internalGet(String id) {
-        if (this.lang.containsKey(id)) {
-            return this.lang.get(id);
-        } else if (this.fallbackLang.containsKey(id)) {
-            return this.fallbackLang.get(id);
+        String text = this.lang.get(id);
+        if (text != null) {
+            return text;
         }
-        return null;
+        return this.fallbackLang.get(id);
     }
 
     public String get(String id) {
-        if (this.lang.containsKey(id)) {
-            return this.lang.get(id);
-        } else if (this.fallbackLang.containsKey(id)) {
-            return this.fallbackLang.get(id);
+        String text = this.lang.get(id);
+        if (text != null) {
+            return text;
+        }
+        String fallback = this.fallbackLang.get(id);
+        if (fallback != null) {
+            return fallback;
         }
         return id;
     }

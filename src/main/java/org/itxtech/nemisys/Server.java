@@ -2,7 +2,6 @@ package org.itxtech.nemisys;
 
 import com.dosse.upnp.UPnP;
 import com.google.common.base.Preconditions;
-import com.google.gson.Gson;
 import io.netty.buffer.ByteBuf;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
@@ -275,9 +274,8 @@ public class Server {
     }
 
     public void removeClient(Client client) {
-        if (this.clients.containsKey(client.getHash())) {
+        if (this.clients.remove(client.getHash()) != null) {
             this.mainClients.remove(client.getHash());
-            this.clients.remove(client.getHash());
         }
     }
 
@@ -294,14 +292,14 @@ public class Server {
     }
 
     public void updateClientData() {
-        if (this.clients.size() > 0) {
+        if (!this.clients.isEmpty()) {
             this.clientData = new ClientData();
             for (Client client : this.clients.values()) {
                 ClientData.Entry entry = new Entry(client.getIp(), client.getPort(), client.getPlayers().size(),
                         client.getMaxPlayers(), client.getDescription(), client.getTicksPerSecond(), client.getTickUsage(), client.getUpTime());
                 this.clientData.clientList.put(client.getHash(), entry);
             }
-            this.clientDataJson = new Gson().toJson(this.clientData);
+            this.clientDataJson = JsonUtil.GSON.toJson(this.clientData);
         }
     }
 
@@ -950,8 +948,9 @@ public class Server {
         pk.payload = data;
 
         for (InetSocketAddress i : targets) {
-            if (this.players.containsKey(i)) {
-                this.players.get(i).sendDataPacket(pk);
+            Player player = this.players.get(i);
+            if (player != null) {
+                player.sendDataPacket(pk);
             }
         }
     }
