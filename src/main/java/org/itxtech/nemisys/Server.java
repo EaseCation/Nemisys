@@ -51,9 +51,9 @@ public class Server {
     private final ServerScheduler scheduler;
     private int tickCounter;
     private long nextTick;
-    private final float[] tickAverage = {20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20};
+    private final float[] tickAverage = {100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100};
     private final float[] useAverage = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    private float maxTick = 20;
+    private float maxTick = 100;
     private float maxUse = 0;
     private final NemisysConsole console;
     private final ConsoleThread consoleThread;
@@ -506,7 +506,7 @@ public class Server {
     private boolean tick() {
         long tickTime = System.currentTimeMillis();
         long tickTimeNano = System.nanoTime();
-        if ((tickTime - this.nextTick) < -25) {
+        if ((tickTime - this.nextTick) < -5) {
             return false;
         }
 
@@ -532,7 +532,7 @@ public class Server {
         if ((this.tickCounter & 0b1111) == 0) {
             this.titleTick();
             this.network.resetStatistics();
-            this.maxTick = 20;
+            this.maxTick = 100;
             this.maxUse = 0;
 
             if ((this.tickCounter & 0b111111111) == 0) {
@@ -554,7 +554,7 @@ public class Server {
         //float tick = Math.min(100, 1000 / Math.max(1, now - tickTime));
         //float use = Math.min(1, (now - tickTime) / 50);
 
-        float tick = (float) Math.min(20, 1000000000 / Math.max(1000000, ((double) nowNano - tickTimeNano)));
+        float tick = (float) Math.min(100, 1000000000 / Math.max(1000000, ((double) nowNano - tickTimeNano)));
         float use = (float) Math.min(1, ((double) (nowNano - tickTimeNano)) / 50000000);
 
         if (this.maxTick > tick) {
@@ -580,7 +580,7 @@ public class Server {
         if ((this.nextTick - tickTime) < -1000) {
             this.nextTick = tickTime;
         } else {
-            this.nextTick += 50;
+            this.nextTick += 10;
         }
 
         return true;

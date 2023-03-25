@@ -404,7 +404,7 @@ public class Player {
                     this.getServer().getLanguage().translateString(reason)
             }));
 
-            Server.getInstance().getScheduler().scheduleDelayedTask(() -> this.interfaz.close(this, notify ? reason : ""), 1);
+            Server.getInstance().getScheduler().scheduleDelayedTask(() -> this.interfaz.close(this, notify ? reason : ""), 2);
             this.getServer().removePlayer(this);
         }
     }

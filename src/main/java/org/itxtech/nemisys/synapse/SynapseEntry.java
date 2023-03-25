@@ -63,7 +63,7 @@ public class SynapseEntry {
         this.synLibInterface = new SynLibInterface(this.synapseInterface);
         this.lastUpdate = System.currentTimeMillis();
         this.lastRecvInfo = System.currentTimeMillis();
-        this.getSynapse().getServer().getScheduler().scheduleRepeatingTask(new Ticker(), 1);
+        this.getSynapse().getServer().getScheduler().scheduleRepeatingTask(new Ticker(), 5);
     }
 
     public static String getRandomString(int length) { //length表示生成字符串的长度
