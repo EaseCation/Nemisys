@@ -4,6 +4,7 @@ import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 import com.nukkitx.network.raknet.RakNetReliability;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import lombok.extern.log4j.Log4j2;
 import org.itxtech.nemisys.event.client.ClientAuthEvent;
 import org.itxtech.nemisys.event.client.ClientConnectEvent;
 import org.itxtech.nemisys.event.client.ClientDisconnectEvent;
@@ -24,6 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Author: PeratX
  * Nemisys Project
  */
+@Log4j2
 public class Client {
     private final Server server;
     private final SynapseInterface interfaz;
@@ -158,7 +160,7 @@ public class Client {
                     this.sendDataPacket(pk);
                 } else {
                     pk.message = InformationPacket.INFO_LOGIN_FAILED;
-                    this.server.getLogger().emergency("Client " + this.getIp() + ":" + this.getPort() + " tried to connect with wrong password!");
+                    log.fatal("Client {}:{} tried to connect with wrong password!", this.getIp(), this.getPort());
                     this.sendDataPacket(pk);
                     this.close("Auth failed!");
                 }
@@ -360,7 +362,7 @@ public class Client {
 
     public void sendDataPacket(SynapseDataPacket pk) {
         this.interfaz.putPacket(this, pk);
-		/*this.server.getPluginManager().callEvent(ev = new ClientSendPacketEvent(this, pk));
+        /*this.server.getPluginManager().callEvent(ev = new ClientSendPacketEvent(this, pk));
 		if(!ev.isCancelled()){
 			this.interfaz.putPacket(this, pk);
 		}*/

@@ -57,8 +57,6 @@ public class SessionManager {
                 }
             }
         }
-        this.server.bossGroup.shutdownGracefully();
-        this.server.workerGroup.shutdownGracefully();
     }
 
     public Map<String, Channel> getSessions() {

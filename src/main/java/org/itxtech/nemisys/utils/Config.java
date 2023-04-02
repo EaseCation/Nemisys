@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import lombok.extern.log4j.Log4j2;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.scheduler.FileWriteTask;
 import org.snakeyaml.engine.v2.api.Dump;
@@ -24,6 +25,7 @@ import java.util.regex.Pattern;
  * author: MagicDroidX
  * Nukkit
  */
+@Log4j2
 public class Config {
 
     public static final int DETECT = -1; //Detect by file extension
@@ -484,7 +486,7 @@ public class Config {
                 String v = b[1].trim();
                 String v_lower = v.toLowerCase();
                 if (this.config.containsKey(k)) {
-                    MainLogger.getLogger().debug("[Config] Repeated property " + k + " on file " + this.file.toString());
+                    log.debug("[Config] Repeated property " + k + " on file " + this.file.toString());
                 }
                 switch (v_lower) {
                     case "on":

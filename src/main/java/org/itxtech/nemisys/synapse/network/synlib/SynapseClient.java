@@ -1,16 +1,16 @@
 package org.itxtech.nemisys.synapse.network.synlib;
 
+import com.nukkitx.network.util.Bootstraps;
+import com.nukkitx.network.util.EventLoops;
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.ChannelOption;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.nio.NioSocketChannel;
 import lombok.extern.log4j.Log4j2;
-import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.network.protocol.spp.SynapseDataPacket;
 import org.itxtech.nemisys.utils.ThreadedLogger;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Created by boybook on 16/6/24.
@@ -19,17 +19,18 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class SynapseClient extends Thread {
 
     public static final String VERSION = "0.3.0";
+
     public boolean needReconnect = false;
     protected ConcurrentLinkedQueue<SynapseDataPacket> externalQueue;
     protected ConcurrentLinkedQueue<SynapseDataPacket> internalQueue;
     private final ThreadedLogger logger;
     private final String interfaz;
     private final int port;
-    private boolean shutdown = false;
+    private final AtomicBoolean shutdown;
+    private final AtomicBoolean closing;
     private boolean needAuth = true;
     private boolean connected = false;
-    private EventLoopGroup clientGroup;
-    private Session session;
+    private final Session session;
 
     public SynapseClient(ThreadedLogger logger, int port) {
         this(logger, port, "127.0.0.1");
@@ -42,9 +43,11 @@ public class SynapseClient extends Thread {
         if (port < 1 || port > 65536) {
             throw new IllegalArgumentException("Invalid port range");
         }
-        this.shutdown = false;
+        this.shutdown = new AtomicBoolean();
+        this.closing = new AtomicBoolean();
         this.externalQueue = new ConcurrentLinkedQueue<>();
         this.internalQueue = new ConcurrentLinkedQueue<>();
+        this.session = new Session(this);
 
         this.start();
     }
@@ -78,11 +81,19 @@ public class SynapseClient extends Thread {
     }
 
     public boolean isShutdown() {
-        return shutdown;
+        return shutdown.get();
     }
 
     public void shutdown() {
-        this.shutdown = true;
+        this.shutdown.compareAndSet(false, true);
+    }
+
+    public boolean isClosing() {
+        return closing.get();
+    }
+
+    public void markClosing() {
+        this.closing.compareAndSet(false, true);
     }
 
     public int getPort() {
@@ -125,11 +136,11 @@ public class SynapseClient extends Thread {
         return session;
     }
 
+    @Override
     public void run() {
         this.setName("SynLib Client Thread #" + Thread.currentThread().getId());
         Runtime.getRuntime().addShutdownHook(new ShutdownHandler());
         try {
-            this.session = new Session(this);
             this.connect();
             this.session.run();
         } catch (Exception e) {
@@ -138,11 +149,11 @@ public class SynapseClient extends Thread {
     }
 
     public boolean connect() {
-        clientGroup = new NioEventLoopGroup();
         try {
             Bootstrap b = new Bootstrap();  //服务引导程序，服务器端快速启动程序
-            b.group(clientGroup)
-                    .channel(NioSocketChannel.class)
+            b.option(ChannelOption.ALLOCATOR, ByteBufAllocator.DEFAULT);
+            Bootstraps.setupClientBootstrap(b);
+            b.group(EventLoops.commonGroup())
                     .option(ChannelOption.SO_KEEPALIVE, true)
                     .handler(new SynapseClientInitializer(this));
 
@@ -151,22 +162,18 @@ public class SynapseClient extends Thread {
             //future.channel().closeFuture().sync();
             return true;
         } catch (Exception e) {
-            Server.getInstance().getLogger().alert("Synapse Client can't connect to server: " + this.interfaz + ":" + this.port);
-            Server.getInstance().getLogger().alert("Reason: " + e.getLocalizedMessage());
-            Server.getInstance().getLogger().warning("We will reconnect in 3 seconds");
+            log.warn("Synapse Client can't connect to server: {}:{}", this.interfaz, this.port, e);
+            log.warn("We will reconnect in 3 seconds");
             this.reconnect();
             return false;
         }
     }
 
-    public EventLoopGroup getClientGroup() {
-        return clientGroup;
-    }
-
     public class ShutdownHandler extends Thread {
+        @Override
         public void run() {
-            if (!shutdown) {
-                logger.emergency("SynLib Client crashed!");
+            if (!shutdown.get()) {
+                log.fatal("SynLib Client crashed!");
             }
         }
     }

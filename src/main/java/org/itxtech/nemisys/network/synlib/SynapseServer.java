@@ -1,13 +1,12 @@
 package org.itxtech.nemisys.network.synlib;
 
+import com.nukkitx.network.util.Bootstraps;
+import com.nukkitx.network.util.EventLoops;
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.ChannelOption;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
 import lombok.extern.log4j.Log4j2;
 import org.itxtech.nemisys.InterruptibleThread;
-import org.itxtech.nemisys.Nemisys;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.network.SynapseInterface;
 import org.itxtech.nemisys.network.protocol.spp.SynapseInfo;
@@ -20,20 +19,18 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class SynapseServer extends Thread implements InterruptibleThread {
 
     public static final String VERSION = "0.3.0";
-    public EventLoopGroup bossGroup = new NioEventLoopGroup();
-    public EventLoopGroup workerGroup = new NioEventLoopGroup();
-    protected ConcurrentLinkedQueue<SynapseClientPacket> externalQueue;
-    protected ConcurrentLinkedQueue<SynapseClientPacket> internalQueue;
-    protected ConcurrentLinkedQueue<String> clientOpenQueue;
-    protected ConcurrentLinkedQueue<String> internalClientCloseQueue;
-    protected ConcurrentLinkedQueue<String> externalClientCloseQueue;
+
+    protected final ConcurrentLinkedQueue<SynapseClientPacket> externalQueue;
+    protected final ConcurrentLinkedQueue<SynapseClientPacket> internalQueue;
+    protected final ConcurrentLinkedQueue<String> clientOpenQueue;
+    protected final ConcurrentLinkedQueue<String> internalClientCloseQueue;
+    protected final ConcurrentLinkedQueue<String> externalClientCloseQueue;
     private final ThreadedLogger logger;
     private final String interfaz;
     private final int port;
     private final AtomicBoolean shutdown;
-    private final String mainPath;
     private final SynapseInterface server;
-    private SessionManager sessionManager;
+    private final SessionManager sessionManager;
 
     public SynapseServer(ThreadedLogger logger, SynapseInterface server, int port) {
         this(logger, server, port, "0.0.0.0");
@@ -53,7 +50,8 @@ public class SynapseServer extends Thread implements InterruptibleThread {
         this.clientOpenQueue = new ConcurrentLinkedQueue<>();
         this.internalClientCloseQueue = new ConcurrentLinkedQueue<>();
         this.externalClientCloseQueue = new ConcurrentLinkedQueue<>();
-        this.mainPath = Nemisys.PATH;
+        this.sessionManager = new SessionManager(this);
+
         this.start();
     }
 
@@ -129,11 +127,11 @@ public class SynapseServer extends Thread implements InterruptibleThread {
         return this.externalQueue.poll();
     }
 
+    @Override
     public void run() {
         this.setName("SynLib Thread #" + Thread.currentThread().getId());
         Runtime.getRuntime().addShutdownHook(new ShutdownHandler());
         try {
-            this.sessionManager = new SessionManager(this);
             if (this.bind()) {
                 this.sessionManager.run();
             } else {
@@ -145,24 +143,22 @@ public class SynapseServer extends Thread implements InterruptibleThread {
     }
 
     public boolean bind() {
-        bossGroup = new NioEventLoopGroup();
-        workerGroup = new NioEventLoopGroup();
         try {
             ServerBootstrap b = new ServerBootstrap();  //服务引导程序，服务器端快速启动程序
-            b.group(bossGroup, workerGroup)
-                    .channel(NioServerSocketChannel.class)
+            b.option(ChannelOption.ALLOCATOR, ByteBufAllocator.DEFAULT);
+            Bootstraps.setupServerBootstrap(b);
+            b.group(EventLoops.commonGroup())
                     .option(ChannelOption.SO_BACKLOG, 1024)
                     .childOption(ChannelOption.SO_KEEPALIVE, true)
                     .childHandler(new SynapseServerInitializer(this.sessionManager));
 
             b.bind(this.interfaz, this.port).get();
             // 等待服务端监听端口关闭，等待服务端链路关闭之后main函数才退出
-            //uture.channel().closeFuture().sync();
+            //future.channel().closeFuture().sync();
             return true;
         } catch (Exception e) {
-            Server.getInstance().getLogger().alert("Synapse Server can't bind to: " + this.interfaz + ":" + this.port);
-            Server.getInstance().getLogger().alert("Reason: " + e.getLocalizedMessage());
-            Server.getInstance().getLogger().warning("Server will shutdown.");
+            log.warn("Synapse Server can't bind to: {}:{}", this.interfaz, this.port, e);
+            log.warn("Server will shutdown.");
             return false;
         }
     }
@@ -172,9 +168,10 @@ public class SynapseServer extends Thread implements InterruptibleThread {
     }
 
     private class ShutdownHandler extends Thread {
+        @Override
         public void run() {
             if (!shutdown.get()) {
-                logger.emergency("SynLib crashed!");
+                log.fatal("SynLib crashed!");
             }
         }
     }

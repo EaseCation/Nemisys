@@ -1,5 +1,6 @@
 package org.itxtech.nemisys.raknet.server;
 
+import lombok.extern.log4j.Log4j2;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.utils.ThreadedLogger;
 
@@ -9,6 +10,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * author: MagicDroidX
  * Nukkit Project
  */
+@Log4j2
 public class RakNetServer extends Thread {
     protected int port;
     protected String interfaz;
@@ -87,7 +89,7 @@ public class RakNetServer extends Thread {
     private class ShutdownHandler extends Thread {
         public void run() {
             if (!shutdown) {
-                logger.emergency("RakNet crashed!");
+                log.fatal("RakNet crashed!");
             }
         }
     }

@@ -49,6 +49,10 @@ public class SynapseInterface {
         this.client.shutdown();
     }
 
+    public void markClosing() {
+        this.client.markClosing();
+    }
+
     public void putPacket(SynapseDataPacket pk) {
         if (!pk.isEncoded) {
             pk.encode();
