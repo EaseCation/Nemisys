@@ -175,7 +175,7 @@ public class Client {
                 if (player != null) {
                     byte[] buffer = ((RedirectPacket) packet).mcpeBuffer;
                     DataPacket send;
-                    if (buffer.length > 0 && buffer[0] == (byte) 0xfe) {
+                    if (buffer.length > 0 && buffer[0] == (byte) ProtocolInfo.BATCH_PACKET) {
                         send = new BatchPacket();
                         send.reliability = RakNetReliability.fromId(((RedirectPacket) packet).reliability);
                         send.setBuffer(buffer, 1);

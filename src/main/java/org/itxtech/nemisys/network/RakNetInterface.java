@@ -26,11 +26,7 @@ import org.itxtech.nemisys.Player;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.event.player.PlayerCreationEvent;
 import org.itxtech.nemisys.event.server.QueryRegenerateEvent;
-import org.itxtech.nemisys.network.protocol.mcpe.BatchPacket;
-import org.itxtech.nemisys.network.protocol.mcpe.DataPacket;
-import org.itxtech.nemisys.network.protocol.mcpe.NetworkSettingsPacket;
-import org.itxtech.nemisys.network.protocol.mcpe.ProtocolInfo;
-import org.itxtech.nemisys.network.protocol.mcpe.ServerToClientHandshakePacket;
+import org.itxtech.nemisys.network.protocol.mcpe.*;
 import org.itxtech.nemisys.utils.Binary;
 import org.itxtech.nemisys.utils.BinaryStream;
 import org.itxtech.nemisys.utils.EncryptionUtils;
@@ -67,6 +63,8 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
 
     private final Server server;
 
+    private final NemisysMetrics metrics;
+
     private Network network;
 
     private final RakNetServer raknet;
@@ -74,7 +72,6 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
     private final Map<InetSocketAddress, NemisysRakNetSession> sessions = new Object2ObjectOpenHashMap<>();
 
     private final Queue<NemisysRakNetSession> sessionCreationQueue = PlatformDependent.newMpscQueue();
-
 
     private final Set<ScheduledFuture<?>> tickFutures = new ObjectOpenHashSet<>();
 
@@ -93,11 +90,17 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
     private static final ThreadLocal<byte[]> CHECKSUM_LOCAL = ThreadLocal.withInitial(() -> new byte[8]);
 
     public RakNetInterface(Server server) {
+        this(server, null);
+    }
+
+    public RakNetInterface(Server server, NemisysMetrics metrics) {
         this.server = server;
+        this.metrics = metrics;
 
         InetSocketAddress bindAddress = new InetSocketAddress(Strings.isNullOrEmpty(this.server.getIp()) ? "0.0.0.0" : this.server.getIp(), this.server.getPort());
 
         this.raknet = new RakNetServer(bindAddress, Runtime.getRuntime().availableProcessors());
+//        this.customRakNetServer(raknet);
         this.raknet.bind().join();
         this.raknet.setListener(this);
 
@@ -322,6 +325,9 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
         }
     }
 
+    protected void customRakNetServer(RakNetServer rakNetServer) {
+    }
+
     private class NemisysRakNetSession implements RakNetSessionListener {
         private final RakNetServerSession raknet;
         private final Queue<DataPacket> inbound = PlatformDependent.newSpscQueue();
@@ -403,7 +409,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
             }
 
             short packetId = buffer.readUnsignedByte();
-            if (packetId == 0xfe && buffer.isReadable()) {
+            if (packetId == ProtocolInfo.BATCH_PACKET && buffer.isReadable()) {
                 Cipher decryptCipher = this.decryptCipher;
                 if (decryptCipher != null) {
                     // This method only supports contiguous buffers, not composite.
@@ -470,7 +476,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
 
                 int length = buffer.readableBytes();
                 byte[] packetBuffer = new byte[1 + length];
-                packetBuffer[0] = (byte) 0xfe; // 头不要丢了哦
+                packetBuffer[0] = (byte) ProtocolInfo.BATCH_PACKET; // 头不要丢了哦
                 buffer.readBytes(packetBuffer, 1, length);
                 batchPacket.setBuffer(packetBuffer, 1);
                 batchPacket.decode();
@@ -540,10 +546,16 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
         }
 
         private void sendPacket(byte[] payload, boolean encrypt) {
-            ByteBuf byteBuf = ByteBufAllocator.DEFAULT.ioBuffer(1 + payload.length + 8);
-            byteBuf.writeByte(0xfe);
+            int batchLength = 1 + payload.length;
+            int length = batchLength + 8;
+            ByteBuf byteBuf = ByteBufAllocator.DEFAULT.ioBuffer(length);
+            byteBuf.writeByte(ProtocolInfo.BATCH_PACKET);
             Cipher encryptCipher = this.encryptCipher;
             if (encryptCipher != null && encrypt) {
+                if (metrics != null) {
+                    metrics.bytesOut(length);
+                }
+
                 ByteBuf compressed = Unpooled.wrappedBuffer(payload);
                 try {
                     ByteBuffer checksum = ByteBuffer.wrap(this.calculateChecksum(this.encryptCounter.getAndIncrement(), compressed));
@@ -562,6 +574,10 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                     compressed.release();
                 }
             } else {
+                if (metrics != null) {
+                    metrics.bytesOut(batchLength);
+                }
+
                 byteBuf.writeBytes(payload);
             }
             this.raknet.send(byteBuf);
@@ -575,6 +591,9 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
             player.setCompressor(compressor);
 
             settings.tryEncode(protocol);
+            if (metrics != null) {
+                metrics.packetOut(settings.pid(), settings.getCount());
+            }
             this.sendPackets(Collections.singletonList(settings), protocol < 554, protocol >= 554 ? Compressor.NONE
                     : protocol >= 407 ? Compressor.ZLIB_RAW : Compressor.ZLIB);
         }
@@ -606,6 +625,9 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
             ServerToClientHandshakePacket handshake = new ServerToClientHandshakePacket();
             handshake.jwt = jwt.serialize();
             handshake.tryEncode(protocol);
+            if (metrics != null) {
+                metrics.packetOut(handshake.pid(), handshake.getCount());
+            }
             // This is sent in cleartext to complete the Diffie Hellman key exchange.
             this.sendPackets(Collections.singletonList(handshake), false);
         }

@@ -43,6 +43,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 @Log4j2
 public class Server {
+    public static final int TPS = 100;
 
     private static Server instance = null;
     private final AtomicBoolean isRunning = new AtomicBoolean(true);
@@ -215,7 +216,9 @@ public class Server {
         this.networkCompressionLevel = Mth.clamp(this.getPropertyInt("network-compression-level", 7), 0, 9);
 
         //this.network.registerInterface(new RakNettyInterface(this));
-        this.network.registerInterface(new RakNetInterface(this));
+        if (!Boolean.getBoolean("nemisys.disableRak")) {
+            this.network.registerInterface(new RakNetInterface(this));
+        }
         //this.network.registerInterface(new JRakNetInterface(this));
 
         this.synapseInterface = new SynapseInterface(this, this.getSynapseIp(), this.getSynapsePort());
