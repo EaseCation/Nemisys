@@ -6,6 +6,7 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.ChannelOption;
 import lombok.extern.log4j.Log4j2;
+import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.network.protocol.spp.SynapseDataPacket;
 import org.itxtech.nemisys.utils.ThreadedLogger;
 
@@ -144,7 +145,7 @@ public class SynapseClient extends Thread {
             this.connect();
             this.session.run();
         } catch (Exception e) {
-            log.throwing(e);
+            Server.getInstance().getLogger().logException(e);
         }
     }
 

@@ -47,6 +47,11 @@ public class SessionManager {
             } catch (RuntimeException e) {
                 Server.getInstance().getLogger().logException(e);
             } finally {
+                try {
+                    Thread.sleep(1);
+                } catch (InterruptedException ignored) {
+                }
+/*
                 long next = this.nextTick;
                 long current = System.currentTimeMillis();
                 if (next - 0.1 > current) {
@@ -55,6 +60,7 @@ public class SessionManager {
                     } catch (InterruptedException ignored) {
                     }
                 }
+ */
             }
         }
     }

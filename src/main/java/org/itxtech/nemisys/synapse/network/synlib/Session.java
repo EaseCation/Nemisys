@@ -2,6 +2,7 @@ package org.itxtech.nemisys.synapse.network.synlib;
 
 import io.netty.channel.Channel;
 import lombok.extern.log4j.Log4j2;
+import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.network.protocol.spp.SynapseDataPacket;
 
 import java.net.InetSocketAddress;
@@ -42,15 +43,15 @@ public class Session {
             try {
                 this.tick();
             } catch (Exception e) {
-                log.throwing(e);
-            }
-            long time = System.currentTimeMillis() - start;
-            this.tickUseTime = time;
-            if (time < 50) {
-                try {
-                    Thread.sleep(50 - time);
-                } catch (InterruptedException e) {
-                    //ignore
+                Server.getInstance().getLogger().logException(e);
+            } finally {
+                long time = System.currentTimeMillis() - start;
+                this.tickUseTime = time;
+                if (time < 10) {
+                    try {
+                        Thread.sleep(10 - time);
+                    } catch (InterruptedException ignored) {
+                    }
                 }
             }
         }
@@ -124,9 +125,9 @@ public class Session {
     }
 
     public float getTicksPerSecond() {
-        long more = this.tickUseTime - 50;
-        if (more <= 0) return 20;
-        return Math.round(50f / (float) this.tickUseTime) * 20;
+        long more = this.tickUseTime - 10;
+        if (more <= 0) return 100;
+        return Math.round(10f / (float) this.tickUseTime) * 100;
     }
 
 }
