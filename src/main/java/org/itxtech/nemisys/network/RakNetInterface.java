@@ -87,7 +87,6 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
     private static final KeyPair SERVER_KEY_PAIR = EncryptionUtils.createKeyPair();
 
     private static final ThreadLocal<Sha256> HASH_LOCAL = ThreadLocal.withInitial(Natives.SHA_256);
-    private static final ThreadLocal<byte[]> CHECKSUM_LOCAL = ThreadLocal.withInitial(() -> new byte[8]);
 
     public RakNetInterface(Server server) {
         this(server, null);
@@ -428,7 +427,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                     // Verify the checksum
                     buffer.markReaderIndex();
                     int trailerIndex = buffer.writerIndex() - 8;
-                    byte[] checksum = CHECKSUM_LOCAL.get();
+                    byte[] checksum = new byte[8];
                     try {
                         buffer.readerIndex(trailerIndex);
                         buffer.readBytes(checksum);
