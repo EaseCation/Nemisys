@@ -1,7 +1,6 @@
 package org.itxtech.nemisys.event.server;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.itxtech.nemisys.Player;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.event.HandlerList;
@@ -44,17 +43,17 @@ public class QueryRegenerateEvent extends ServerEvent {
     public QueryRegenerateEvent(Server server, int timeout) {
         this.timeout = timeout;
         this.serverName = server.getMotd();
-        this.listPlugins = (boolean) server.getConfig("settings.query-plugins", true);
-        this.plugins = server.getPluginManager().getPlugins().values().toArray(new Plugin[0]);
-        List<Player> players = new ObjectArrayList<>();
-        players.addAll(server.getOnlinePlayers().values());
-        this.players = players.toArray(new Player[0]);
+//        this.listPlugins = (boolean) server.getConfig("settings.query-plugins", false);
+//        this.plugins = server.getPluginManager().getPlugins().values().toArray(new Plugin[0]);
+        this.plugins = new Plugin[0];
+//        this.players = server.getOnlinePlayers().values().toArray(new Player[0]);
+        this.players = new Player[0];
 
         this.gameType = "SMP";
         this.version = server.getVersion();
         this.serverEngine = server.getName() + " " + server.getNemisysVersion();
         this.map = "Nemisys";
-        this.numPlayers = this.players.length;
+        this.numPlayers = server.getOnlinePlayers().size();
         if (server.getPropertyBoolean("plus-one-max-count", false)) {
             this.maxPlayers = this.numPlayers + 1;
         } else {
