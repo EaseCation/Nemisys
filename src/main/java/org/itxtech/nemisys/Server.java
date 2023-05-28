@@ -96,6 +96,8 @@ public class Server {
      */
     public float averageTickTime;
 
+    static final List<Runnable> SHUTDOWN_LISTENERS = new ArrayList<>();
+
     public Server(final String filePath, String dataPath, String pluginPath) {
         Preconditions.checkState(instance == null, "Already initialized!");
         currentThread = Thread.currentThread();
@@ -144,6 +146,7 @@ public class Server {
                 put("enable-jmx-monitoring", false);
                 put("enable-network-encryption", true);
                 put("network-compression-level", 7);
+                put("packet-recorder-capability", false);
             }
         });
 
@@ -214,6 +217,8 @@ public class Server {
 
         this.networkEncryptionEnabled = this.getPropertyBoolean("enable-network-encryption");
         this.networkCompressionLevel = Mth.clamp(this.getPropertyInt("network-compression-level", 7), 0, 9);
+
+        Capabilities.PACKET_RECORDER = this.getPropertyBoolean("packet-recorder-capability");
 
         //this.network.registerInterface(new RakNettyInterface(this));
         if (!Boolean.getBoolean("nemisys.disableRak")) {
@@ -964,6 +969,11 @@ public class Server {
 
     public Thread getPrimaryThread() {
         return currentThread;
+    }
+
+    public static void addShutdownListener(Runnable listener) {
+        Objects.requireNonNull(listener, "listener");
+        SHUTDOWN_LISTENERS.add(listener);
     }
 
     private class ConsoleThread extends Thread implements InterruptibleThread {

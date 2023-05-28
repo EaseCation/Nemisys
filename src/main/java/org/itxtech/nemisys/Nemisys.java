@@ -110,12 +110,20 @@ public class Nemisys {
             log.throwing(t);
         }
 
+        for (Runnable listener : Server.SHUTDOWN_LISTENERS) {
+            try {
+                listener.run();
+            } catch (Throwable e) {
+                log.throwing(e);
+            }
+        }
+
         if (TITLE) {
             System.out.print((char) 0x1b + "]0;Stopping Server..." + (char) 0x07);
         }
         log.info("Stopping other threads");
 
-        for (Thread thread : java.lang.Thread.getAllStackTraces().keySet()) {
+        for (Thread thread : Thread.getAllStackTraces().keySet()) {
             if (!(thread instanceof InterruptibleThread)) {
                 continue;
             }
@@ -125,14 +133,14 @@ public class Nemisys {
             }
         }
 
+        LogManager.shutdown();
+
         ServerKiller killer = new ServerKiller(8);
         killer.start();
 
         if (TITLE) {
             System.out.print((char) 0x1b + "]0;Server Stopped" + (char) 0x07);
         }
-
-        LogManager.shutdown();
 
         if (Boolean.getBoolean("nemisys.docker")) {
             System.out.println("Nemisys has exited.");

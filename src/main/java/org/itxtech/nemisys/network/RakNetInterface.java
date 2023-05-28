@@ -25,7 +25,10 @@ import org.apache.logging.log4j.message.FormattedMessage;
 import org.itxtech.nemisys.Player;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.event.player.PlayerCreationEvent;
+import org.itxtech.nemisys.event.server.BatchPacketReceiveEvent;
+import org.itxtech.nemisys.event.server.BatchPacketSendEvent;
 import org.itxtech.nemisys.event.server.QueryRegenerateEvent;
+import org.itxtech.nemisys.event.server.RakNetDisconnectEvent;
 import org.itxtech.nemisys.network.protocol.mcpe.*;
 import org.itxtech.nemisys.utils.Binary;
 import org.itxtech.nemisys.utils.BinaryStream;
@@ -51,6 +54,8 @@ import java.util.*;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+
+import static org.itxtech.nemisys.Capabilities.*;
 
 /**
  * author: MagicDroidX
@@ -390,6 +395,14 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                 } catch (DestroyFailedException ignored) {
                 }
             }
+
+            if (PACKET_RECORDER) {
+                try {
+                    server.getPluginManager().callEvent(new RakNetDisconnectEvent(raknet.getAddress()));
+                } catch (Exception e) {
+                    log.throwing(e);
+                }
+            }
         }
 
         @Override
@@ -403,7 +416,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
             if (size >= Compressor.MAX_SIZE) {
                 this.readable = false;
                 this.disconnect("Packet content exceeds maximum size");
-                log.debug("Packet size exceeds limit: {}", size);
+                log.debug("[{}] Packet size exceeds limit: {}", raknet.getAddress(), size);
                 return;
             }
 
@@ -420,7 +433,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                     } catch (GeneralSecurityException e) {
                         this.readable = false;
                         this.disconnect("Bad decrypt");
-                        log.debug("Unable to decrypt packet", e);
+                        log.debug("[{}] Unable to decrypt packet", raknet.getAddress(), e);
                         return;
                     }
 
@@ -434,7 +447,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                     } catch (Exception e) {
                         this.readable = false;
                         this.disconnect("Bad checksum");
-                        log.debug("Unable to verify checksum", e);
+                        log.debug("[{}] Unable to verify checksum", raknet.getAddress(), e);
                         return;
                     }
                     ByteBuf payload = buffer.slice(1, trailerIndex - 1);
@@ -444,7 +457,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                         if (checksum[i] != expected[i]) {
                             this.readable = false;
                             this.disconnect("Invalid checksum");
-                            log.debug("Encrypted packet {} has invalid checksum (expected {}, got {})",
+                            log.debug("[{}] Encrypted packet {} has invalid checksum (expected {}, got {})", raknet.getAddress(),
                                     count, Binary.bytesToHexString(expected), Binary.bytesToHexString(checksum));
                             return;
                         }
@@ -464,7 +477,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                     RakNetInterface.this.network.processBatch(packetBuffer, this.inbound);
                 } catch (ProtocolException e) {
                     this.disconnect("Sent malformed packet");
-                    log.error("Unable to process batch packet", e);
+                    log.error("[{}] Unable to process batch packet", raknet.getAddress(), e);
                 }*/
 
                 // 直接丢给nukkit
@@ -481,6 +494,14 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                 batchPacket.decode();
 
                 this.inbound.offer(batchPacket);
+
+                if (PACKET_RECORDER) {
+                    try {
+                        server.getPluginManager().callEvent(new BatchPacketReceiveEvent(packetBuffer, raknet.getAddress(), System.currentTimeMillis()));
+                    } catch (Exception e) {
+                        log.throwing(e);
+                    }
+                }
             }
         }
 
@@ -580,6 +601,14 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                 byteBuf.writeBytes(payload);
             }
             this.raknet.send(byteBuf);
+
+            if (PACKET_RECORDER) {
+                try {
+                    server.getPluginManager().callEvent(new BatchPacketSendEvent(payload, raknet.getAddress(), System.currentTimeMillis()));
+                } catch (Exception e) {
+                    log.throwing(e);
+                }
+            }
         }
 
         private synchronized void setupSettings(NetworkSettingsPacket settings, int protocol) {
