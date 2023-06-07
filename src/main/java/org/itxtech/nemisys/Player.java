@@ -118,31 +118,21 @@ public class Player {
                     preHandshake = false;
 //                }
 
-                if (this.protocol <= 113) {
-                    this.loginChainData = ClientChainDataNetEase.read(loginPacket);
-                    if (this.loginChainData.getClientUUID() != null) {  //网易认证通过！
-                        this.neteaseClient = true;
-                    } else {  //国际版普通认证
-                        this.loginChainData = ClientChainData11.read(loginPacket);
-                        this.neteaseClient = false;
-                    }
-                } else {
-                    this.loginChainData = ClientChainDataNetEase.read(loginPacket);
-                    if (this.loginChainData.getClientUUID() != null) {  //网易认证通过！
-                        this.neteaseClient = true;
-                    } else {  //国际版普通认证
-                        try {
-                            this.loginChainData = ClientChainData.read(loginPacket);
-                            if (protocol >= 160 && !loginChainData.isXboxAuthed() && server.getPropertyBoolean("xbox-auth", false)) {
-                                this.close("disconnectionScreen.notAuthenticated");
-                            }
-                        } catch (Exception e) {
-                            this.getServer().getLogger()
-                                    .notice(this.name + TextFormat.RED + " 解析时出现问题，采用紧急解析方案！" + e.getMessage());
-                            this.loginChainData = ClientChainDataUrgency.read(loginPacket);
+                this.loginChainData = ClientChainDataNetEase.read(loginPacket);
+                if (this.loginChainData.getClientUUID() != null) {  //网易认证通过！
+                    this.neteaseClient = true;
+                } else {  //国际版普通认证
+                    try {
+                        this.loginChainData = ClientChainData.read(loginPacket);
+                        if (protocol >= 160 && !loginChainData.isXboxAuthed() && server.getPropertyBoolean("xbox-auth", false)) {
+                            this.close("disconnectionScreen.notAuthenticated");
                         }
-                        this.neteaseClient = false;
+                    } catch (Exception e) {
+                        this.getServer().getLogger()
+                            .notice(this.name + TextFormat.RED + " 解析时出现问题，采用紧急解析方案！" + e.getMessage());
+                        this.loginChainData = ClientChainDataUrgency.read(loginPacket);
                     }
+                    this.neteaseClient = false;
                 }
 
                 if (this.server.isNetworkEncryptionEnabled()) {

@@ -249,9 +249,9 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>com.netease.mc</groupId>
-            <artifactId>authlib</artifactId>
-            <version>1.0</version>
+            <groupId>net.easecation</groupId>
+            <artifactId>AuthLibPackage</artifactId>
+            <version>1.0.0</version>
         </dependency>
         <dependency>
             <groupId>com.nukkitx.network</groupId>

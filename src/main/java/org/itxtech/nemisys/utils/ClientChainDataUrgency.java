@@ -1,5 +1,6 @@
 package org.itxtech.nemisys.utils;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import org.itxtech.nemisys.network.protocol.mcpe.LoginPacket;
 
@@ -13,6 +14,8 @@ import java.util.UUID;
  */
 public final class ClientChainDataUrgency implements LoginChainData {
 
+    private static final Gson GSON = new Gson();
+
     public static ClientChainDataUrgency of(byte[] buffer) {
         return new ClientChainDataUrgency(buffer);
     }
@@ -22,7 +25,6 @@ public final class ClientChainDataUrgency implements LoginChainData {
         data.username = pk.username;
         data.clientUUID = pk.clientUUID;
         data.xuid = pk.xuid;
-        data.identityPublicKey = pk.identityPublicKey;
         return data;
     }
 
@@ -44,6 +46,26 @@ public final class ClientChainDataUrgency implements LoginChainData {
 
     public String getServerAddress() {
         return serverAddress;
+    }
+
+    @Override
+    public String getNetEaseUID() {
+        return "";
+    }
+
+    @Override
+    public String getNetEaseSid() {
+        return "";
+    }
+
+    @Override
+    public String getNetEasePlatform() {
+        return "";
+    }
+
+    @Override
+    public String getDeviceId() {
+        return deviceId;
     }
 
     public String getDeviceModel() {
@@ -74,6 +96,11 @@ public final class ClientChainDataUrgency implements LoginChainData {
         return currentInputMode;
     }
 
+    @Override
+    public void setCurrentInputMode(int mode) {
+        this.currentInputMode = mode;
+    }
+
     public int getDefaultInputMode() {
         return defaultInputMode;
     }
@@ -83,6 +110,11 @@ public final class ClientChainDataUrgency implements LoginChainData {
 
     public int getUIProfile() {
         return UIProfile;
+    }
+
+    @Override
+    public String[] getOriginChainArr() {
+        return null;
     }
 
     @Override
@@ -119,6 +151,7 @@ public final class ClientChainDataUrgency implements LoginChainData {
 
     private long clientId;
     private String serverAddress;
+    private String deviceId;
     private String deviceModel;
     private int deviceOS;
     private String gameVersion;
@@ -131,7 +164,7 @@ public final class ClientChainDataUrgency implements LoginChainData {
 
     private String capeData;
 
-    private final BinaryStream bs = new BinaryStream();
+    private BinaryStream bs = new BinaryStream();
 
     private ClientChainDataUrgency(byte[] buffer) {
         bs.setBuffer(buffer, 0);
@@ -148,6 +181,7 @@ public final class ClientChainDataUrgency implements LoginChainData {
         if (skinToken == null) return;
         if (skinToken.has("ClientRandomId")) this.clientId = skinToken.get("ClientRandomId").getAsLong();
         if (skinToken.has("ServerAddress")) this.serverAddress = skinToken.get("ServerAddress").getAsString();
+        if (skinToken.has("DeviceId")) this.deviceId = skinToken.get("DeviceId").getAsString();
         if (skinToken.has("DeviceModel")) this.deviceModel = skinToken.get("DeviceModel").getAsString();
         if (skinToken.has("DeviceOS")) this.deviceOS = skinToken.get("DeviceOS").getAsInt();
         if (skinToken.has("GameVersion")) this.gameVersion = skinToken.get("GameVersion").getAsString();
@@ -162,15 +196,37 @@ public final class ClientChainDataUrgency implements LoginChainData {
     private JsonObject decodeToken(String token) {
         String[] base = token.split("\\.", 4);
         if (base.length < 2) return null;
-        byte[] decode;
-    	try {
-        	decode = Base64.getUrlDecoder().decode(base[1]);
+        byte[] decode = null;
+        try {
+            decode = Base64.getUrlDecoder().decode(base[1]);
         } catch(IllegalArgumentException e) {
-        	decode = Base64.getDecoder().decode(base[1]);
+            decode = Base64.getDecoder().decode(base[1]);
         }
         String json = new String(decode, StandardCharsets.UTF_8);
         //Server.getInstance().getLogger().debug(json);
-        return JsonUtil.GSON.fromJson(json, JsonObject.class);
+        return GSON.fromJson(json, JsonObject.class);
+    }
+
+    @Override
+    public String toString() {
+        return "ClientChainDataUrgency{" +
+            "username='" + username + '\'' +
+            ", clientUUID=" + clientUUID +
+            ", xuid='" + xuid + '\'' +
+            ", identityPublicKey='" + identityPublicKey + '\'' +
+            ", clientId=" + clientId +
+            ", serverAddress='" + serverAddress + '\'' +
+            ", deviceModel='" + deviceModel + '\'' +
+            ", deviceOS=" + deviceOS +
+            ", gameVersion='" + gameVersion + '\'' +
+            ", guiScale=" + guiScale +
+            ", languageCode='" + languageCode + '\'' +
+            ", currentInputMode=" + currentInputMode +
+            ", defaultInputMode=" + defaultInputMode +
+            ", UIProfile=" + UIProfile +
+            ", capeData='" + capeData + '\'' +
+            ", bs=" + bs +
+            '}';
     }
 
 }

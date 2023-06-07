@@ -13,9 +13,17 @@ public interface LoginChainData {
 
     String getIdentityPublicKey();
 
+    String getNetEaseUID();
+
+    String getNetEaseSid();
+
+    String getNetEasePlatform();
+
     long getClientId();
 
     String getServerAddress();
+
+    String getDeviceId();
 
     String getDeviceModel();
 
@@ -35,9 +43,13 @@ public interface LoginChainData {
 
     int getCurrentInputMode();
 
+    void setCurrentInputMode(int mode);
+
     int getDefaultInputMode();
 
     String getCapeData();
 
     int getUIProfile();
+
+    String[] getOriginChainArr();
 }
