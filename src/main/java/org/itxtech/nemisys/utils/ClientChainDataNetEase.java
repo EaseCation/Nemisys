@@ -235,8 +235,8 @@ public final class ClientChainDataNetEase implements LoginChainData {
             Server.getInstance().getLogger().warning("短chainSize");
             return;
         }
+        this.originChainArr = chains.toArray(new String[0]);
         String[] chainArr = new String[chainSize - 1];
-        this.originChainArr = chainArr;
         Iterator<String> iterator = chains.iterator();
         int index = 0;
         iterator.next();
