@@ -1,6 +1,5 @@
 package org.itxtech.nemisys.utils;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import com.netease.mc.authlib.TokenChainEC;
@@ -26,8 +25,6 @@ import java.util.*;
  */
 @ToString
 public final class ClientChainDataNetEase implements LoginChainData {
-
-    private static final Gson GSON = new Gson();
 
     public static ClientChainDataNetEase of(byte[] buffer) {
         return new ClientChainDataNetEase(buffer);
@@ -187,7 +184,7 @@ public final class ClientChainDataNetEase implements LoginChainData {
     private String capeData;
     private String[] originChainArr;
 
-    private BinaryStream bs = new BinaryStream();
+    private final BinaryStream bs = new BinaryStream();
 
     private ClientChainDataNetEase(byte[] buffer) {
         bs.setBuffer(buffer, 0);
@@ -197,14 +194,18 @@ public final class ClientChainDataNetEase implements LoginChainData {
     }
 
     private void decodeChainData() {
-        Map<String, List<String>> map = GSON.fromJson(new String(bs.get(bs.getLInt()), StandardCharsets.UTF_8),
+        Map<String, List<String>> map = JsonUtil.GSON.fromJson(new String(bs.get(bs.getLInt()), StandardCharsets.UTF_8),
             new TypeToken<Map<String, List<String>>>() {
             }.getType());
-        if (map.isEmpty() || !map.containsKey("chain") || map.get("chain").isEmpty()) return;
         List<String> chains = map.get("chain");
+        if (chains == null || chains.isEmpty()) {
+            return;
+        }
         for (String c : chains) {
             JsonObject chainMap = decodeToken(c);
-            if (chainMap == null) continue;
+            if (chainMap == null) {
+                continue;
+            }
             if (chainMap.has("extraData")) {
                 JsonObject extra = chainMap.get("extraData").getAsJsonObject();
                 if (extra.has("displayName")) this.username = extra.get("displayName").getAsString();
@@ -213,8 +214,9 @@ public final class ClientChainDataNetEase implements LoginChainData {
                 if (extra.has("uid")) this.neteaseUid = extra.get("uid").getAsString();
                 if (extra.has("netease_sid")) this.neteaseSid = extra.get("netease_sid").getAsString();
             }
-            if (chainMap.has("identityPublicKey"))
+            if (chainMap.has("identityPublicKey")) {
                 this.identityPublicKey = chainMap.get("identityPublicKey").getAsString();
+            }
         }
     }
 
@@ -223,15 +225,15 @@ public final class ClientChainDataNetEase implements LoginChainData {
         this.xuid = null;
         this.clientUUID = null;
         this.username = null;
-        Map<String, List<String>> map = GSON.fromJson(new String(bs.get(bs.getLInt()), StandardCharsets.UTF_8),
+        Map<String, List<String>> map = JsonUtil.GSON.fromJson(new String(bs.get(bs.getLInt()), StandardCharsets.UTF_8),
             new TypeToken<Map<String, List<String>>>() {
             }.getType());
-        if (map.isEmpty() || !map.containsKey("chain") || map.get("chain").isEmpty())
-            return;
         List<String> chains = map.get("chain");
+        if (chains == null) {
+            return;
+        }
         int chainSize = chains.size();
-        if (chainSize < 2)//最少2个字符串。
-        {
+        if (chainSize < 2) { //最少2个字符串。
             Server.getInstance().getLogger().warning("短chainSize");
             return;
         }
@@ -244,7 +246,7 @@ public final class ClientChainDataNetEase implements LoginChainData {
             chainArr[index] = iterator.next();
             ++index;
         }
-        try{
+        try {
             JsonObject profile = TokenChainEC.check(chainArr);
             if (profile.has("XUID")) this.xuid = profile.get("XUID").getAsString();
             if (profile.has("identity")) this.clientUUID = UUID.fromString(profile.get("identity").getAsString());
@@ -257,7 +259,6 @@ public final class ClientChainDataNetEase implements LoginChainData {
             // TODO: handle exception,认证失败
             //Server.getInstance().getLogger().logException(e);
             this.clientUUID = null;//若认证失败，则clientUUID为null。
-            return;
         }
     }
 
@@ -281,7 +282,7 @@ public final class ClientChainDataNetEase implements LoginChainData {
     private JsonObject decodeToken(String token) {
         String[] base = token.split("\\.", 4);
         if (base.length < 2) return null;
-        byte[] decode = null;
+        byte[] decode;
         try {
             decode = Base64.getUrlDecoder().decode(base[1]);
         } catch(IllegalArgumentException e) {
@@ -289,7 +290,7 @@ public final class ClientChainDataNetEase implements LoginChainData {
         }
         String json = new String(decode, StandardCharsets.UTF_8);
         //Server.getInstance().getLogger().debug(json);
-        return GSON.fromJson(json, JsonObject.class);
+        return JsonUtil.GSON.fromJson(json, JsonObject.class);
     }
 
 }

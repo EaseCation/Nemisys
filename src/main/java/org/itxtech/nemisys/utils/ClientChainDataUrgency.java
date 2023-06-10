@@ -1,6 +1,5 @@
 package org.itxtech.nemisys.utils;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import org.itxtech.nemisys.network.protocol.mcpe.LoginPacket;
 
@@ -14,8 +13,6 @@ import java.util.UUID;
  */
 public final class ClientChainDataUrgency implements LoginChainData {
 
-    private static final Gson GSON = new Gson();
-
     public static ClientChainDataUrgency of(byte[] buffer) {
         return new ClientChainDataUrgency(buffer);
     }
@@ -25,6 +22,7 @@ public final class ClientChainDataUrgency implements LoginChainData {
         data.username = pk.username;
         data.clientUUID = pk.clientUUID;
         data.xuid = pk.xuid;
+        data.identityPublicKey = pk.identityPublicKey;
         return data;
     }
 
@@ -164,7 +162,7 @@ public final class ClientChainDataUrgency implements LoginChainData {
 
     private String capeData;
 
-    private BinaryStream bs = new BinaryStream();
+    private final BinaryStream bs = new BinaryStream();
 
     private ClientChainDataUrgency(byte[] buffer) {
         bs.setBuffer(buffer, 0);
@@ -196,7 +194,7 @@ public final class ClientChainDataUrgency implements LoginChainData {
     private JsonObject decodeToken(String token) {
         String[] base = token.split("\\.", 4);
         if (base.length < 2) return null;
-        byte[] decode = null;
+        byte[] decode;
         try {
             decode = Base64.getUrlDecoder().decode(base[1]);
         } catch(IllegalArgumentException e) {
@@ -204,7 +202,7 @@ public final class ClientChainDataUrgency implements LoginChainData {
         }
         String json = new String(decode, StandardCharsets.UTF_8);
         //Server.getInstance().getLogger().debug(json);
-        return GSON.fromJson(json, JsonObject.class);
+        return JsonUtil.GSON.fromJson(json, JsonObject.class);
     }
 
     @Override

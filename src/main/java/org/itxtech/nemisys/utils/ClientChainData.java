@@ -1,6 +1,5 @@
 package org.itxtech.nemisys.utils;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import com.nimbusds.jose.JOSEException;
@@ -35,20 +34,37 @@ import java.util.*;
 @Log4j2
 public final class ClientChainData implements LoginChainData {
 
-    private static final String MOJANG_PUBLIC_KEY_BASE64 =
-        "MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAE8ELkixyLcwlZryUQcu1TvPOmI2B7vX83ndnWRUaXm74wFfa5f/lwQNTfrLVHa2PmenpGI6JhIMUJaWZrjmMj90NoKNFSNBuKdm8rYiXsfaz3K36x/1U26HpG0ZxK/V1V";
-    private static PublicKey MOJANG_PUBLIC_KEY;
-    private static boolean xboxAuth = true;
+    private static final String MOJANG_PUBLIC_KEY_BASE64 = "MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAE8ELkixyLcwlZryUQcu1TvPOmI2B7vX83ndnWRUaXm74wFfa5f/lwQNTfrLVHa2PmenpGI6JhIMUJaWZrjmMj90NoKNFSNBuKdm8rYiXsfaz3K36x/1U26HpG0ZxK/V1V";
+    private static final PublicKey MOJANG_PUBLIC_KEY;
+    private static final String NEW_MOJANG_PUBLIC_KEY_BASE64 = "MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAECRXueJeTDqNRRgJi/vlRufByu/2G0i2Ebt6YMar5QX/R0DIIyrJMcUpruK4QveTfJSTp3Shlq4Gk34cD/4GUWwkv0DVuzeuB+tXija7HBxii03NHDbPAD0AKnLr2wdAp";
+    private static final PublicKey NEW_MOJANG_PUBLIC_KEY;
+    private static final boolean xboxAuth;
+
     static {
+        boolean notAvailable = false;
+
+        PublicKey key;
         try {
-            MOJANG_PUBLIC_KEY = generateKey(MOJANG_PUBLIC_KEY_BASE64);
+            key = generateKey(MOJANG_PUBLIC_KEY_BASE64);
         } catch (InvalidKeySpecException | NoSuchAlgorithmException e) {
-            xboxAuth = false;
+            key = null;
+            notAvailable = true;
             log.warn(e);
         }
-    }
+        MOJANG_PUBLIC_KEY = key;
 
-    private static final Gson GSON = new Gson();
+        PublicKey keyNew;
+        try {
+            keyNew = generateKey(NEW_MOJANG_PUBLIC_KEY_BASE64);
+        } catch (InvalidKeySpecException | NoSuchAlgorithmException e) {
+            keyNew = null;
+            notAvailable = true;
+            log.warn(e);
+        }
+        NEW_MOJANG_PUBLIC_KEY = keyNew;
+
+        xboxAuth = !notAvailable;
+    }
 
     public static ClientChainData of(byte[] buffer) {
         return new ClientChainData(buffer);
@@ -214,7 +230,7 @@ public final class ClientChainData implements LoginChainData {
     private boolean xboxAuthed = true;
     private String[] originChainArr;
 
-    private BinaryStream bs = new BinaryStream();
+    private final BinaryStream bs = new BinaryStream();
 
     private ClientChainData(byte[] buffer) {
         bs.setBuffer(buffer, 0);
@@ -223,11 +239,13 @@ public final class ClientChainData implements LoginChainData {
     }
 
     private void decodeChainData() {
-        Map<String, List<String>> map = GSON.fromJson(new String(bs.get(bs.getLInt()), StandardCharsets.UTF_8),
+        Map<String, List<String>> map = JsonUtil.GSON.fromJson(new String(bs.get(bs.getLInt()), StandardCharsets.UTF_8),
             new TypeToken<Map<String, List<String>>>() {
             }.getType());
-        if (map.isEmpty() || !map.containsKey("chain") || map.get("chain").isEmpty()) return;
         List<String> chains = map.get("chain");
+        if (chains == null || chains.isEmpty()) {
+            return;
+        }
 
         if (xboxAuth) {
             // Validate keys
@@ -242,7 +260,9 @@ public final class ClientChainData implements LoginChainData {
 
         for (String c : chains) {
             JsonObject chainMap = decodeToken(c);
-            if (chainMap == null) continue;
+            if (chainMap == null) {
+                continue;
+            }
             if (chainMap.has("extraData")) {
                 JsonObject extra = chainMap.get("extraData").getAsJsonObject();
                 if (extra.has("displayName")) this.username = extra.get("displayName").getAsString();
@@ -252,8 +272,9 @@ public final class ClientChainData implements LoginChainData {
                 if (extra.has("netease_sid")) this.neteaseSid = extra.get("sid").getAsString();
                 if (extra.has("platform")) this.neteasePlatform = extra.get("platform").getAsString();
             }
-            if (chainMap.has("identityPublicKey"))
+            if (chainMap.has("identityPublicKey")) {
                 this.identityPublicKey = chainMap.get("identityPublicKey").getAsString();
+            }
         }
     }
 
@@ -277,7 +298,7 @@ public final class ClientChainData implements LoginChainData {
     private JsonObject decodeToken(String token) {
         String[] base = token.split("\\.", 4);
         if (base.length < 2) return null;
-        byte[] decode = null;
+        byte[] decode;
         try {
             decode = Base64.getUrlDecoder().decode(base[1]);
         } catch(IllegalArgumentException e) {
@@ -285,7 +306,7 @@ public final class ClientChainData implements LoginChainData {
         }
         String json = new String(decode, StandardCharsets.UTF_8);
         //Server.getInstance().getLogger().debug(json);
-        return GSON.fromJson(json, JsonObject.class);
+        return JsonUtil.GSON.fromJson(json, JsonObject.class);
     }
 
     @Override
@@ -344,7 +365,7 @@ public final class ClientChainData implements LoginChainData {
                 return !iterator.hasNext();
             }
 
-            if (lastKey.equals(MOJANG_PUBLIC_KEY)) {
+            if (lastKey.equals(NEW_MOJANG_PUBLIC_KEY) || lastKey.equals(MOJANG_PUBLIC_KEY)) {
                 mojangKeyVerified = true;
             }
 
