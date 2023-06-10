@@ -1,6 +1,7 @@
 package org.itxtech.nemisys.utils;
 
 import com.google.gson.JsonObject;
+import com.google.gson.annotations.Expose;
 import com.google.gson.reflect.TypeToken;
 import com.netease.mc.authlib.TokenChainEC;
 import lombok.ToString;
@@ -184,6 +185,7 @@ public final class ClientChainDataNetEase implements LoginChainData {
     private String capeData;
     private String[] originChainArr;
 
+    @Expose(serialize = false, deserialize = false)
     private final BinaryStream bs = new BinaryStream();
 
     private ClientChainDataNetEase(byte[] buffer) {
