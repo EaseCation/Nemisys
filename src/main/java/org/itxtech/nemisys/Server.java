@@ -10,6 +10,7 @@ import lombok.extern.log4j.Log4j2;
 import org.apache.logging.log4j.Level;
 import org.itxtech.nemisys.command.*;
 import org.itxtech.nemisys.console.NemisysConsole;
+import org.itxtech.nemisys.data.ServerConfiguration;
 import org.itxtech.nemisys.event.HandlerList;
 import org.itxtech.nemisys.event.TranslationContainer;
 import org.itxtech.nemisys.event.server.QueryRegenerateEvent;
@@ -48,6 +49,8 @@ public class Server {
     private static Server instance = null;
     private final AtomicBoolean isRunning = new AtomicBoolean(true);
     private boolean hasStopped = false;
+    @Getter
+    private final ServerConfiguration configuration;
     private final PluginManager pluginManager;
     private final ServerScheduler scheduler;
     private int tickCounter;
@@ -149,6 +152,15 @@ public class Server {
                 put("packet-recorder-capability", false);
             }
         });
+
+        configuration = ServerConfiguration.builder()
+                .serverIp(getPropertyString("server-ip", "0.0.0.0"))
+                .serverPort(getPropertyInt("server-port", 19132))
+                .password(getPropertyString("password", "1234567890123456"))
+                .motd(getPropertyString("motd", "Nemisys Server"))
+                .plusOneMaxCount(getPropertyBoolean("plus-one-max-count", false))
+                .xboxAuth(getPropertyBoolean("xbox-auth", false))
+                .build();
 
         this.baseLang = new BaseLang((String) this.getConfig("lang", BaseLang.FALLBACK_LANGUAGE));
         log.info(this.getLanguage().translateString("language.selected", new String[]{getLanguage().getName(), getLanguage().getLang()}));
@@ -312,8 +324,8 @@ public class Server {
     }
 
     public boolean comparePassword(String pass) {
-        String truePass = this.getPropertyString("password", "1234567890123456");
-        return (truePass.equals(pass));
+        String truePass = this.getConfiguration().getPassword();
+        return truePass.equals(pass);
     }
 
     public void enablePlugins(PluginLoadOrder type) {
@@ -369,9 +381,10 @@ public class Server {
                 this.rcon.close();
             }
 
+            String shutdownMessage = (String) this.getConfig("settings.shutdown-message", "Proxy closed");
             for (Client client : new ObjectArrayList<>(this.clients.values())) {
                 for (Player player : new ObjectArrayList<>(client.getPlayers().values())) {
-                    player.close((String) this.getConfig("settings.shutdown-message", "Proxy closed"));
+                    player.close(shutdownMessage);
                 }
                 client.close("Synapse server closed");
             }
@@ -673,11 +686,11 @@ public class Server {
     }
 
     public int getPort() {
-        return this.getPropertyInt("server-port", 19132);
+        return this.getConfiguration().getServerPort();
     }
 
     public String getIp() {
-        return this.getPropertyString("server-ip", "0.0.0.0");
+        return this.getConfiguration().getServerIp();
     }
 
     public int getSynapsePort() {
@@ -693,7 +706,7 @@ public class Server {
     }
 
     public String getMotd() {
-        return this.getPropertyString("motd", "Nemisys Server");
+        return this.getConfiguration().getMotd();
     }
 
     public String getSubMotd() {

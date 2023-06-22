@@ -54,7 +54,7 @@ public class QueryRegenerateEvent extends ServerEvent {
         this.serverEngine = server.getName() + " " + server.getNemisysVersion();
         this.map = "Nemisys";
         this.numPlayers = server.getOnlinePlayers().size();
-        if (server.getPropertyBoolean("plus-one-max-count", false)) {
+        if (server.getConfiguration().isPlusOneMaxCount()) {
             this.maxPlayers = this.numPlayers + 1;
         } else {
             this.maxPlayers = server.getMaxPlayers();

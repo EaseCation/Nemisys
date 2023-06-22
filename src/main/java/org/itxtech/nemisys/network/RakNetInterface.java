@@ -342,7 +342,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
 
         private volatile Compressor compressor;
         private volatile SecretKey secretKey;
-        private volatile Cipher encryptCipher;
+        private volatile Cipher encryptCipher; //FIXME: thread-safe
         private volatile Cipher decryptCipher;
         private final AtomicLong encryptCounter = new AtomicLong();
         private final AtomicLong decryptCounter = new AtomicLong();

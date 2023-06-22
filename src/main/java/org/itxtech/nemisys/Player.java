@@ -124,7 +124,7 @@ public class Player {
                 } else {  //国际版普通认证
                     try {
                         this.loginChainData = ClientChainData.read(loginPacket);
-                        if (protocol >= 160 && !loginChainData.isXboxAuthed() && server.getPropertyBoolean("xbox-auth", false)) {
+                        if (protocol >= 160 && !loginChainData.isXboxAuthed() && server.getConfiguration().isXboxAuth()) {
                             this.close("disconnectionScreen.notAuthenticated");
                         }
                     } catch (Exception e) {
