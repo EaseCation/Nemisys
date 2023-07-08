@@ -48,7 +48,7 @@ public class Server {
 
     private static Server instance = null;
     private final AtomicBoolean isRunning = new AtomicBoolean(true);
-    private boolean hasStopped = false;
+    private volatile boolean hasStopped = false;
     @Getter
     private final ServerConfiguration configuration;
     private final PluginManager pluginManager;

@@ -16,16 +16,16 @@ import java.io.IOException;
  * @author Tee7even
  */
 public class RCON {
-    private Server server;
+    private final Server server;
     private RCONServer serverThread;
 
     public RCON(Server server, String password, String address, int port) {
+        this.server = server;
+
         if (password.isEmpty()) {
             server.getLogger().critical("Failed to start RCON: password is empty");
             return;
         }
-
-        this.server = server;
 
         try {
             this.serverThread = new RCONServer(address, port, password);
