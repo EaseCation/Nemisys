@@ -1,7 +1,6 @@
 package org.itxtech.nemisys.utils;
 
 import com.google.gson.JsonObject;
-import com.google.gson.annotations.Expose;
 import com.google.gson.reflect.TypeToken;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSObject;
@@ -231,8 +230,7 @@ public final class ClientChainData implements LoginChainData {
     private boolean xboxAuthed = true;
     private String[] originChainArr;
 
-    @Expose(serialize = false, deserialize = false)
-    private final BinaryStream bs = new BinaryStream();
+    private transient final BinaryStream bs = new BinaryStream();
 
     private ClientChainData(byte[] buffer) {
         bs.setBuffer(buffer, 0);

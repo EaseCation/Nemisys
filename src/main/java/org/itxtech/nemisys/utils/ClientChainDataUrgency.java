@@ -1,7 +1,6 @@
 package org.itxtech.nemisys.utils;
 
 import com.google.gson.JsonObject;
-import com.google.gson.annotations.Expose;
 import org.itxtech.nemisys.network.protocol.mcpe.LoginPacket;
 
 import java.nio.charset.StandardCharsets;
@@ -163,8 +162,7 @@ public final class ClientChainDataUrgency implements LoginChainData {
 
     private String capeData;
 
-    @Expose(serialize = false, deserialize = false)
-    private final BinaryStream bs = new BinaryStream();
+    private transient final BinaryStream bs = new BinaryStream();
 
     private ClientChainDataUrgency(byte[] buffer) {
         bs.setBuffer(buffer, 0);
