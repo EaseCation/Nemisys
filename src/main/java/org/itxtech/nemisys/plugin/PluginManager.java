@@ -23,7 +23,6 @@ import java.util.regex.Pattern;
  */
 public class PluginManager {
 
-    public static boolean useTimings = false;
     protected Map<String, Plugin> plugins = new LinkedHashMap<>();
     protected Map<String, PluginLoader> fileAssociations = new Object2ObjectOpenHashMap<>();
     private final Server server;
@@ -498,13 +497,4 @@ public class PluginManager {
             }
         }
     }
-
-    public boolean useTimings() {
-        return useTimings;
-    }
-
-    public void setUseTimings(boolean use) {
-        useTimings = use;
-    }
-
 }

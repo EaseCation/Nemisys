@@ -3,7 +3,6 @@ package org.itxtech.nemisys.utils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.math.BigInteger;
 
 public class VarInt {
 
@@ -181,7 +180,7 @@ public class VarInt {
      * @param value  Unsigned int
      */
     public static void writeUnsignedVarInt(BinaryStream stream, long value) {
-        write(stream, value);
+        write(stream, value & 0xFFFFFFFFL);
     }
 
     /**
@@ -189,7 +188,7 @@ public class VarInt {
      * @param value  Unsigned int
      */
     public static void writeUnsignedVarInt(OutputStream stream, long value) throws IOException {
-        write(stream, value);
+        write(stream, value & 0xFFFFFFFFL);
     }
 
     /**

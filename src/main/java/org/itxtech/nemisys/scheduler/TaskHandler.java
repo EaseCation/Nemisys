@@ -9,7 +9,6 @@ import org.itxtech.nemisys.plugin.Plugin;
  */
 public class TaskHandler {
 
-    public final String timingName;
     private final int taskId;
     private final boolean asynchronous;
     private final Plugin plugin;
@@ -23,12 +22,11 @@ public class TaskHandler {
 
     private boolean cancelled;
 
-    public TaskHandler(Plugin plugin, String timingName, Runnable task, int taskId, boolean asynchronous) {
+    public TaskHandler(Plugin plugin, Runnable task, int taskId, boolean asynchronous) {
         this.asynchronous = asynchronous;
         this.plugin = plugin;
         this.task = task;
         this.taskId = taskId;
-        this.timingName = timingName == null ? "Unknown" : timingName;
     }
 
     public boolean isCancelled() {
@@ -106,10 +104,6 @@ public class TaskHandler {
         } catch (RuntimeException ex) {
             Server.getInstance().getLogger().critical("Exception while invoking run", ex);
         }
-    }
-
-    public String getTaskName() {
-        return this.timingName;
     }
 
     public boolean isAsynchronous() {
