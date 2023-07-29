@@ -8,7 +8,7 @@ import org.itxtech.nemisys.event.Event;
  * Nukkit Project
  */
 public abstract class PlayerEvent extends Event {
-    protected Player player;
+    protected final Player player;
 
     public PlayerEvent(Player player) {
         this.player = player;

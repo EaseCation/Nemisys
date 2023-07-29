@@ -10,7 +10,7 @@ import java.util.Map;
  */
 public class ClientData {
 
-    public Map<String, Entry> clientList = new Object2ObjectOpenHashMap<>();
+    public final Map<String, Entry> clientList = new Object2ObjectOpenHashMap<>();
 
     public String getHashByDescription(String description) {
         final String[] re = new String[1];

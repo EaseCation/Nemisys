@@ -183,7 +183,7 @@ public class Server {
 
         if (this.getPropertyBoolean("enable-rcon", false)) {
             try {
-                this.rcon = new RCON(this, this.getPropertyString("rcon.password", ""), (!this.getIp().equals("")) ? this.getIp() : "0.0.0.0", this.getPropertyInt("rcon.port", this.getPort()));
+                this.rcon = new RCON(this, this.getPropertyString("rcon.password", ""), !this.getIp().isEmpty() ? this.getIp() : "0.0.0.0", this.getPropertyInt("rcon.port", this.getPort()));
             } catch (IllegalArgumentException e) {
                 log.error(getLanguage().translateString(e.getMessage(), e.getCause().getMessage()));
             }
@@ -210,7 +210,7 @@ public class Server {
             ServerStatistics.registerJmxMonitoring(this);
         }
 
-        log.info(this.getLanguage().translateString("nemisys.server.networkStart", new String[]{this.getIp().equals("") ? "*" : this.getIp(), String.valueOf(this.getPort())}));
+        log.info(this.getLanguage().translateString("nemisys.server.networkStart", new String[]{this.getIp().isEmpty() ? "*" : this.getIp(), String.valueOf(this.getPort())}));
         this.serverID = UUID.randomUUID();
 
         this.network = new Network(this);

@@ -82,8 +82,7 @@ public class JavaPluginLoader implements PluginLoader {
 
     @Override
     public PluginDescription getPluginDescription(File file) {
-        try {
-            JarFile jar = new JarFile(file);
+        try (JarFile jar = new JarFile(file)) {
             JarEntry entry = jar.getJarEntry("nemisys.yml");
             if (entry == null) {
                 entry = jar.getJarEntry("plugin.yml");
@@ -91,8 +90,9 @@ public class JavaPluginLoader implements PluginLoader {
                     return null;
                 }
             }
-            InputStream stream = jar.getInputStream(entry);
-            return new PluginDescription(Utils.readFile(stream));
+            try (InputStream stream = jar.getInputStream(entry)) {
+                return new PluginDescription(Utils.readFile(stream));
+            }
         } catch (IOException e) {
             return null;
         }

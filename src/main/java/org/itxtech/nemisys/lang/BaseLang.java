@@ -57,7 +57,7 @@ public class BaseLang {
             Map<String, String> d = new Object2ObjectOpenHashMap<>();
             for (String line : content.split("\n")) {
                 line = line.trim();
-                if (line.equals("") || line.charAt(0) == '#') {
+                if (line.isEmpty() || line.charAt(0) == '#') {
                     continue;
                 }
                 String[] t = line.split("=");
@@ -70,7 +70,7 @@ public class BaseLang {
                     value.append(t[i]).append("=");
                 }
                 value.append(t[t.length - 1]);
-                if (value.length() == 0) {
+                if (value.isEmpty()) {
                     continue;
                 }
                 d.put(key, value.toString());
@@ -88,7 +88,7 @@ public class BaseLang {
             Map<String, String> d = new Object2ObjectOpenHashMap<>();
             for (String line : content.split("\n")) {
                 line = line.trim();
-                if (line.equals("") || line.charAt(0) == '#') {
+                if (line.isEmpty() || line.charAt(0) == '#') {
                     continue;
                 }
                 String[] t = line.split("=");
@@ -101,7 +101,7 @@ public class BaseLang {
                     value.append(t[i]).append("=");
                 }
                 value.append(t[t.length - 1]);
-                if (value.length() == 0) {
+                if (value.isEmpty()) {
                     continue;
                 }
                 d.put(key, value.toString());

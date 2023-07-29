@@ -36,7 +36,7 @@ public class KickCommand extends VanillaCommand {
         Player player = sender.getServer().getPlayerExact(name);
         if (player != null) {
             player.close(reason.toString());
-            if (reason.length() >= 1) {
+            if (!reason.isEmpty()) {
                 sender.sendMessage(new TranslationContainer("commands.kick.success.reason", new String[]{player.getName(), reason.toString()}));
             } else {
                 sender.sendMessage(new TranslationContainer("commands.kick.success", player.getName()));

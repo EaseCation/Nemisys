@@ -402,7 +402,7 @@ public class Client {
 
     public void closeAllPlayers(String reason) {
         for (Player player : new ObjectArrayList<>(this.players.values())) {
-            player.close("Server Closed" + (reason.equals("") ? "" : ": " + TextFormat.YELLOW + reason));
+            player.close("Server Closed" + (reason.isEmpty() ? "" : ": " + TextFormat.YELLOW + reason));
         }
     }
 

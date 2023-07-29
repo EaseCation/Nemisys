@@ -28,11 +28,6 @@ public interface CommandExecutor {
      * If this function returns {@code false}, Nukkit will send command usages to command sender, to explain that
      * the command didn't work normally. If your command works properly, a {@code true} should be returned to explain
      * that the command works.</p>
-     * <p>
-     * <p>如果你想测试一个命令发送者是否有权限执行这个命令，
-     * 可以使用{@link org.itxtech.nemisys.command.Command#testPermissionSilent}。<br>
-     * If you want to test whether a command sender has the permission to execute a command,
-     * you can use {@link org.itxtech.nemisys.command.Command#testPermissionSilent}.</p>
      *
      * @param sender  这个命令的发送者，可以是玩家或控制台等。<br>
      *                The sender of this command, this can be a player or a console.

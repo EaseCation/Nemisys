@@ -221,11 +221,11 @@ public class Player {
     }
 
     public void completeLoginSequence(String clientHash) {
-        if (clientHash == null || clientHash.equals("")) {
+        if (clientHash == null || clientHash.isEmpty()) {
             this.close("Synapse Server: " + TextFormat.RED + "No target server!");
             return;
         }
-        Client client =this.server.getClients().get(clientHash);
+        Client client = this.server.getClients().get(clientHash);
         if (client == null) {
             this.close("Synapse Server: " + TextFormat.RED + "Target server is not online!");
             return;
@@ -369,7 +369,7 @@ public class Player {
                 ((RakNetInterface) interfaz).closeReader(this);
             }
 
-            if (notify && reason.length() > 0) {
+            if (notify && !reason.isEmpty()) {
                 DisconnectPacket pk = new DisconnectPacket();
                 pk.hideDisconnectionScreen = false;
                 pk.message = reason;

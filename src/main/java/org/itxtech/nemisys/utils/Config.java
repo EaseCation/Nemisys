@@ -37,7 +37,7 @@ public class Config {
     //public static final int SERIALIZED = 4; // .sl
     public static final int ENUM = 5; // .txt, .list, .enum
     public static final int ENUMERATION = Config.ENUM;
-    public static Map<String, Integer> format = new TreeMap<>();
+    public static final Map<String, Integer> format = new TreeMap<>();
 
     static {
         format.put("properties", Config.PROPERTIES);

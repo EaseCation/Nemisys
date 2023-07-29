@@ -8,7 +8,7 @@ import org.itxtech.nemisys.synapse.SynapsePlayer;
  */
 public class SynapsePlayerEvent extends SynapseEvent {
 
-    protected SynapsePlayer player;
+    protected final SynapsePlayer player;
 
     public SynapsePlayerEvent(SynapsePlayer player) {
         this.player = player;

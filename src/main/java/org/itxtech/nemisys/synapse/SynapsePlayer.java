@@ -78,7 +78,7 @@ public class SynapsePlayer extends Player {
 
     @Override
     public void completeLoginSequence(String clientHash) {
-        if (clientHash == null || clientHash.equals("")) {
+        if (clientHash == null || clientHash.isEmpty()) {
             this.close("Synapse Server: " + TextFormat.RED + "No target server!");
             return;
         }

@@ -16,7 +16,7 @@ import java.util.*;
  * Nukkit Project
  */
 public class SimpleCommandMap implements CommandMap {
-    protected Map<String, Command> knownCommands = new Object2ObjectOpenHashMap<>();
+    protected final Map<String, Command> knownCommands = new Object2ObjectOpenHashMap<>();
 
     private final Server server;
 

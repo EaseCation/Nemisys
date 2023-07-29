@@ -23,8 +23,8 @@ import java.util.regex.Pattern;
  */
 public class PluginManager {
 
-    protected Map<String, Plugin> plugins = new LinkedHashMap<>();
-    protected Map<String, PluginLoader> fileAssociations = new Object2ObjectOpenHashMap<>();
+    protected final Map<String, Plugin> plugins = new LinkedHashMap<>();
+    protected final Map<String, PluginLoader> fileAssociations = new Object2ObjectOpenHashMap<>();
     private final Server server;
     private final SimpleCommandMap commandMap;
 
