@@ -157,7 +157,7 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>32.1.1-jre</version>
+            <version>32.1.2-jre</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -292,7 +292,7 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>3.12.0</version>
+            <version>3.13.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>

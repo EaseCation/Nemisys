@@ -129,7 +129,7 @@ public class Player {
                         }
                     } catch (Exception e) {
                         this.getServer().getLogger()
-                            .notice(this.name + TextFormat.RED + " 解析时出现问题，采用紧急解析方案！" + e.getMessage());
+                            .notice(this.name + TextFormat.RED + " 解析时出现问题，采用紧急解析方案！", e);
                         this.loginChainData = ClientChainDataUrgency.read(loginPacket);
                     }
                     this.neteaseClient = false;
