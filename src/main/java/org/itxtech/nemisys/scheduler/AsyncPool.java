@@ -21,7 +21,7 @@ public class AsyncPool {
         this.currentThread = new AtomicInteger();
         this.size = size;
         this.pool = new ThreadPoolExecutor(size, Integer.MAX_VALUE,
-                60, TimeUnit.MILLISECONDS, new SynchronousQueue<>(),
+                60, TimeUnit.SECONDS, new SynchronousQueue<>(),
                 runnable -> new Thread(runnable) {{
                     setDaemon(true);
                     setName(String.format("Nemisys Asynchronous Task Handler #%s", currentThread.incrementAndGet()));
