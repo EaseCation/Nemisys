@@ -237,11 +237,9 @@ public class Server {
 
         Capabilities.PACKET_RECORDER = this.getPropertyBoolean("packet-recorder-capability");
 
-        //this.network.registerInterface(new RakNettyInterface(this));
         if (!Boolean.getBoolean("nemisys.disableRak")) {
             this.network.registerInterface(new RakNetInterface(this));
         }
-        //this.network.registerInterface(new JRakNetInterface(this));
 
         this.synapseInterface = new SynapseInterface(this, this.getSynapseIp(), this.getSynapsePort());
 
