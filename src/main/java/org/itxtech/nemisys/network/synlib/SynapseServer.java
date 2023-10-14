@@ -10,7 +10,7 @@ import org.itxtech.nemisys.InterruptibleThread;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.network.SynapseInterface;
 import org.itxtech.nemisys.network.protocol.spp.SynapseInfo;
-import org.itxtech.nemisys.utils.ThreadedLogger;
+import org.itxtech.nemisys.utils.Logger;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -25,18 +25,18 @@ public class SynapseServer extends Thread implements InterruptibleThread {
     protected final ConcurrentLinkedQueue<String> clientOpenQueue;
     protected final ConcurrentLinkedQueue<String> internalClientCloseQueue;
     protected final ConcurrentLinkedQueue<String> externalClientCloseQueue;
-    private final ThreadedLogger logger;
+    private final Logger logger;
     private final String interfaz;
     private final int port;
     private final AtomicBoolean shutdown;
     private final SynapseInterface server;
     private final SessionManager sessionManager;
 
-    public SynapseServer(ThreadedLogger logger, SynapseInterface server, int port) {
+    public SynapseServer(Logger logger, SynapseInterface server, int port) {
         this(logger, server, port, "0.0.0.0");
     }
 
-    public SynapseServer(ThreadedLogger logger, SynapseInterface server, int port, String interfaz) {
+    public SynapseServer(Logger logger, SynapseInterface server, int port, String interfaz) {
         this.logger = logger;
         this.server = server;
         this.interfaz = interfaz;
@@ -103,7 +103,7 @@ public class SynapseServer extends Thread implements InterruptibleThread {
         return interfaz;
     }
 
-    public ThreadedLogger getLogger() {
+    public Logger getLogger() {
         return logger;
     }
 

@@ -1,7 +1,5 @@
 package org.itxtech.nemisys.utils;
 
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 
 /**
@@ -12,13 +10,15 @@ import lombok.extern.log4j.Log4j2;
 We need to keep this class for backwards compatibility
  */
 @Log4j2
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
-public class MainLogger extends ThreadedLogger {
+public class MainLogger implements Logger {
 
     private static final MainLogger logger = new MainLogger();
 
     public static MainLogger getLogger() {
         return logger;
+    }
+
+    private MainLogger() {
     }
 
     @Override
@@ -59,10 +59,6 @@ public class MainLogger extends ThreadedLogger {
     @Override
     public void debug(String message) {
         log.debug(message);
-    }
-
-    public void setLogDebug(Boolean logDebug) {
-        throw new UnsupportedOperationException();
     }
 
     public void logException(Throwable t) {

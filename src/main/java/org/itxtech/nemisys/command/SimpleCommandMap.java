@@ -4,10 +4,8 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.command.defaults.*;
-import org.itxtech.nemisys.event.TranslationContainer;
-import org.itxtech.nemisys.utils.MainLogger;
+import org.itxtech.nemisys.lang.TranslationContainer;
 import org.itxtech.nemisys.utils.TextFormat;
-import org.itxtech.nemisys.utils.Utils;
 
 import java.util.*;
 
@@ -131,11 +129,7 @@ public class SimpleCommandMap implements CommandMap {
             target.execute(sender, sentCommandLabel, args);
         } catch (Exception e) {
             sender.sendMessage(new TranslationContainer(TextFormat.RED + "%commands.generic.exception"));
-            this.server.getLogger().critical(this.server.getLanguage().translateString("nemisys.command.exception", new String[]{cmdLine, target.toString(), Utils.getExceptionMessage(e)}));
-            MainLogger logger = sender.getServer().getLogger();
-            if (logger != null) {
-                logger.logException(e);
-            }
+            this.server.getLogger().critical(this.server.getLanguage().translateString("nemisys.command.exception", new String[]{cmdLine, target.toString()}), e);
         }
 
         return true;

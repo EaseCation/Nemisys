@@ -209,13 +209,7 @@ public class PluginManager {
                             }
                         }
                     } catch (Exception e) {
-                        this.server.getLogger().error(this.server.getLanguage().translateString("nemisys.plugin" +
-                                ".fileError", new String[]{file.getName(), dictionary.toString(), Utils
-                                .getExceptionMessage(e)}));
-                        MainLogger logger = this.server.getLogger();
-                        if (logger != null) {
-                            logger.logException(e);
-                        }
+                        this.server.getLogger().error(this.server.getLanguage().translateString("nemisys.plugin.fileError", new String[]{file.getName(), dictionary.toString()}), e);
                     }
                 }
             }
@@ -303,10 +297,7 @@ public class PluginManager {
             try {
                 plugin.getPluginLoader().enablePlugin(plugin);
             } catch (Exception e) {
-                MainLogger logger = this.server.getLogger();
-                if (logger != null) {
-                    logger.logException(e);
-                }
+                this.server.getLogger().logException(e);
                 this.disablePlugin(plugin);
             }
         }
@@ -357,8 +348,10 @@ public class PluginManager {
     }
 
     public void disablePlugins() {
-        for (Plugin plugin : this.getPlugins().values()) {
-            this.disablePlugin(plugin);
+        ListIterator<Plugin> plugins = new ObjectArrayList<>(this.getPlugins().values()).listIterator(this.getPlugins().size());
+
+        while (plugins.hasPrevious()) {
+            this.disablePlugin(plugins.previous());
         }
     }
 
@@ -367,10 +360,7 @@ public class PluginManager {
             try {
                 plugin.getPluginLoader().disablePlugin(plugin);
             } catch (Exception e) {
-                MainLogger logger = this.server.getLogger();
-                if (logger != null) {
-                    logger.logException(e);
-                }
+                this.server.getLogger().logException(e);
             }
 
             this.server.getScheduler().cancelTask(plugin);
@@ -394,11 +384,7 @@ public class PluginManager {
                 try {
                     registration.callEvent(event);
                 } catch (Exception e) {
-                    this.server.getLogger().critical(this.server.getLanguage().translateString("nemisys.plugin.eventError", new String[]{event.getEventName(), registration.getPlugin().getDescription().getFullName(), e.getMessage(), registration.getListener().getClass().getName()}));
-                    MainLogger logger = this.server.getLogger();
-                    if (logger != null) {
-                        logger.logException(e);
-                    }
+                    this.server.getLogger().critical(this.server.getLanguage().translateString("nemisys.plugin.eventError", new String[]{event.getEventName(), registration.getPlugin().getDescription().getFullName(), registration.getListener().getClass().getName()}), e);
                 }
             }
         } catch (IllegalAccessException e) {
@@ -420,7 +406,7 @@ public class PluginManager {
             Collections.addAll(methods, publicMethods);
             Collections.addAll(methods, privateMethods);
         } catch (NoClassDefFoundError e) {
-            plugin.getLogger().error("Plugin " + plugin.getDescription().getFullName() + " has failed to register events for " + listener.getClass() + " because " + e.getMessage() + " does not exist.");
+            plugin.getLogger().error("Plugin " + plugin.getDescription().getFullName() + " has failed to register events for " + listener.getClass() + " because " + e.getMessage() + " does not exist.", e);
             return;
         }
 

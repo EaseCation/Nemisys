@@ -12,7 +12,7 @@ import org.itxtech.nemisys.command.*;
 import org.itxtech.nemisys.console.NemisysConsole;
 import org.itxtech.nemisys.data.ServerConfiguration;
 import org.itxtech.nemisys.event.HandlerList;
-import org.itxtech.nemisys.event.TranslationContainer;
+import org.itxtech.nemisys.lang.TranslationContainer;
 import org.itxtech.nemisys.event.server.QueryRegenerateEvent;
 import org.itxtech.nemisys.lang.BaseLang;
 import org.itxtech.nemisys.math.Mth;
@@ -166,26 +166,31 @@ public class Server {
         log.info(this.getLanguage().translateString("language.selected", new String[]{getLanguage().getName(), getLanguage().getLang()}));
         log.info(getLanguage().translateString("nemisys.server.start", TextFormat.AQUA + this.getVersion() + TextFormat.WHITE));
 
-        Object poolSize = this.getConfig("async-workers", "auto");
-        if (!(poolSize instanceof Integer)) {
-            try {
-                poolSize = Integer.valueOf((String) poolSize);
-            } catch (Exception e) {
-                poolSize = Math.max(Runtime.getRuntime().availableProcessors() + 1, 4);
-            }
+        int corePoolSize;
+        Object poolSize = this.getProperty("async-workers", "auto");
+        try {
+            corePoolSize = Math.max(Integer.parseInt(String.valueOf(poolSize)), 0);
+        } catch (Exception e) {
+            corePoolSize = Math.max(Runtime.getRuntime().availableProcessors() + 1, 4);
         }
-
-        ServerScheduler.WORKERS = (int) poolSize;
+        int maximumPoolSize = this.getPropertyInt("max-async-workers", 0);
+        if (maximumPoolSize > 0) {
+            maximumPoolSize = Math.max(corePoolSize, maximumPoolSize);
+        } else {
+            maximumPoolSize = Integer.MAX_VALUE;
+        }
+        int keepAliveSeconds = this.getPropertyInt("async-worker-keep-alive", 60);
+        log.info("AsyncPool Workers: minimum {} threads, maximum {} threads, keep alive {} seconds", corePoolSize, maximumPoolSize, keepAliveSeconds);
 
         Zlib.setProvider(2);
 
-        this.scheduler = new ServerScheduler();
+        this.scheduler = new ServerScheduler(corePoolSize, maximumPoolSize, keepAliveSeconds);
 
         if (this.getPropertyBoolean("enable-rcon", false)) {
             try {
                 this.rcon = new RCON(this, this.getPropertyString("rcon.password", ""), !this.getIp().isEmpty() ? this.getIp() : "0.0.0.0", this.getPropertyInt("rcon.port", this.getPort()));
             } catch (IllegalArgumentException e) {
-                log.error(getLanguage().translateString(e.getMessage(), e.getCause().getMessage()));
+                log.error(getLanguage().translateString(e.getMessage(), e.getCause().getMessage()), e);
             }
         }
 

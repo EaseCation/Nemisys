@@ -4,14 +4,12 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.event.plugin.PluginDisableEvent;
 import org.itxtech.nemisys.event.plugin.PluginEnableEvent;
-import org.itxtech.nemisys.plugin.certification.PluginCertificateTask;
 import org.itxtech.nemisys.utils.PluginException;
 import org.itxtech.nemisys.utils.Utils;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -53,12 +51,6 @@ public class JavaPluginLoader implements PluginLoader {
 
                     plugin = pluginClass.newInstance();
                     this.initPlugin(plugin, description, dataFolder, file);
-
-                    if (plugin != null && description.isSigned()) {
-                        PluginCertificateTask task = new PluginCertificateTask(plugin);
-                        boolean result = task.run();
-
-                    }
 
                     return plugin;
                 } catch (ClassCastException e) {

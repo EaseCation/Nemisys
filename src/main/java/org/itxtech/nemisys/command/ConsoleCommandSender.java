@@ -1,7 +1,7 @@
 package org.itxtech.nemisys.command;
 
 import org.itxtech.nemisys.Server;
-import org.itxtech.nemisys.event.TextContainer;
+import org.itxtech.nemisys.lang.TextContainer;
 import org.itxtech.nemisys.utils.MainLogger;
 
 /**

@@ -293,7 +293,7 @@ public class Session {
                     this.addToQueue(pk, flags | RakNet.PRIORITY_IMMEDIATE);
                 }
             } catch (Exception e) {
-                this.sessionManager.getLogger().alert(Utils.getExceptionMessage(e));
+                this.sessionManager.getLogger().alert("unknown exception", e);
             }
         } else {
             this.addToQueue(packet, flags);

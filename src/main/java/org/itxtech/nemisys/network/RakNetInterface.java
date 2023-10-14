@@ -611,7 +611,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
             }
         }
 
-        private synchronized void setupSettings(NetworkSettingsPacket settings, int protocol) {
+        private void setupSettings(NetworkSettingsPacket settings, int protocol) {
             Compressor compressor = settings.compressionThreshold == 0 ? Compressor.NONE
                     : protocol >= 554 && settings.compressionAlgorithm == NetworkSettingsPacket.ALGORITHM_SNAPPY ? Compressor.SNAPPY
                     : protocol >= 407 ? Compressor.ZLIB_RAW : Compressor.ZLIB;
@@ -626,7 +626,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                     : protocol >= 407 ? Compressor.ZLIB_RAW : Compressor.ZLIB);
         }
 
-        private synchronized void enableEncryption(String clientPublicKey, int protocol) {
+        private void enableEncryption(String clientPublicKey, int protocol) {
             byte[] token = EncryptionUtils.generateRandomToken();
 
             JWSObject jwt;

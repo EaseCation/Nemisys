@@ -1,4 +1,4 @@
-package org.itxtech.nemisys.event;
+package org.itxtech.nemisys.lang;
 
 /**
  * author: MagicDroidX

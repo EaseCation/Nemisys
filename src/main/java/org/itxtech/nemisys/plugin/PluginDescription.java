@@ -132,6 +132,8 @@ public class PluginDescription {
     public PluginDescription(String yamlString) {
         LoadSettings settings = LoadSettings.builder()
                 .setParseComments(false)
+                .setMaxAliasesForCollections(Integer.MAX_VALUE)
+                .setCodePointLimit(Integer.MAX_VALUE)
                 .build();
         Load yaml = new Load(settings);
         this.loadMap((Map<String, Object>) yaml.loadFromString(yamlString));

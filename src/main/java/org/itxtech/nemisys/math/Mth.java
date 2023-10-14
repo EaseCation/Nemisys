@@ -253,10 +253,6 @@ public final class Mth {
         return v - (double) lfloor(v);
     }
 
-    public static int getSeed(BlockVector3 vec) {
-        return getSeed(vec.getX(), vec.getY(), vec.getZ());
-    }
-
     public static int getSeed(int x, int y, int z) {
         long xord = (x * 0x2fc20fL) ^ z * 0x6ebfff5L ^ (long) y;
         return (int) ((xord * 0x285b825 + 0xb) * xord);
@@ -473,6 +469,10 @@ public final class Mth {
 
     public static int quantize(double a, int b) {
         return floor(a / (double) b) * b;
+    }
+
+    public static double round(double a, int precision) {
+        return Math.round(a * Math.pow(10, precision)) / Math.pow(10, precision);
     }
 
     private Mth() {

@@ -1,5 +1,6 @@
 package org.itxtech.nemisys.scheduler;
 
+import lombok.extern.log4j.Log4j2;
 import org.itxtech.nemisys.Server;
 
 import java.util.Queue;
@@ -8,20 +9,29 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 /**
  * @author Nukkit Project Team
  */
+@Log4j2
 public abstract class AsyncTask implements Runnable {
 
     public static final Queue<AsyncTask> FINISHED_LIST = new ConcurrentLinkedQueue<>();
 
-    private Object result;
-    private int taskId;
-    private boolean finished = false;
+    private volatile Object result;
+    private volatile int taskId;
+    private volatile boolean finished;
 
     public static void collectTask() {
-        while (!FINISHED_LIST.isEmpty()) {
-            FINISHED_LIST.poll().onCompletion(Server.getInstance());
+        AsyncTask task;
+        while ((task = FINISHED_LIST.poll()) != null) {
+            try {
+                task.onCompletion(Server.getInstance());
+            } catch (Exception e) {
+                log.fatal("Exception while async task "
+                        + task.getTaskId()
+                        + " invoking onCompletion", e);
+            }
         }
     }
 
+    @Override
     public void run() {
         this.result = null;
         this.onRun();

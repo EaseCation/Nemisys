@@ -12,7 +12,7 @@ import org.itxtech.nemisys.raknet.protocol.Packet.PacketFactory;
 import org.itxtech.nemisys.raknet.protocol.packet.*;
 import org.itxtech.nemisys.utils.Binary;
 import org.itxtech.nemisys.utils.Hex;
-import org.itxtech.nemisys.utils.ThreadedLogger;
+import org.itxtech.nemisys.utils.Logger;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -68,7 +68,7 @@ public class SessionManager {
         return this.server.port;
     }
 
-    public ThreadedLogger getLogger() {
+    public Logger getLogger() {
         return this.server.getLogger();
     }
 

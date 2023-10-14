@@ -166,7 +166,7 @@ public class Network {
 
                 interfaz.emergencyShutdown();
                 this.unregisterInterface(interfaz);
-                this.server.getLogger().critical(this.server.getLanguage().translateString("nemisys.server.networkError", new String[]{interfaz.getClass().getName(), Utils.getExceptionMessage(e)}));
+                this.server.getLogger().critical(this.server.getLanguage().translateString("nemisys.server.networkError", new String[]{interfaz.getClass().getName()}), e);
             }
         }
     }

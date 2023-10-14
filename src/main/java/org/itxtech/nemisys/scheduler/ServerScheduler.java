@@ -1,5 +1,7 @@
 package org.itxtech.nemisys.scheduler;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import lombok.extern.log4j.Log4j2;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.plugin.Plugin;
 import org.itxtech.nemisys.utils.PluginException;
@@ -8,18 +10,16 @@ import java.util.Comparator;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author Nukkit Project Team
  */
+@Log4j2
 public class ServerScheduler {
 
-    public static int WORKERS = 4;
-
-    private final AsyncPool asyncPool;
+    private final ThreadPoolExecutor asyncPool;
 
     private final Queue<TaskHandler> pending;
     private final Queue<TaskHandler> queue;
@@ -29,11 +29,31 @@ public class ServerScheduler {
     private volatile int currentTick;
 
     public ServerScheduler() {
+        this(0);
+    }
+
+    public ServerScheduler(int corePoolSize) {
+        this(corePoolSize, Integer.MAX_VALUE);
+    }
+
+    public ServerScheduler(int corePoolSize, int maximumPoolSize) {
+        this(corePoolSize, maximumPoolSize, 60);
+    }
+
+    public ServerScheduler(int corePoolSize, int maximumPoolSize, long keepAliveSeconds) {
         this.pending = new ConcurrentLinkedQueue<>();
-        this.currentTaskId = new AtomicInteger();
-        this.queue = new PriorityQueue<>(11, Comparator.comparingInt(TaskHandler::getNextRunTick));
+        this.currentTaskId = new AtomicInteger(2);
+        this.queue = new PriorityQueue<>(Comparator.comparingInt(TaskHandler::getNextRunTick).thenComparingInt(TaskHandler::getTaskId));
         this.taskMap = new ConcurrentHashMap<>();
-        this.asyncPool = new AsyncPool(Server.getInstance(), WORKERS);
+        this.asyncPool = new ThreadPoolExecutor(corePoolSize, maximumPoolSize, keepAliveSeconds, TimeUnit.SECONDS, new SynchronousQueue<>(), new ThreadFactoryBuilder()
+                .setDaemon(true)
+                .setNameFormat("Nemisys Asynchronous Task Handler #%d")
+                .setUncaughtExceptionHandler((thread, ex) -> log.fatal("Exception in asynchronous thread", ex))
+                .build());
+    }
+
+    public ThreadPoolExecutor getAsyncPool() {
+        return asyncPool;
     }
 
     public TaskHandler scheduleTask(Task task) {
@@ -44,25 +64,24 @@ public class ServerScheduler {
         return addTask(null, task, 0, 0, false);
     }
 
+    public TaskHandler scheduleTask(Plugin plugin, Runnable task) {
+        return addTask(plugin, task, 0, 0, false);
+    }
+
     public TaskHandler scheduleTask(Runnable task, boolean asynchronous) {
         return addTask(null, task, 0, 0, asynchronous);
+    }
+
+    public TaskHandler scheduleTask(Plugin plugin, Runnable task, boolean asynchronous) {
+        return addTask(plugin, task, 0, 0, asynchronous);
     }
 
     public TaskHandler scheduleAsyncTask(AsyncTask task) {
         return addTask(null, task, 0, 0, true);
     }
 
-    @Deprecated
-    public void scheduleAsyncTaskToWorker(AsyncTask task, int worker) {
-        scheduleAsyncTask(task);
-    }
-
-    public int getAsyncTaskPoolSize() {
-        return asyncPool.getSize();
-    }
-
-    public void increaseAsyncTaskPoolSize(int newSize) {
-        throw new UnsupportedOperationException("Cannot increase a working pool size.");
+    public TaskHandler scheduleAsyncTask(Plugin plugin, AsyncTask task) {
+        return addTask(plugin, task, 0, 0, true);
     }
 
     public TaskHandler scheduleDelayedTask(Task task, int delay) {
@@ -77,16 +96,32 @@ public class ServerScheduler {
         return addTask(null, task, delay, 0, false);
     }
 
+    public TaskHandler scheduleDelayedTask(Plugin plugin, Runnable task, int delay) {
+        return addTask(plugin, task, delay, 0, false);
+    }
+
     public TaskHandler scheduleDelayedTask(Runnable task, int delay, boolean asynchronous) {
         return addTask(null, task, delay, 0, asynchronous);
+    }
+
+    public TaskHandler scheduleDelayedTask(Plugin plugin, Runnable task, int delay, boolean asynchronous) {
+        return addTask(plugin, task, delay, 0, asynchronous);
     }
 
     public TaskHandler scheduleRepeatingTask(Runnable task, int period) {
         return addTask(null, task, 0, period, false);
     }
 
+    public TaskHandler scheduleRepeatingTask(Plugin plugin, Runnable task, int period) {
+        return addTask(plugin, task, 0, period, false);
+    }
+
     public TaskHandler scheduleRepeatingTask(Runnable task, int period, boolean asynchronous) {
         return addTask(null, task, 0, period, asynchronous);
+    }
+
+    public TaskHandler scheduleRepeatingTask(Plugin plugin, Runnable task, int period, boolean asynchronous) {
+        return addTask(plugin, task, 0, period, asynchronous);
     }
 
     public TaskHandler scheduleRepeatingTask(Task task, int period) {
@@ -109,8 +144,16 @@ public class ServerScheduler {
         return addTask(null, task, delay, period, false);
     }
 
+    public TaskHandler scheduleDelayedRepeatingTask(Plugin plugin, Runnable task, int delay, int period) {
+        return addTask(plugin, task, delay, period, false);
+    }
+
     public TaskHandler scheduleDelayedRepeatingTask(Runnable task, int delay, int period, boolean asynchronous) {
         return addTask(null, task, delay, period, asynchronous);
+    }
+
+    public TaskHandler scheduleDelayedRepeatingTask(Plugin plugin, Runnable task, int delay, int period, boolean asynchronous) {
+        return addTask(plugin, task, delay, period, asynchronous);
     }
 
     public void cancelTask(int taskId) {
@@ -130,7 +173,7 @@ public class ServerScheduler {
         }
         for (Map.Entry<Integer, TaskHandler> entry : taskMap.entrySet()) {
             TaskHandler taskHandler = entry.getValue();
-            if (plugin.equals(taskHandler.getPlugin())) {
+            if (taskHandler.getPlugin() == null || plugin.equals(taskHandler.getPlugin())) {
                 try {
                     taskHandler.cancel(); /* It will remove from task map automatic in next main heartbeat. */
                 } catch (RuntimeException ex) {
@@ -158,7 +201,7 @@ public class ServerScheduler {
     }
 
     private TaskHandler addTask(Task task, int delay, int period, boolean asynchronous) {
-        return addTask(task instanceof PluginTask ? ((PluginTask) task).getOwner() : null, () -> task.onRun(currentTick + delay), delay, period, asynchronous);
+        return addTask(task instanceof PluginTask ? ((PluginTask) task).getOwner() : null, task, delay, period, asynchronous);
     }
 
     private TaskHandler addTask(Plugin plugin, Runnable task, int delay, int period, boolean asynchronous) {
@@ -174,6 +217,10 @@ public class ServerScheduler {
         taskHandler.setPeriod(period);
         taskHandler.setNextRunTick(taskHandler.isDelayed() ? currentTick + taskHandler.getDelay() : currentTick);
 
+        if (task instanceof Task) {
+            ((Task) task).setHandler(taskHandler);
+        }
+
         pending.offer(taskHandler);
         taskMap.put(taskHandler.getTaskId(), taskHandler);
 
@@ -183,8 +230,9 @@ public class ServerScheduler {
     public void mainThreadHeartbeat(int currentTick) {
         this.currentTick = currentTick;
         // Accepts pending.
-        while (!pending.isEmpty()) {
-            queue.offer(pending.poll());
+        TaskHandler pendingTask;
+        while ((pendingTask = pending.poll()) != null) {
+            queue.offer(pendingTask);
         }
         // Main heart beat.
         while (isReady(currentTick)) {
@@ -193,13 +241,18 @@ public class ServerScheduler {
                 taskMap.remove(taskHandler.getTaskId());
                 continue;
             } else if (taskHandler.isAsynchronous()) {
-                asyncPool.submitTask(taskHandler.getTask());
+                asyncPool.execute(() -> {
+                    try {
+                        taskHandler.getTask().run();
+                    } catch (Throwable e) {
+                        log.fatal("Exception in asynchronous task", e);
+                    }
+                });
             } else {
                 try {
                     taskHandler.run(currentTick);
-                } catch (Exception e) {
-                    Server.getInstance().getLogger().critical("Could not execute taskHandler " + taskHandler.getTaskId() + ": " + e.getMessage());
-                    Server.getInstance().getLogger().logException(e);
+                } catch (Throwable e) {
+                    Server.getInstance().getLogger().critical("Could not execute taskHandler " + taskHandler.getTaskId() + ": ", e);
                 }
             }
             if (taskHandler.isRepeating()) {
@@ -207,7 +260,10 @@ public class ServerScheduler {
                 pending.offer(taskHandler);
             } else {
                 try {
-                    taskMap.remove(taskHandler.getTaskId()).cancel();
+                    TaskHandler handler = taskMap.remove(taskHandler.getTaskId());
+                    if (handler != null) {
+                        handler.cancel();
+                    }
                 } catch (RuntimeException ex) {
                     Server.getInstance().getLogger().critical("Exception while invoking onCancel", ex);
                 }
@@ -216,12 +272,9 @@ public class ServerScheduler {
         AsyncTask.collectTask();
     }
 
-    public int getQueueSize() {
-        return queue.size() + pending.size();
-    }
-
     private boolean isReady(int currentTick) {
-        return this.queue.peek() != null && this.queue.peek().getNextRunTick() <= currentTick;
+        TaskHandler taskHandler = this.queue.peek();
+        return taskHandler != null && taskHandler.getNextRunTick() <= currentTick;
     }
 
     private int nextTaskId() {

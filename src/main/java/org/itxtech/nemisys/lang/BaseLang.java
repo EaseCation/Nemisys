@@ -2,8 +2,6 @@ package org.itxtech.nemisys.lang;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.itxtech.nemisys.Server;
-import org.itxtech.nemisys.event.TextContainer;
-import org.itxtech.nemisys.event.TranslationContainer;
 import org.itxtech.nemisys.utils.Utils;
 
 import java.io.IOException;

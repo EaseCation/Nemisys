@@ -8,7 +8,7 @@ import io.netty.channel.ChannelOption;
 import lombok.extern.log4j.Log4j2;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.network.protocol.spp.SynapseDataPacket;
-import org.itxtech.nemisys.utils.ThreadedLogger;
+import org.itxtech.nemisys.utils.Logger;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -24,7 +24,7 @@ public class SynapseClient extends Thread {
     public boolean needReconnect = false;
     protected ConcurrentLinkedQueue<SynapseDataPacket> externalQueue;
     protected ConcurrentLinkedQueue<SynapseDataPacket> internalQueue;
-    private final ThreadedLogger logger;
+    private final Logger logger;
     private final String interfaz;
     private final int port;
     private final AtomicBoolean shutdown;
@@ -33,11 +33,11 @@ public class SynapseClient extends Thread {
     private boolean connected = false;
     private final Session session;
 
-    public SynapseClient(ThreadedLogger logger, int port) {
+    public SynapseClient(Logger logger, int port) {
         this(logger, port, "127.0.0.1");
     }
 
-    public SynapseClient(ThreadedLogger logger, int port, String interfaz) {
+    public SynapseClient(Logger logger, int port, String interfaz) {
         this.logger = logger;
         this.interfaz = interfaz;
         this.port = port;
@@ -105,7 +105,7 @@ public class SynapseClient extends Thread {
         return interfaz;
     }
 
-    public ThreadedLogger getLogger() {
+    public Logger getLogger() {
         return logger;
     }
 

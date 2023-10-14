@@ -2,7 +2,7 @@ package org.itxtech.nemisys.raknet.server;
 
 import lombok.extern.log4j.Log4j2;
 import org.itxtech.nemisys.Server;
-import org.itxtech.nemisys.utils.ThreadedLogger;
+import org.itxtech.nemisys.utils.Logger;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -15,19 +15,18 @@ public class RakNetServer extends Thread {
     protected int port;
     protected String interfaz;
 
-    protected ThreadedLogger logger;
+    protected Logger logger;
 
     protected ConcurrentLinkedQueue<byte[]> externalQueue;
     protected ConcurrentLinkedQueue<byte[]> internalQueue;
 
     protected boolean shutdown;
 
-
-    public RakNetServer(ThreadedLogger logger, int port) {
+    public RakNetServer(Logger logger, int port) {
         this(logger, port, "0.0.0.0");
     }
 
-    public RakNetServer(ThreadedLogger logger, int port, String interfaz) {
+    public RakNetServer(Logger logger, int port, String interfaz) {
         this.port = port;
         if (port < 1 || port > 65536) {
             throw new IllegalArgumentException("Invalid port range");
@@ -58,7 +57,7 @@ public class RakNetServer extends Thread {
         return interfaz;
     }
 
-    public ThreadedLogger getLogger() {
+    public Logger getLogger() {
         return logger;
     }
 

@@ -30,8 +30,8 @@ public class RCON {
         try {
             this.serverThread = new RCONServer(address, port, password);
             this.serverThread.start();
-        } catch (IOException exception) {
-            this.server.getLogger().critical("Failed to start RCON: " + exception.getMessage());
+        } catch (IOException e) {
+            this.server.getLogger().critical("Failed to start RCON: ", e);
             return;
         }
 

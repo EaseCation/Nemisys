@@ -1,6 +1,6 @@
 package org.itxtech.nemisys.command;
 
-import org.itxtech.nemisys.event.TextContainer;
+import org.itxtech.nemisys.lang.TextContainer;
 
 /**
  * Represents an RCON command sender.

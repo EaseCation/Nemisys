@@ -1,7 +1,7 @@
 package org.itxtech.nemisys.command.defaults;
 
 import org.itxtech.nemisys.command.CommandSender;
-import org.itxtech.nemisys.event.TranslationContainer;
+import org.itxtech.nemisys.lang.TranslationContainer;
 import org.itxtech.nemisys.network.protocol.mcpe.ProtocolInfo;
 import org.itxtech.nemisys.plugin.Plugin;
 import org.itxtech.nemisys.plugin.PluginDescription;
