@@ -243,6 +243,11 @@ public interface ProtocolInfo {
     int BATCH_PACKET = 0xfe;
 
     int CAMERA_INSTRUCTION_PACKET = 0x12c;
+    int COMPRESSED_BIOME_DEFINITION_LIST_PACKET = 0x12d;
+    int TRIM_DATA_PACKET = 0x12e;
+    int OPEN_SIGN_PACKET = 0x12f;
+    int AGENT_ANIMATION_PACKET = 0x130;
+    int REFRESH_ENTITLEMENTS_PACKET = 0x131;
 
 
     int PACKET_COUNT = 1024;
