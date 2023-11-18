@@ -12,8 +12,8 @@
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <log4j2.version>2.21.1</log4j2.version>
-        <jackson.version>2.15.3</jackson.version>
-        <jline.version>3.23.0</jline.version>
+        <jackson.version>2.16.0</jackson.version>
+        <jline.version>3.24.1</jline.version>
         <!-- 本地测试服务端插件目录 -->
         <dir.api>../../_api</dir.api>
         <dir.server>../../_server</dir.server>
@@ -151,7 +151,7 @@
         <dependency>
             <groupId>com.nimbusds</groupId>
             <artifactId>nimbus-jose-jwt</artifactId>
-            <version>9.37</version>
+            <version>9.37.1</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -286,13 +286,13 @@
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-            <version>2.14.0</version>
+            <version>2.15.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-compress</artifactId>
-            <version>1.24.0</version>
+            <version>1.25.0</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>
