@@ -44,7 +44,7 @@ public abstract class DataPacket extends BinaryStream implements Cloneable {
 
     @Override
     public void reset() {
-        reset(ProtocolInfo.CURRENT_PROTOCOL);
+        reset(ProtocolInfo.MINIMUM_PROTOCOL);
     }
 
     public void reset(int protocol) {

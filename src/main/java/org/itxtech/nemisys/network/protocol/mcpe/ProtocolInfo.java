@@ -9,8 +9,9 @@ public interface ProtocolInfo {
     /**
      * Actual Minecraft: PE protocol version
      */
-    int CURRENT_PROTOCOL = 140;
-    String MINECRAFT_VERSION_NETWORK = "1.18.0";
+    int MINIMUM_PROTOCOL = 140;
+    int CURRENT_PROTOCOL = 503;
+    String MINECRAFT_VERSION_NETWORK = "1.18.30";
     String MINECRAFT_VERSION = "v" + MINECRAFT_VERSION_NETWORK;
 
     int LOGIN_PACKET = 0x01;
@@ -248,6 +249,8 @@ public interface ProtocolInfo {
     int OPEN_SIGN_PACKET = 0x12f;
     int AGENT_ANIMATION_PACKET = 0x130;
     int REFRESH_ENTITLEMENTS_PACKET = 0x131;
+    int PLAYER_TOGGLE_CRAFTER_SLOT_REQUEST_PACKET = 0x132;
+    int SET_PLAYER_INVENTORY_OPTIONS_PACKET = 0x133;
 
 
     int PACKET_COUNT = 1024;
