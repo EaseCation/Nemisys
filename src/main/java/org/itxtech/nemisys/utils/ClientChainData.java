@@ -41,6 +41,14 @@ public final class ClientChainData implements LoginChainData {
     private static final PublicKey NEW_MOJANG_PUBLIC_KEY;
     private static final boolean xboxAuth;
 
+    public final static int UI_PROFILE_CLASSIC = 0;
+    public final static int UI_PROFILE_POCKET = 1;
+
+    public final static int INPUT_MOUSE = 1;
+    public final static int INPUT_TOUCH = 2;
+    public final static int INPUT_GAME_PAD = 3;
+    public final static int INPUT_MOTION_CONTROLLER = 4;
+
     static {
         boolean notAvailable = false;
 
@@ -201,9 +209,6 @@ public final class ClientChainData implements LoginChainData {
     public String getCapeData() {
         return capeData;
     }
-
-    public final static int UI_PROFILE_CLASSIC = 0;
-    public final static int UI_PROFILE_POCKET = 1;
 
     @Override
     public int getUIProfile() {
