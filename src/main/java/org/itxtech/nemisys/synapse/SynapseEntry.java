@@ -304,7 +304,7 @@ public class SynapseEntry {
                         pk0.decode();
                         player.handleDataPacket(pk0);
                     } else if (player.getClient() != null) {
-                        player.redirectPacket(redirectPacket.mcpeBuffer); //player.getClient().sendDataPacket(redirectPacket);
+                        player.redirectPacket(redirectPacket.mcpeBuffer, redirectPacket.compressionAlgorithm); //player.getClient().sendDataPacket(redirectPacket);
                     }
                 }
                 break;

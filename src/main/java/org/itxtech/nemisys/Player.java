@@ -93,7 +93,7 @@ public class Player {
                 if (preHandshake || this.cachedLoginPacket.length == 0) {
                     this.getServer().getNetwork().processBatch((BatchPacket) packet, this, compressor);
                 } else if (this.client != null) {
-                    this.redirectPacket(packet.getBuffer());
+                    this.redirectPacket(packet.getBuffer(), packet.compressor);
                 }
                 break;
             case ProtocolInfo.REQUEST_NETWORK_SETTINGS_PACKET: // 1.19.30+
@@ -216,7 +216,7 @@ public class Player {
 //                log.warn("{} | {}", getSocketAddress(), packetViolationWarning);
 //                break;
             default:
-                if (this.client != null) this.redirectPacket(packet.getBuffer());
+                if (this.client != null) this.redirectPacket(packet.getBuffer(), packet.compressor);
         }
     }
 
@@ -233,12 +233,13 @@ public class Player {
         this.transfer(client);
     }
 
-    public void redirectPacket(byte[] buffer) {
+    public void redirectPacket(byte[] buffer, byte compressionAlgorithm) {
         RedirectPacket pk = new RedirectPacket();
         pk.protocol = this.protocol;
         pk.uuid = this.uuid;
         pk.direct = false;
         pk.mcpeBuffer = buffer;
+        pk.compressionAlgorithm = compressionAlgorithm;
         this.client.sendDataPacket(pk);
     }
 

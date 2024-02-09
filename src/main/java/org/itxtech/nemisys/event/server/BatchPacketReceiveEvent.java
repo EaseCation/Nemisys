@@ -12,14 +12,20 @@ public class BatchPacketReceiveEvent extends ServerEvent implements AsyncEvent {
         return handlers;
     }
 
+    private final byte compressionAlgorithm;
     private final byte[] data;
     private final InetSocketAddress address;
     private final long time;
 
-    public BatchPacketReceiveEvent(byte[] data, InetSocketAddress address, long time) {
+    public BatchPacketReceiveEvent(byte compressionAlgorithm, byte[] data, InetSocketAddress address, long time) {
+        this.compressionAlgorithm = compressionAlgorithm;
         this.data = data;
         this.address = address;
         this.time = time;
+    }
+
+    public byte getCompressionAlgorithm() {
+        return compressionAlgorithm;
     }
 
     public byte[] getData() {

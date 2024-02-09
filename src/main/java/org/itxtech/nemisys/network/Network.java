@@ -55,10 +55,10 @@ public class Network {
 
     public static byte[] inflateRaw(byte[] data, int maxSize) throws IOException, DataFormatException {
         if (data.length == 0) {
-            throw new IOException("no data");
+            throw new DataLengthException("no data");
         }
         if (maxSize > 0 && data.length >= maxSize) {
-            throw new IOException("Input data exceeds maximum size");
+            throw new DataLengthException("Input data exceeds maximum size");
         }
         Inflater inflater = INFLATER_RAW.get();
         try {
@@ -77,7 +77,7 @@ public class Network {
                 }
                 length += i;
                 if (maxSize > 0 && length >= maxSize) {
-                    throw new IOException("Inflated data exceeds maximum size");
+                    throw new DataLengthException("Inflated data exceeds maximum size");
                 }
                 bos.write(buf, 0, i);
             }

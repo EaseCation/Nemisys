@@ -135,7 +135,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
 
             try {
                 Constructor<? extends Player> constructor = clazz.getConstructor(SourceInterface.class, long.class, InetSocketAddress.class, Compressor.class);
-                Player player = constructor.newInstance(this, ev.getClientId(), ev.getSocketAddress(), session.compressor);
+                Player player = constructor.newInstance(this, ev.getClientId(), ev.getSocketAddress(), session.compression.compressor);
                 this.server.addPlayer(address, player);
                 session.player = player;
                 this.sessions.put(address, session);
@@ -292,7 +292,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
     public void onSessionCreation(RakNetServerSession session) {
         NemisysRakNetSession nemisysSession = new NemisysRakNetSession(session, session.getProtocolVersion() >= 11
                 ? Compressor.NONE : session.getProtocolVersion() == 10
-                ? Compressor.ZLIB_RAW : /*Compressor.ZLIB*/Compressor.ZLIB_UNKNOWN); // stupid netease...
+                ? Compressor.ZLIB_RAW : /*Compressor.ZLIB*/Compressor.ZLIB_UNKNOWN); //TODO: stupid netease...
         session.setListener(nemisysSession);
         this.sessionCreationQueue.offer(nemisysSession);
 
@@ -340,10 +340,8 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
         private volatile String disconnectReason = null;
         private Player player;
 
-        private volatile Compressor compressor;
-        private volatile SecretKey secretKey;
-        private volatile Cipher encryptCipher; //FIXME: thread-safe
-        private volatile Cipher decryptCipher;
+        private volatile Compression compression;
+        private volatile Encryption encryption;
         private final AtomicLong encryptCounter = new AtomicLong();
         private final AtomicLong decryptCounter = new AtomicLong();
 
@@ -360,7 +358,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
 
         private NemisysRakNetSession(RakNetServerSession raknet, Compressor compressor) {
             this.raknet = raknet;
-            this.compressor = compressor;
+            this.compression = new Compression(compressor, false);
         }
 
         @Override
@@ -388,11 +386,14 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                 this.disconnect("Disconnected from Server");
             }
 
-            SecretKey secretKey = this.secretKey;
-            if (secretKey != null && !secretKey.isDestroyed()) {
-                try {
-                    secretKey.destroy();
-                } catch (DestroyFailedException ignored) {
+            Encryption encryption = this.encryption;
+            if (encryption != null) {
+                SecretKey secretKey = encryption.secretKey;
+                if (!secretKey.isDestroyed()) {
+                    try {
+                        secretKey.destroy();
+                    } catch (DestroyFailedException ignored) {
+                    }
                 }
             }
 
@@ -422,8 +423,9 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
 
             short packetId = buffer.readUnsignedByte();
             if (packetId == ProtocolInfo.BATCH_PACKET && buffer.isReadable()) {
-                Cipher decryptCipher = this.decryptCipher;
-                if (decryptCipher != null) {
+                Encryption encryption = this.encryption;
+                if (encryption != null) {
+                    Cipher decryptCipher = encryption.decryptCipher;
                     // This method only supports contiguous buffers, not composite.
                     ByteBuffer inBuffer = buffer.internalNioBuffer(buffer.readerIndex(), buffer.readableBytes());
                     ByteBuffer outBuffer = inBuffer.duplicate();
@@ -452,7 +454,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                     }
                     ByteBuf payload = buffer.slice(1, trailerIndex - 1);
                     long count = this.decryptCounter.getAndIncrement();
-                    byte[] expected = this.calculateChecksum(count, payload);
+                    byte[] expected = calculateChecksum(count, payload, encryption.secretKey);
                     for (int i = 0; i < 8; i++) {
                         if (checksum[i] != expected[i]) {
                             this.readable = false;
@@ -469,12 +471,30 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                     return;
                 }
 
+                byte compressionAlgorithm;
+                if (compression.dynamicCompressor) {
+                    compressionAlgorithm = buffer.readByte();
+                    if (compressionAlgorithm < CompressionAlgorithm.NONE || compressionAlgorithm > CompressionAlgorithm.SNAPPY) {
+                        this.readable = false;
+                        this.disconnect("Unknown compression algorithm");
+                        log.debug("[{}] Unknown compression algorithm: {}", raknet.getAddress(), compressionAlgorithm);
+                        return;
+                    }
+                } else {
+                    compressionAlgorithm = -2;
+                }
+
+                if (!buffer.isReadable()) {
+                    return;
+                }
+
                 // 为了负载均衡, 不在nemisys解包
                 /*byte[] packetBuffer = new byte[buffer.readableBytes()];
                 buffer.readBytes(packetBuffer);
 
+                Compressor compressor = Compressor.get(compressionAlgorithm);
                 try {
-                    RakNetInterface.this.network.processBatch(packetBuffer, this.inbound);
+                    RakNetInterface.this.network.processBatch(packetBuffer, this.inbound, compressor);
                 } catch (ProtocolException e) {
                     this.disconnect("Sent malformed packet");
                     log.error("[{}] Unable to process batch packet", raknet.getAddress(), e);
@@ -485,6 +505,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                 if (batchPacket == null) {
                     return;
                 }
+                batchPacket.compressor = compressionAlgorithm;
 
                 int length = buffer.readableBytes();
                 byte[] packetBuffer = new byte[1 + length];
@@ -497,7 +518,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
 
                 if (PACKET_RECORDER) {
                     try {
-                        server.getPluginManager().callEvent(new BatchPacketReceiveEvent(packetBuffer, raknet.getAddress(), System.currentTimeMillis()));
+                        server.getPluginManager().callEvent(new BatchPacketReceiveEvent(compressionAlgorithm, packetBuffer, raknet.getAddress(), System.currentTimeMillis()));
                     } catch (Exception e) {
                         log.throwing(e);
                     }
@@ -516,6 +537,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
         }
 
         private void sendOutbound() {
+            boolean dynamicCompressor = this.compression.dynamicCompressor;
             List<DataPacket> toBatch = new ObjectArrayList<>();
             DataPacket packet;
             while ((packet = this.outbound.poll()) != null) {
@@ -525,7 +547,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                         toBatch.clear();
                     }
 
-                    this.sendPacket(((BatchPacket) packet).payload);
+                    this.sendPacket(((BatchPacket) packet).payload, packet.compressor, dynamicCompressor);
                 } else {
                     toBatch.add(packet);
                 }
@@ -541,10 +563,11 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
         }
 
         private void sendPackets(Collection<DataPacket> packets, boolean encrypt) {
-            this.sendPackets(packets, encrypt, this.compressor);
+            Compression compression = this.compression;
+            this.sendPackets(packets, encrypt, compression.compressor, compression.dynamicCompressor);
         }
 
-        private void sendPackets(Collection<DataPacket> packets, boolean encrypt, Compressor compressor) {
+        private void sendPackets(Collection<DataPacket> packets, boolean encrypt, Compressor compressor, boolean dynamicCompressor) {
             BinaryStream batched = new BinaryStream();
             for (DataPacket packet : packets) {
                 Preconditions.checkArgument(!(packet instanceof BatchPacket), "Cannot batch BatchPacket");
@@ -555,30 +578,41 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
             }
 
             try {
-                this.sendPacket(compressor.compress(batched.getBuffer(), server.getNetworkCompressionLevel()), encrypt);
+                this.sendPacket(compressor.compress(batched.getBuffer(), server.getNetworkCompressionLevel()), encrypt, compressor.getAlgorithm(), dynamicCompressor);
             } catch (IOException e) {
                 log.error("Unable to compress batched packets", e);
             }
         }
 
-        private void sendPacket(byte[] payload) {
-            this.sendPacket(payload, true);
+        private void sendPacket(byte[] payload, byte compressionAlgorithm, boolean dynamicCompressor) {
+            this.sendPacket(payload, true, compressionAlgorithm, dynamicCompressor);
         }
 
-        private void sendPacket(byte[] payload, boolean encrypt) {
-            int batchLength = 1 + payload.length;
+        private void sendPacket(byte[] payload, boolean encrypt, byte compressionAlgorithm, boolean dynamicCompressor) {
+            int payloadLength = payload.length;
+            int batchLength = 1 + 1 + payloadLength;
             int length = batchLength + 8;
             ByteBuf byteBuf = ByteBufAllocator.DEFAULT.ioBuffer(length);
             byteBuf.writeByte(ProtocolInfo.BATCH_PACKET);
-            Cipher encryptCipher = this.encryptCipher;
-            if (encryptCipher != null && encrypt) {
+            Encryption encryption = this.encryption;
+            if (encryption != null && encrypt) {
+                Cipher encryptCipher = encryption.encryptCipher;
                 if (metrics != null) {
                     metrics.bytesOut(length);
                 }
 
-                ByteBuf compressed = Unpooled.wrappedBuffer(payload);
+                byte[] fullPayload;
+                if (dynamicCompressor) {
+                    fullPayload = new byte[1 + payloadLength];
+                    fullPayload[0] = compressionAlgorithm;
+                    System.arraycopy(payload, 0, fullPayload, 1, payloadLength);
+                } else {
+                    fullPayload = payload;
+                }
+
+                ByteBuf compressed = Unpooled.wrappedBuffer(fullPayload);
                 try {
-                    ByteBuffer checksum = ByteBuffer.wrap(this.calculateChecksum(this.encryptCounter.getAndIncrement(), compressed));
+                    ByteBuffer checksum = ByteBuffer.wrap(calculateChecksum(this.encryptCounter.getAndIncrement(), compressed, encryption.secretKey));
 
                     ByteBuffer outBuffer = byteBuf.internalNioBuffer(1, compressed.readableBytes() + 8);
                     ByteBuffer inBuffer = compressed.internalNioBuffer(compressed.readerIndex(), compressed.readableBytes());
@@ -594,6 +628,10 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                     compressed.release();
                 }
             } else {
+                if (dynamicCompressor) {
+                    byteBuf.writeByte(compressionAlgorithm);
+                }
+
                 if (metrics != null) {
                     metrics.bytesOut(batchLength);
                 }
@@ -604,7 +642,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
 
             if (PACKET_RECORDER) {
                 try {
-                    server.getPluginManager().callEvent(new BatchPacketSendEvent(payload, raknet.getAddress(), System.currentTimeMillis()));
+                    server.getPluginManager().callEvent(new BatchPacketSendEvent(compressionAlgorithm, payload, raknet.getAddress(), System.currentTimeMillis()));
                 } catch (Exception e) {
                     log.throwing(e);
                 }
@@ -612,10 +650,11 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
         }
 
         private void setupSettings(NetworkSettingsPacket settings, int protocol) {
-            Compressor compressor = settings.compressionThreshold == 0 ? Compressor.NONE
-                    : protocol >= 554 && settings.compressionAlgorithm == NetworkSettingsPacket.ALGORITHM_SNAPPY ? Compressor.SNAPPY
+            boolean dynamicCompressor = protocol >= 649;
+            Compressor compressor = settings.compressionThreshold == 0 || dynamicCompressor && settings.compressionAlgorithm == CompressionAlgorithm.NONE ? Compressor.NONE
+                    : protocol >= 554 && settings.compressionAlgorithm == CompressionAlgorithm.SNAPPY ? Compressor.SNAPPY
                     : protocol >= 407 ? Compressor.ZLIB_RAW : Compressor.ZLIB;
-            this.compressor = compressor;
+            this.compression = new Compression(compressor, dynamicCompressor);
             player.setCompressor(compressor);
 
             settings.tryEncode(protocol);
@@ -623,7 +662,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                 metrics.packetOut(settings.pid(), settings.getCount());
             }
             this.sendPackets(Collections.singletonList(settings), protocol < 554, protocol >= 554 ? Compressor.NONE
-                    : protocol >= 407 ? Compressor.ZLIB_RAW : Compressor.ZLIB);
+                    : protocol >= 407 ? Compressor.ZLIB_RAW : Compressor.ZLIB, false);
         }
 
         private void enableEncryption(String clientPublicKey, int protocol) {
@@ -641,14 +680,14 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
             if (!secretKey.getAlgorithm().equals("AES")) {
                 throw new IllegalArgumentException("Invalid key algorithm");
             }
-            if (this.encryptCipher != null || this.decryptCipher != null) {
+            if (this.encryption != null) {
                 throw new IllegalStateException("Encryption has already been enabled");
             }
 
             boolean useGcm = protocol > 428;
-            this.encryptCipher = EncryptionUtils.createCipher(useGcm, true, secretKey);
-            this.decryptCipher = EncryptionUtils.createCipher(useGcm, false, secretKey);
-            this.secretKey = secretKey;
+            Cipher encryptCipher = EncryptionUtils.createCipher(useGcm, true, secretKey);
+            Cipher decryptCipher = EncryptionUtils.createCipher(useGcm, false, secretKey);
+            this.encryption = new Encryption(secretKey, encryptCipher, decryptCipher);
 
             ServerToClientHandshakePacket handshake = new ServerToClientHandshakePacket();
             handshake.jwt = jwt.serialize();
@@ -660,12 +699,12 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
             this.sendPackets(Collections.singletonList(handshake), false);
         }
 
-        private byte[] calculateChecksum(long count, ByteBuf payload) {
+        private static byte[] calculateChecksum(long count, ByteBuf payload, SecretKey key) {
             Sha256 hash = HASH_LOCAL.get();
             ByteBuf counterBuf = ByteBufAllocator.DEFAULT.directBuffer(8);
             try {
                 counterBuf.writeLongLE(count);
-                ByteBuffer keyBuffer = ByteBuffer.wrap(this.secretKey.getEncoded());
+                ByteBuffer keyBuffer = ByteBuffer.wrap(key.getEncoded());
 
                 hash.update(counterBuf.internalNioBuffer(0, 8));
                 hash.update(payload.internalNioBuffer(payload.readerIndex(), payload.readableBytes()));
@@ -676,6 +715,15 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                 counterBuf.release();
                 hash.reset();
             }
+        }
+
+        /**
+         * @param encryptCipher FIXME: thread-safe
+         */
+        private record Encryption(SecretKey secretKey, Cipher encryptCipher, Cipher decryptCipher) {
+        }
+
+        private record Compression(Compressor compressor, boolean dynamicCompressor) {
         }
     }
 }

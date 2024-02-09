@@ -1,5 +1,7 @@
 package org.itxtech.nemisys.network.protocol.mcpe;
 
+import org.itxtech.nemisys.network.CompressionAlgorithm;
+
 public class NetworkSettingsPacket extends DataPacket {
     public static final int NETWORK_ID = ProtocolInfo.NETWORK_SETTINGS_PACKET;
 
@@ -7,11 +9,8 @@ public class NetworkSettingsPacket extends DataPacket {
     public static final int COMPRESS_EVERYTHING = 1;
     public static final int COMPRESS_MAXIMUM = 65535;
 
-    public static final int ALGORITHM_ZLIB = 0;
-    public static final int ALGORITHM_SNAPPY = 1;
-
     public int compressionThreshold = COMPRESS_EVERYTHING;
-    public int compressionAlgorithm = ALGORITHM_ZLIB;
+    public byte compressionAlgorithm = CompressionAlgorithm.ZLIB;
 
     public boolean enableClientThrottling;
     public byte clientThrottleThreshold;
@@ -29,7 +28,7 @@ public class NetworkSettingsPacket extends DataPacket {
         if (protocol < 554) {
             return;
         }
-        this.putLShort(this.compressionAlgorithm);
+        this.putLShort(this.compressionAlgorithm & 0xff);
         this.putBoolean(this.enableClientThrottling);
         this.putByte(this.clientThrottleThreshold);
         this.putLFloat(this.clientThrottleScalar);

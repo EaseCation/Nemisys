@@ -185,6 +185,10 @@ public class BinaryStream {
         this.putByte((byte) (bool ? 1 : 0));
     }
 
+    public byte getSingedByte() {
+        return this.buffer[this.offset++];
+    }
+
     public int getByte() {
         return this.buffer[this.offset++] & 0xff;
     }
