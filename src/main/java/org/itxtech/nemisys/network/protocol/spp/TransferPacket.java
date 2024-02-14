@@ -11,6 +11,7 @@ import java.util.UUID;
 public class TransferPacket extends SynapseDataPacket {
 
     public static final int NETWORK_ID = SynapseInfo.TRANSFER_PACKET;
+
     public UUID uuid;
     public String clientHash;
     public JsonObject extra = new JsonObject();

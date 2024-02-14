@@ -237,7 +237,7 @@ public class Player {
         RedirectPacket pk = new RedirectPacket();
         pk.protocol = this.protocol;
         pk.uuid = this.uuid;
-        pk.direct = false;
+//        pk.direct = false;
         pk.mcpeBuffer = buffer;
         pk.compressionAlgorithm = compressionAlgorithm;
         this.client.sendDataPacket(pk);

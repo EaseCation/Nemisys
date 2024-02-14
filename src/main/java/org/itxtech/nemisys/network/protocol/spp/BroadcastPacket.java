@@ -2,7 +2,6 @@ package org.itxtech.nemisys.network.protocol.spp;
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
