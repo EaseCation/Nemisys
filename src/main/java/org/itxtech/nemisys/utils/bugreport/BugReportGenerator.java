@@ -71,7 +71,7 @@ public class BugReportGenerator extends Thread {
         StackTraceElement[] stackTrace = throwable.getStackTrace();
         boolean pluginError = false;
         if (stackTrace.length > 0) {
-            pluginError = !throwable.getStackTrace()[0].getClassName().startsWith("cn.nemisys");
+            pluginError = !throwable.getStackTrace()[0].getClassName().startsWith("org.itxtech.nemisys");
         }
 
         File mdReport = new File(reports, date + "_" + throwable.getClass().getSimpleName() + ".md");
