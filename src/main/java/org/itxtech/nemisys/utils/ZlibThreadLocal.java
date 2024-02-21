@@ -1,14 +1,31 @@
 package org.itxtech.nemisys.utils;
 
+import io.netty.util.concurrent.FastThreadLocal;
+
 import java.io.IOException;
 import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 
 public final class ZlibThreadLocal implements ZlibProvider {
-    private static final ThreadLocal<Inflater> INFLATER = ThreadLocal.withInitial(Inflater::new);
-    private static final ThreadLocal<Deflater> DEFLATER = ThreadLocal.withInitial(Deflater::new);
-    private static final ThreadLocal<byte[]> BUFFER = ThreadLocal.withInitial(() -> new byte[8192]);
+    private static final FastThreadLocal<Inflater> INFLATER = new FastThreadLocal<>() {
+        @Override
+        protected Inflater initialValue() {
+            return new Inflater();
+        }
+    };
+    private static final FastThreadLocal<Deflater> DEFLATER = new FastThreadLocal<>() {
+        @Override
+        protected Deflater initialValue() {
+            return new Deflater();
+        }
+    };
+    private static final FastThreadLocal<byte[]> BUFFER = new FastThreadLocal<>() {
+        @Override
+        protected byte[] initialValue() {
+            return new byte[8192];
+        }
+    };
 
     @Override
     public byte[] deflate(byte[][] datas, int level) throws IOException {

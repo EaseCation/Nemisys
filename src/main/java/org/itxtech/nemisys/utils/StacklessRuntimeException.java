@@ -20,4 +20,9 @@ public class StacklessRuntimeException extends RuntimeException {
     protected StacklessRuntimeException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
         super(message, cause, enableSuppression, writableStackTrace);
     }
+
+    @Override
+    public Throwable fillInStackTrace() {
+        return this;
+    }
 }

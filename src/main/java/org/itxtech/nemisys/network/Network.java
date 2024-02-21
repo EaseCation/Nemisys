@@ -2,6 +2,7 @@ package org.itxtech.nemisys.network;
 
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
+import io.netty.util.concurrent.FastThreadLocal;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import lombok.extern.log4j.Log4j2;
@@ -29,9 +30,24 @@ import java.util.zip.Inflater;
 @Log4j2
 public class Network {
 
-    private static final ThreadLocal<Inflater> INFLATER_RAW = ThreadLocal.withInitial(() -> new Inflater(true));
-    private static final ThreadLocal<Deflater> DEFLATER_RAW = ThreadLocal.withInitial(() -> new Deflater(Server.getInstance().getNetworkCompressionLevel(), true));
-    private static final ThreadLocal<byte[]> BUFFER = ThreadLocal.withInitial(() -> new byte[2 * 1024 * 1024]);
+    private static final FastThreadLocal<Inflater> INFLATER_RAW = new FastThreadLocal<>() {
+        @Override
+        protected Inflater initialValue() {
+            return new Inflater(true);
+        }
+    };
+    private static final FastThreadLocal<Deflater> DEFLATER_RAW = new FastThreadLocal<>() {
+        @Override
+        protected Deflater initialValue() {
+            return new Deflater(Deflater.BEST_SPEED, true);
+        }
+    };
+    private static final FastThreadLocal<byte[]> BUFFER = new FastThreadLocal<>() {
+        @Override
+        protected byte[] initialValue() {
+            return new byte[2 * 1024 * 1024];
+        }
+    };
 
     private final Class<? extends DataPacket>[] packetPool = new Class[ProtocolInfo.PACKET_COUNT];
     private final Class<? extends DataPacket>[] serverboundPacketPool = new Class[ProtocolInfo.PACKET_COUNT];

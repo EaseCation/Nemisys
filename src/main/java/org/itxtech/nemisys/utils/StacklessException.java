@@ -20,4 +20,9 @@ public class StacklessException extends Exception {
     protected StacklessException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
         super(message, cause, enableSuppression, writableStackTrace);
     }
+
+    @Override
+    public Throwable fillInStackTrace() {
+        return this;
+    }
 }

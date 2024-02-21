@@ -91,7 +91,12 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
 
     private static final KeyPair SERVER_KEY_PAIR = EncryptionUtils.createKeyPair();
 
-    private static final ThreadLocal<Sha256> HASH_LOCAL = ThreadLocal.withInitial(Natives.SHA_256);
+    private static final FastThreadLocal<Sha256> HASH_LOCAL = new FastThreadLocal<Sha256>() {
+        @Override
+        protected Sha256 initialValue() {
+            return Natives.SHA_256.get();
+        }
+    };
 
     public RakNetInterface(Server server) {
         this(server, null);
