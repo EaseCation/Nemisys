@@ -152,10 +152,10 @@ public class Client {
                     this.description = connectPacket.description;
                     this.maxPlayers = connectPacket.maxPlayers;
                     this.server.addClient(this);
-                    this.server.getLogger().notice("Client " + this.getIp() + ":" + this.getPort() + " has connected successfully");
-                    this.server.getLogger().notice("mainServer: " + (this.isMainServer ? "true" : "false"));
-                    this.server.getLogger().notice("description: " + this.description);
-                    this.server.getLogger().notice("maxPlayers: " + this.maxPlayers);
+                    this.server.getLogger().info("Client " + this.getIp() + ":" + this.getPort() + " has connected successfully");
+                    this.server.getLogger().info("mainServer: " + (this.isMainServer ? "true" : "false"));
+                    this.server.getLogger().info("description: " + this.description);
+                    this.server.getLogger().info("maxPlayers: " + this.maxPlayers);
                     this.server.updateClientData();
                     this.sendDataPacket(pk);
                 } else {

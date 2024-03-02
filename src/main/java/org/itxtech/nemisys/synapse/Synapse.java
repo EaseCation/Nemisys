@@ -32,7 +32,7 @@ public class Synapse {
 
     public Synapse(Server server) {
         this.server = server;
-        this.server.getLogger().notice("Enabling Synapse Client...");
+        this.server.getLogger().info("Enabling Synapse Client...");
         this.config = new Config(new File(server.getFilePath() + "/synapse.yml"), Config.YAML);
 
         List entries = this.config.getList("entries");
@@ -59,7 +59,7 @@ public class Synapse {
         //    }
         //}
 
-        this.server.getLogger().notice("Enabled Synapse Client");
+        this.server.getLogger().info("Enabled Synapse Client");
     }
 
     public Config getConfig() {
