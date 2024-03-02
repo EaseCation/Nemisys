@@ -64,7 +64,7 @@ import static org.itxtech.nemisys.Capabilities.*;
 @Log4j2
 public class RakNetInterface implements RakNetServerListener, AdvancedSourceInterface {
     private static final int INCOMING_PACKET_BATCH_PER_TICK = 2; // usually max 1 per tick, but transactions may arrive separately
-    private static final int INCOMING_PACKET_BATCH_MAX_BUDGET = 100 * INCOMING_PACKET_BATCH_PER_TICK; // enough to account for a 5-second lag spike
+    private static final int INCOMING_PACKET_BATCH_MAX_BUDGET = 5 * 20 * INCOMING_PACKET_BATCH_PER_TICK; // enough to account for a 5-second lag spike
 
     private final Server server;
 
@@ -161,28 +161,6 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
 
             DataPacket packet;
             while ((packet = nemisysSession.inbound.poll()) != null && nemisysSession.readable) {
-                if (nemisysSession.incomingPacketBatchBudget <= 0) {
-                    long nowNs = System.nanoTime();
-                    long timeSinceLastUpdateNs = nowNs - nemisysSession.lastPacketBudgetUpdateTimeNs;
-                    if (timeSinceLastUpdateNs > 50_000_000) {
-                        int ticksSinceLastUpdate = (int) (timeSinceLastUpdateNs / 50_000_000);
-                        // If the server takes an abnormally long time to process a tick, add the budget for time difference to compensate.
-                        // This extra budget may be very large, but it will disappear the next time a normal update occurs.
-                        // This ensures that backlogs during a large lag spike don't cause everyone to get kicked.
-                        // As long as all the backlogged packets are processed before the next tick, everything should be OK for clients behaving normally.
-                        nemisysSession.incomingPacketBatchBudget = Math.min(nemisysSession.incomingPacketBatchBudget, INCOMING_PACKET_BATCH_MAX_BUDGET) + INCOMING_PACKET_BATCH_PER_TICK * 2 * ticksSinceLastUpdate;
-                        nemisysSession.lastPacketBudgetUpdateTimeNs = nowNs;
-                    }
-
-                    if (nemisysSession.incomingPacketBatchBudget <= 0) {
-                        log.warn("{} receiving packets too fast", player.getName());
-                        //TODO: 远程日志上报
-                        player.close("Receiving packets too fast");
-                        break;
-                    }
-                }
-                nemisysSession.incomingPacketBatchBudget--;
-
                 try {
                     nemisysSession.player.handleDataPacket(packet);
                 } catch (Exception e) {
@@ -471,6 +449,29 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                     }
                     buffer.resetReaderIndex();
                 }
+
+                if (incomingPacketBatchBudget <= 0) {
+                    long nowNs = System.nanoTime();
+                    long timeSinceLastUpdateNs = nowNs - lastPacketBudgetUpdateTimeNs;
+                    if (timeSinceLastUpdateNs > 50_000_000) {
+                        int ticksSinceLastUpdate = (int) (timeSinceLastUpdateNs / 50_000_000);
+                        // If the server takes an abnormally long time to process a tick, add the budget for time difference to compensate.
+                        // This extra budget may be very large, but it will disappear the next time a normal update occurs.
+                        // This ensures that backlogs during a large lag spike don't cause everyone to get kicked.
+                        // As long as all the backlogged packets are processed before the next tick, everything should be OK for clients behaving normally.
+                        incomingPacketBatchBudget = Math.min(incomingPacketBatchBudget, INCOMING_PACKET_BATCH_MAX_BUDGET) + INCOMING_PACKET_BATCH_PER_TICK * 2 * ticksSinceLastUpdate;
+                        lastPacketBudgetUpdateTimeNs = nowNs;
+                    }
+
+                    if (incomingPacketBatchBudget <= 0) {
+                        this.readable = false;
+                        log.warn("{} receiving packets too fast", raknet.getAddress());
+                        //TODO: 云日志上报
+                        this.disconnect("Receiving packets too fast");
+                        return;
+                    }
+                }
+                incomingPacketBatchBudget--;
 
                 if (!buffer.isReadable()) {
                     return;
