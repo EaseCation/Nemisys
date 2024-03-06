@@ -3,7 +3,8 @@ package org.itxtech.nemisys.utils;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import lombok.extern.log4j.Log4j2;
 import org.itxtech.nemisys.Server;
@@ -37,9 +38,11 @@ public class Config {
     //public static final int SERIALIZED = 4; // .sl
     public static final int ENUM = 5; // .txt, .list, .enum
     public static final int ENUMERATION = Config.ENUM;
-    public static final Map<String, Integer> format = new TreeMap<>();
+
+    public static final Object2IntMap<String> format = new Object2IntOpenHashMap<>();
 
     static {
+        format.defaultReturnValue(DETECT);
         format.put("properties", Config.PROPERTIES);
         format.put("con", Config.PROPERTIES);
         format.put("conf", Config.PROPERTIES);
@@ -57,7 +60,6 @@ public class Config {
 
     //private LinkedHashMap<String, Object> config = new LinkedHashMap<>();
     private ConfigSection config = new ConfigSection();
-    private final Map<String, Object> nestedCache = new Object2ObjectOpenHashMap<>();
     private File file;
     private boolean correct = false;
     private int type = Config.DETECT;
@@ -112,7 +114,6 @@ public class Config {
 
     public void reload() {
         this.config.clear();
-        this.nestedCache.clear();
         this.correct = false;
         //this.load(this.file.toString());
         if (this.file == null) throw new IllegalStateException("Failed to reload Config. File object is undefined.");
@@ -147,9 +148,8 @@ public class Config {
                 if (this.file.getName().lastIndexOf(".") != -1 && this.file.getName().lastIndexOf(".") != 0) {
                     extension = this.file.getName().substring(this.file.getName().lastIndexOf(".") + 1);
                 }
-                if (format.containsKey(extension)) {
-                    this.type = format.get(extension);
-                } else {
+                this.type = format.getInt(extension);
+                if (this.type == DETECT) {
                     this.correct = false;
                 }
             }

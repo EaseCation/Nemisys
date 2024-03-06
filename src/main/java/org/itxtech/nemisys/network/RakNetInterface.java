@@ -29,6 +29,7 @@ import org.itxtech.nemisys.event.server.BatchPacketReceiveEvent;
 import org.itxtech.nemisys.event.server.BatchPacketSendEvent;
 import org.itxtech.nemisys.event.server.QueryRegenerateEvent;
 import org.itxtech.nemisys.event.server.RakNetDisconnectEvent;
+import org.itxtech.nemisys.event.server.RakNetExceptionEvent;
 import org.itxtech.nemisys.network.protocol.mcpe.*;
 import org.itxtech.nemisys.utils.Binary;
 import org.itxtech.nemisys.utils.BinaryStream;
@@ -401,6 +402,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                 this.readable = false;
                 this.disconnect("Packet content exceeds maximum size");
                 log.debug("[{}] Packet size exceeds limit: {}", raknet.getAddress(), size);
+                server.getPluginManager().callEvent(new RakNetExceptionEvent(raknet.getAddress(), "batch_size"));
                 return;
             }
 
@@ -419,6 +421,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                         this.readable = false;
                         this.disconnect("Bad decrypt");
                         log.debug("[{}] Unable to decrypt packet", raknet.getAddress(), e);
+                        server.getPluginManager().callEvent(new RakNetExceptionEvent(raknet.getAddress(), "decrypt"));
                         return;
                     }
 
@@ -433,6 +436,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                         this.readable = false;
                         this.disconnect("Bad checksum");
                         log.debug("[{}] Unable to verify checksum", raknet.getAddress(), e);
+                        server.getPluginManager().callEvent(new RakNetExceptionEvent(raknet.getAddress(), "checksum_corrupt"));
                         return;
                     }
                     ByteBuf payload = buffer.slice(1, trailerIndex - 1);
@@ -444,6 +448,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                             this.disconnect("Invalid checksum");
                             log.debug("[{}] Encrypted packet {} has invalid checksum (expected {}, got {})", raknet.getAddress(),
                                     count, Binary.bytesToHexString(expected), Binary.bytesToHexString(checksum));
+                            server.getPluginManager().callEvent(new RakNetExceptionEvent(raknet.getAddress(), "checksum_mismatch"));
                             return;
                         }
                     }
@@ -466,8 +471,8 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                     if (incomingPacketBatchBudget <= 0) {
                         this.readable = false;
                         log.warn("{} receiving packets too fast", raknet.getAddress());
-                        //TODO: 云日志上报
                         this.disconnect("Receiving packets too fast");
+                        server.getPluginManager().callEvent(new RakNetExceptionEvent(raknet.getAddress(), "batch_fast"));
                         return;
                     }
                 }
@@ -484,6 +489,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                         this.readable = false;
                         this.disconnect("Unknown compression algorithm");
                         log.debug("[{}] Unknown compression algorithm: {}", raknet.getAddress(), compressionAlgorithm);
+                        server.getPluginManager().callEvent(new RakNetExceptionEvent(raknet.getAddress(), "decompress"));
                         return;
                     }
                 } else {
@@ -504,6 +510,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                 } catch (ProtocolException e) {
                     this.disconnect("Sent malformed packet");
                     log.error("[{}] Unable to process batch packet", raknet.getAddress(), e);
+                    server.getPluginManager().callEvent(new RakNetExceptionEvent(raknet.getAddress(), "packet_malformed"));
                 }*/
 
                 // 直接丢给nukkit
