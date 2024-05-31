@@ -394,6 +394,7 @@ public class Network {
 
     private void registerPackets() {
         this.registerPacket(ProtocolInfo.LOGIN_PACKET, LoginPacket.class, true);
+        this.registerPacket(ProtocolInfo.CLIENT_TO_SERVER_HANDSHAKE_PACKET, ClientToServerHandshakePacket.class, true);
         this.registerPacket(ProtocolInfo.DISCONNECT_PACKET, DisconnectPacket.class);
         this.registerPacket(ProtocolInfo.BATCH_PACKET, BatchPacket.class, true);
         this.registerPacket(ProtocolInfo.PLAYER_LIST_PACKET, PlayerListPacket.class);

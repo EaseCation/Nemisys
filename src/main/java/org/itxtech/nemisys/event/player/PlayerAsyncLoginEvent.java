@@ -1,6 +1,7 @@
 package org.itxtech.nemisys.event.player;
 
 import org.itxtech.nemisys.Player;
+import org.itxtech.nemisys.event.AsyncEvent;
 import org.itxtech.nemisys.event.HandlerList;
 
 /**
@@ -8,7 +9,7 @@ import org.itxtech.nemisys.event.HandlerList;
  *
  * @author CreeperFace
  */
-public class PlayerAsyncLoginEvent extends PlayerEvent {
+public class PlayerAsyncLoginEvent extends PlayerEvent implements AsyncEvent {
 
     private static final HandlerList handlers = new HandlerList();
 

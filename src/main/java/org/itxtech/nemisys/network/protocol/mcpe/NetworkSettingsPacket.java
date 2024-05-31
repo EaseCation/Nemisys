@@ -1,7 +1,9 @@
 package org.itxtech.nemisys.network.protocol.mcpe;
 
+import lombok.ToString;
 import org.itxtech.nemisys.network.CompressionAlgorithm;
 
+@ToString
 public class NetworkSettingsPacket extends DataPacket {
     public static final int NETWORK_ID = ProtocolInfo.NETWORK_SETTINGS_PACKET;
 

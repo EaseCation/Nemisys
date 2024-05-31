@@ -1,5 +1,6 @@
 package org.itxtech.nemisys.network;
 
+import org.itxtech.nemisys.network.protocol.mcpe.ProtocolInfo;
 import org.itxtech.nemisys.utils.DataLengthException;
 import org.itxtech.nemisys.utils.Zlib;
 import org.xerial.snappy.Snappy;
@@ -75,6 +76,8 @@ public enum Compressor {
             } catch (Exception e) {
                 try {
                     return ZLIB.decompress(data);
+                } catch (DataLengthException ex) {
+                    throw ex;
                 } catch (Exception ex) {
                     return EMPTY;
                 }
@@ -131,7 +134,54 @@ public enum Compressor {
         public byte getAlgorithm() {
             return CompressionAlgorithm.SNAPPY;
         }
-    };
+    },
+    NETEASE_UNKNOWN {
+        @Override
+        public byte[] compress(byte[] data, int level) throws IOException {
+            return ZLIB_RAW.compress(data, level);
+        }
+
+        @Override
+        public byte[] decompress(byte[] data) throws IOException {
+            if (data.length == 0) {
+                throw new DataLengthException("no data");
+            }
+
+            byte header = data[0];
+            if (header == (byte) ProtocolInfo.REQUEST_NETWORK_SETTINGS_PACKET) {
+                try {
+                    return NONE.decompress(data);
+                } catch (DataFormatException dfe) { // make javac happy...
+                    return data;
+                }
+            }
+
+            // header == 0x78 // zlib
+            try {
+                return ZLIB_RAW.decompress(data);
+            } catch (DataLengthException e) {
+                throw e;
+            } catch (Exception e) {
+                try {
+                    return ZLIB.decompress(data);
+                } catch (DataLengthException ex) {
+                    throw ex;
+                } catch (Exception ex) {
+                    try {
+                        return NONE.decompress(data);
+                    } catch (DataFormatException dfe) { // make javac happy again...
+                        return data;
+                    }
+                }
+            }
+        }
+
+        @Override
+        public byte getAlgorithm() {
+            return CompressionAlgorithm.ZLIB;
+        }
+    },
+    ;
 
     public static final int MAX_SIZE = 12 * 1024 * 1024; // 12MB
 

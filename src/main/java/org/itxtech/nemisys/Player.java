@@ -20,7 +20,6 @@ import org.itxtech.nemisys.utils.*;
 import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Author: PeratX
@@ -47,12 +46,12 @@ public class Player {
     protected boolean neteaseClient;
     protected String hideName;
 
-    private final AtomicBoolean ticking = new AtomicBoolean();
-
-    private AsyncTask preLoginEventTask = null;
-
     private Compressor compressor;
-    private boolean preHandshake = true;
+    private boolean preLogin = true;
+    private int unverifiedPackets;
+    private boolean loginPacketReceived;
+    private boolean awaitingEncryptionHandshake;
+    private boolean loginVerified;
 
     public Player(SourceInterface interfaz, long clientId, InetSocketAddress socketAddress, Compressor compressor) {
         this.interfaz = interfaz;
@@ -88,19 +87,31 @@ public class Player {
             return;
         }
 
+        if (!loginVerified && !packet.canBeSentBeforeLogin() && ++unverifiedPackets > 8) {
+            this.close("Too many failed login attempts");
+            return;
+        }
+
         switch (packet.pid()) {
             case ProtocolInfo.BATCH_PACKET:
-                if (preHandshake || this.cachedLoginPacket.length == 0) {
+                if (!loginVerified) {
+                    Compressor compressor;
+                    byte algorithm = packet.compressor;
+                    if (algorithm != -2) {
+                        compressor = Compressor.get(algorithm);
+                    } else {
+                        compressor = this.compressor;
+                    }
                     this.getServer().getNetwork().processBatch((BatchPacket) packet, this, compressor);
                 } else if (this.client != null) {
                     this.redirectPacket(packet.getBuffer(), packet.compressor);
                 }
                 break;
             case ProtocolInfo.REQUEST_NETWORK_SETTINGS_PACKET: // 1.19.30+
-                if (!preHandshake) {
+                if (!preLogin) {
                     break;
                 }
-                preHandshake = false;
+                preLogin = false;
 
                 RequestNetworkSettingsPacket requestNetworkSettingsPacket = (RequestNetworkSettingsPacket) packet;
                 this.protocol = requestNetworkSettingsPacket.protocol;
@@ -108,6 +119,12 @@ public class Player {
                 this.setupNetworkSettings();
                 break;
             case ProtocolInfo.LOGIN_PACKET:
+                if (this.loginPacketReceived) {
+                    this.close("Invalid login packet");
+                    break;
+                }
+                this.loginPacketReceived = true;
+
                 LoginPacket loginPacket = (LoginPacket) packet;
                 this.cachedLoginPacket = loginPacket.cacheBuffer;
                 this.skin = loginPacket.skin;
@@ -115,27 +132,14 @@ public class Player {
                 this.protocol = loginPacket.protocol;
 
 //                if (protocol < 554) {
-                    preHandshake = false;
+                    preLogin = false;
 //                }
 
-                this.loginChainData = ClientChainDataNetEase.read(loginPacket);
-                if (this.loginChainData.getClientUUID() != null) {  //网易认证通过！
-                    this.neteaseClient = true;
-                } else {  //国际版普通认证
-                    try {
-                        this.loginChainData = ClientChainData.read(loginPacket);
-                        if (protocol >= 160 && !loginChainData.isXboxAuthed() && server.getConfiguration().isXboxAuth()) {
-                            this.close("disconnectionScreen.notAuthenticated");
-                        }
-                    } catch (Exception e) {
-                        this.getServer().getLogger().info(this.name + TextFormat.RED + " 解析时出现问题，采用紧急解析方案！", e);
-                        this.loginChainData = ClientChainDataUrgency.read(loginPacket);
-                    }
-                    this.neteaseClient = false;
-                }
-
-                if (this.server.isNetworkEncryptionEnabled()) {
-                    this.setupNetworkEncryption();
+                this.loginChainData = loginPacket.decodedLoginChainData;
+                this.neteaseClient = loginPacket.netEaseClient;
+                if (loginChainData == null || !loginChainData.isXboxAuthed() && server.getConfiguration().isXboxAuth()) {
+                    this.close("disconnectionScreen.notAuthenticated");
+                    break;
                 }
 
                 this.uuid = this.loginChainData.getClientUUID();
@@ -149,29 +153,6 @@ public class Player {
 
                 if (this.protocol <= 113) {
                     this.close(TextFormat.YELLOW + "Sorry, we do not support version 1.1 now!\nplease update your game version to at least 1.2!\n抱歉，现已不再支持1.1版本，请更新您的游戏到至少1.2！");
-                    return;
-                }
-
-                this.server.getLogger().info(this.getServer().getLanguage().translateString("nemisys.player.logIn", new String[]{
-                        TextFormat.AQUA + this.name + TextFormat.WHITE,
-                        this.getIp(),
-                        String.valueOf(this.getPort()),
-                        "" + TextFormat.GREEN + this.getUUID() + TextFormat.WHITE,
-                }));
-
-                Map<String, Client> c = this.server.getMainClients();
-
-                String clientHash;
-                if (!c.isEmpty()) {
-                    clientHash = new ObjectArrayList<>(c.keySet()).get(ThreadLocalRandom.current().nextInt(c.size()));
-                } else {
-                    clientHash = "";
-                }
-
-                PlayerLoginEvent ev;
-                this.server.getPluginManager().callEvent(ev = new PlayerLoginEvent(this, "Plugin Reason"));
-                if (ev.isCancelled()) {
-                    this.close(ev.getKickMessage());
                     break;
                 }
 
@@ -182,44 +163,83 @@ public class Player {
                     break;
                 }*/
 
-                PlayerAsyncLoginEvent event = new PlayerAsyncLoginEvent(this, clientHash);
+                if (this.server.isNetworkEncryptionEnabled()) {
+                    this.awaitingEncryptionHandshake = true;
+                    this.setupNetworkEncryption();
+                } else {
+                    processLogin();
+                }
+                break;
+            case ProtocolInfo.CLIENT_TO_SERVER_HANDSHAKE_PACKET:
+                if (!this.awaitingEncryptionHandshake) {
+                    this.close("Invalid encryption handshake");
+                    break;
+                }
 
-                this.preLoginEventTask = new AsyncTask() {
-
-                    private PlayerAsyncLoginEvent e;
-
-                    @Override
-                    public void onRun() {
-                        e = event;
-                        server.getPluginManager().callEvent(e);
-                    }
-
-                    @Override
-                    public void onCompletion(Server server) {
-                        if (!closed) {
-                            if (e.getLoginResult() == PlayerAsyncLoginEvent.LoginResult.KICK) {
-                                close(e.getKickMessage());
-                            } else {
-                                completeLoginSequence(e.getTransferClientHash());
-                            }
-                        }
-                    }
-                };
-
-                this.server.getScheduler().scheduleAsyncTask(this.preLoginEventTask);
-
-
+                this.awaitingEncryptionHandshake = false;
+                processLogin();
                 break;
 //            case ProtocolInfo.PACKET_VIOLATION_WARNING_PACKET:
 //                PacketViolationWarningPacket packetViolationWarning = (PacketViolationWarningPacket) packet;
 //                log.warn("{} | {}", getSocketAddress(), packetViolationWarning);
 //                break;
             default:
-                if (this.client != null) this.redirectPacket(packet.getBuffer(), packet.compressor);
+                if (this.client != null) {
+                    this.redirectPacket(packet.getBuffer(), packet.compressor);
+                }
+                break;
         }
     }
 
-    public void completeLoginSequence(String clientHash) {
+    protected void processLogin() {
+        this.loginVerified = true;
+
+        this.server.getLogger().info(this.getServer().getLanguage().translateString("nemisys.player.logIn", new String[]{
+                TextFormat.AQUA + this.name + TextFormat.WHITE,
+                this.getIp(),
+                String.valueOf(this.getPort()),
+                "" + TextFormat.GREEN + this.getUUID() + TextFormat.WHITE,
+        }));
+
+        PlayerLoginEvent event = new PlayerLoginEvent(this, "Plugin Reason");
+        this.server.getPluginManager().callEvent(event);
+        if (event.isCancelled()) {
+            this.close(event.getKickMessage());
+            return;
+        }
+
+        Map<String, Client> clients = this.server.getMainClients();
+        String clientHash;
+        if (!clients.isEmpty()) {
+            clientHash = new ObjectArrayList<>(clients.keySet()).get(ThreadLocalRandom.current().nextInt(clients.size()));
+        } else {
+            clientHash = "";
+        }
+
+        this.server.getScheduler().scheduleAsyncTask(new AsyncTask() {
+            private final PlayerAsyncLoginEvent event = new PlayerAsyncLoginEvent(Player.this, clientHash);
+
+            @Override
+            public void onRun() {
+                server.getPluginManager().callEvent(event);
+            }
+
+            @Override
+            public void onCompletion(Server server) {
+                if (closed) {
+                    return;
+                }
+
+                if (event.getLoginResult() == PlayerAsyncLoginEvent.LoginResult.KICK) {
+                    close(event.getKickMessage());
+                } else {
+                    completeLoginSequence(event.getTransferClientHash());
+                }
+            }
+        });
+    }
+
+    protected void completeLoginSequence(String clientHash) {
         if (clientHash == null || clientHash.isEmpty()) {
             this.close("Synapse Server: " + TextFormat.RED + "No target server!");
             return;
@@ -240,10 +260,6 @@ public class Player {
         pk.mcpeBuffer = buffer;
         pk.compressionAlgorithm = compressionAlgorithm;
         this.client.sendDataPacket(pk);
-    }
-
-    public boolean canTick() {
-        return !this.ticking.get();
     }
 
     public void onUpdate(long currentTick) {
@@ -421,10 +437,6 @@ public class Player {
         pk.message = message;
         pk.primaryName = subtitle;
         this.sendDataPacket(pk);
-    }
-
-    public int rawHashCode() {
-        return super.hashCode();
     }
 
     public int getProtocol() {

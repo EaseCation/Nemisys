@@ -1,8 +1,11 @@
 package org.itxtech.nemisys.network.protocol.mcpe;
 
+import lombok.ToString;
+
 /**
  * Created by on 15-10-12.
  */
+@ToString
 public class DisconnectPacket extends DataPacket {
     public static final int NETWORK_ID = ProtocolInfo.DISCONNECT_PACKET;
 
@@ -97,6 +100,31 @@ public class DisconnectPacket extends DataPacket {
     public static final int REASON_STALE_CONNECTION_BEING_REPLACED = 88;
     public static final int REASON_REALMS_SESSION_NOT_FOUND = 89;
     public static final int REASON_BAD_PACKET = 90;
+    public static final int REASON_CONN_FAILED_TO_CREATE_OFFER = 91;
+    public static final int REASON_CONN_FAILED_TO_CREATE_ANSWER = 92;
+    public static final int REASON_CONN_FAILED_TO_SET_LOCAL_DESCRIPTION = 93;
+    public static final int REASON_CONN_FAILED_TO_SET_REMOTE_DESCRIPTION = 94;
+    public static final int REASON_CONN_NEGOTIATION_TIMEOUT_WAITING_FOR_RESPONSE = 95;
+    public static final int REASON_CONN_NEGOTIATION_TIMEOUT_WAITING_FOR_ACCEPT = 96;
+    public static final int REASON_CONN_INCOMING_CONNECTION_IGNORED = 97;
+    public static final int REASON_CONN_SIGNALING_PARSING_FAILURE = 98;
+    public static final int REASON_CONN_SIGNALING_UNKNOWN_ERROR = 99;
+    public static final int REASON_CONN_SIGNALING_UNICAST_DELIVERY_FAILED = 100;
+    public static final int REASON_CONN_SIGNALING_BROADCAST_DELIVERY_FAILED = 101;
+    public static final int REASON_CONN_SIGNALING_GENERIC_DELIVERY_FAILED = 102;
+    public static final int REASON_EDITOR_MISMATCH_EDITOR_WORLD = 103;
+    public static final int REASON_EDITOR_MISMATCH_VANILLA_WORLD = 104;
+    public static final int REASON_WORLD_TRANSFER_NOT_PRIMARY_CLIENT = 105;
+    public static final int REASON_SERVER_SHUTDOWN = 106;
+    public static final int REASON_GAME_SETUP_CANCELLED = 107;
+    public static final int REASON_GAME_SETUP_FAILED = 108;
+    public static final int REASON_NO_VENUE = 109;
+    public static final int REASON_CONN_SIGNALING_SIGN_IN_FAILED = 110;
+    public static final int REASON_SESSION_ACCESS_DENIED = 111;
+    public static final int REASON_SERVICE_SIGN_IN_ISSUE = 112;
+    public static final int REASON_CONN_NO_SIGNALING_CHANNEL = 113;
+    public static final int REASON_CONN_NOT_LOGGED_IN = 114;
+    public static final int REASON_CONN_CLIENT_SIGNALING_ERROR = 115;
 
     public int reason = REASON_UNKNOWN;
     public boolean hideDisconnectionScreen;

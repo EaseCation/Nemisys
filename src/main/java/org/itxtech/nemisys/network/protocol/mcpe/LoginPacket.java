@@ -4,10 +4,10 @@ import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import com.netease.mc.authlib.Profile;
 import com.netease.mc.authlib.TokenChain;
+import lombok.ToString;
+import lombok.extern.log4j.Log4j2;
 import org.itxtech.nemisys.Server;
-import org.itxtech.nemisys.utils.JsonUtil;
-import org.itxtech.nemisys.utils.SerializedImage;
-import org.itxtech.nemisys.utils.Skin;
+import org.itxtech.nemisys.utils.*;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -15,6 +15,8 @@ import java.util.*;
 /**
  * Created by on 15-10-13.
  */
+@Log4j2
+@ToString
 public class LoginPacket extends DataPacket {
 
     public static final int NETWORK_ID = ProtocolInfo.LOGIN_PACKET;
@@ -27,11 +29,19 @@ public class LoginPacket extends DataPacket {
     public String identityPublicKey;
 
     public Skin skin;
-    public byte[] cacheBuffer;
+
+    public transient byte[] cacheBuffer;
+    public LoginChainData decodedLoginChainData;
+    public boolean netEaseClient;
 
     @Override
     public int pid() {
         return NETWORK_ID;
+    }
+
+    @Override
+    public boolean canBeSentBeforeLogin() {
+        return true;
     }
 
     @Override
@@ -40,7 +50,7 @@ public class LoginPacket extends DataPacket {
         this.cacheBuffer = this.getBuffer();
         this.protocol = this.getInt();
 
-        if(start == 1 && this.protocol <= 113) {
+        if (start == 1 && this.protocol <= 113) {
             getByte();
         }
 
@@ -48,11 +58,34 @@ public class LoginPacket extends DataPacket {
 
         decodeChainData();
         decodeSkinData();
+
+        tryDecodeLoginChainData();
     }
 
-    @Override
-    public void encode() {
+    public void tryDecodeLoginChainData() {
+        try {
+            byte[] buffer = getBuffer();
 
+            decodedLoginChainData = ClientChainDataNetEase.of(buffer);
+            if (decodedLoginChainData.getClientUUID() != null) { // 网易认证通过！
+                this.netEaseClient = true;
+                log.debug("[Login] {} {}中国版验证通过！{}", username, TextFormat.RED, protocol);
+                return;
+            }
+
+            try { // 国际版普通认证
+                log.debug("[Login] {} {}正在解析为国际版！{}", username, TextFormat.GREEN, protocol);
+                decodedLoginChainData = ClientChainData.of(buffer);
+            } catch (Exception e) {
+                log.debug("[Login] {} {}解析时出现问题，采用紧急解析方案！", username, TextFormat.YELLOW, e);
+                decodedLoginChainData = ClientChainDataUrgency.of(buffer);
+            }
+        } catch (Exception e) {
+            decodedLoginChainData = null;
+            if (log.isDebugEnabled()) {
+                log.throwing(e);
+            }
+        }
     }
 
     public int getProtocol() {
@@ -167,10 +200,5 @@ public class LoginPacket extends DataPacket {
         }
 
         return JsonUtil.GSON.fromJson(new String(decode, StandardCharsets.UTF_8), JsonObject.class);
-    }
-
-    @Override
-    public Skin getSkin() {
-        return skin;
     }
 }

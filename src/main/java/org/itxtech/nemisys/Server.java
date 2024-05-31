@@ -545,9 +545,9 @@ public class Server {
 
         this.scheduler.mainThreadHeartbeat(this.tickCounter);
 
-        for (Player player : new ObjectArrayList<>(this.players.values())) {
-            player.onUpdate(this.tickCounter);
-        }
+//        for (Player player : new ObjectArrayList<>(this.players.values())) {
+//            player.onUpdate(this.tickCounter);
+//        }
 
         for (Client client : new ObjectArrayList<>(this.clients.values())) {
             client.onUpdate(this.tickCounter);

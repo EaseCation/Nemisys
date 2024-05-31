@@ -1,8 +1,11 @@
 package org.itxtech.nemisys.network.protocol.mcpe;
 
+import lombok.ToString;
+
 /**
  * Created on 15-10-13.
  */
+@ToString
 public class TextPacket extends DataPacket {
 
     public static final int NETWORK_ID = ProtocolInfo.TEXT_PACKET;

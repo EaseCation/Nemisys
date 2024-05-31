@@ -269,7 +269,7 @@ public final class ClientChainDataNetEase implements LoginChainData {
         }
         int chainSize = chains.size();
         if (chainSize < 2) { //最少2个字符串。
-            Server.getInstance().getLogger().warning("短chainSize");
+//            Server.getInstance().getLogger().warning("短chainSize");
             return;
         }
         this.originChainArr = chains.toArray(new String[0]);

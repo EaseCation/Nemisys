@@ -25,17 +25,14 @@ import org.apache.logging.log4j.message.FormattedMessage;
 import org.itxtech.nemisys.Player;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.event.player.PlayerCreationEvent;
-import org.itxtech.nemisys.event.server.BatchPacketReceiveEvent;
-import org.itxtech.nemisys.event.server.BatchPacketSendEvent;
-import org.itxtech.nemisys.event.server.QueryRegenerateEvent;
-import org.itxtech.nemisys.event.server.RakNetDisconnectEvent;
-import org.itxtech.nemisys.event.server.RakNetExceptionEvent;
+import org.itxtech.nemisys.event.server.*;
 import org.itxtech.nemisys.network.protocol.mcpe.*;
 import org.itxtech.nemisys.utils.Binary;
 import org.itxtech.nemisys.utils.BinaryStream;
 import org.itxtech.nemisys.utils.EncryptionUtils;
 import org.itxtech.nemisys.utils.Utils;
 
+import javax.annotation.Nullable;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.security.auth.DestroyFailedException;
@@ -141,7 +138,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
 
             try {
                 Constructor<? extends Player> constructor = clazz.getConstructor(SourceInterface.class, long.class, InetSocketAddress.class, Compressor.class);
-                Player player = constructor.newInstance(this, ev.getClientId(), ev.getSocketAddress(), session.compression.compressor);
+                Player player = constructor.newInstance(this, ev.getClientId(), ev.getSocketAddress(), session.initCompression.compressor);
                 this.server.addPlayer(address, player);
                 session.player = player;
                 this.sessions.put(address, session);
@@ -154,19 +151,22 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
         while (iterator.hasNext()) {
             NemisysRakNetSession nemisysSession = iterator.next();
             Player player = nemisysSession.player;
-            if (nemisysSession.disconnectReason != null) {
-                player.close(nemisysSession.disconnectReason, false);
+
+            String disconnectReason = nemisysSession.disconnectReason;
+            if (disconnectReason != null) {
+                player.close(disconnectReason, false);
                 iterator.remove();
                 continue;
             }
 
+            Queue<DataPacket> inbound = nemisysSession.inbound;
             DataPacket packet;
-            while ((packet = nemisysSession.inbound.poll()) != null && nemisysSession.readable) {
+            while ((packet = inbound.poll()) != null && nemisysSession.readable) {
                 try {
-                    nemisysSession.player.handleDataPacket(packet);
+                    player.handleDataPacket(packet);
                 } catch (Exception e) {
                     log.error(new FormattedMessage("An error occurred whilst handling {} for {}",
-                            new Object[]{packet.getClass().getSimpleName(), nemisysSession.player.getName()}, e));
+                            new Object[]{packet.getClass().getSimpleName(), player.getName()}, e));
                 }
             }
         }
@@ -274,9 +274,10 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
 
     @Override
     public void onSessionCreation(RakNetServerSession session) {
-        NemisysRakNetSession nemisysSession = new NemisysRakNetSession(session, session.getProtocolVersion() >= 11
+        NemisysRakNetSession nemisysSession = new NemisysRakNetSession(session, session.getProtocolVersion() == 8
+                ? Compressor.NETEASE_UNKNOWN : session.getProtocolVersion() >= 11
                 ? Compressor.NONE : session.getProtocolVersion() == 10
-                ? Compressor.ZLIB_RAW : /*Compressor.ZLIB*/Compressor.ZLIB_UNKNOWN); //TODO: stupid netease...
+                ? Compressor.ZLIB_RAW : /*Compressor.ZLIB*/Compressor.ZLIB_UNKNOWN); // stupid netease...
         session.setListener(nemisysSession);
         this.sessionCreationQueue.offer(nemisysSession);
 
@@ -302,14 +303,23 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
     public void setupSettings(Player player, NetworkSettingsPacket settings) {
         NemisysRakNetSession session = this.sessions.get(player.getSocketAddress());
         if (session != null) {
-            session.setupSettings(settings, player.getProtocol());
+            int protocol = player.getProtocol();
+            boolean dynamicCompressor = protocol >= 649;
+            Compressor compressor = settings.compressionThreshold == 0 || dynamicCompressor && settings.compressionAlgorithm == CompressionAlgorithm.NONE ? Compressor.NONE
+                    : protocol >= 554 && settings.compressionAlgorithm == CompressionAlgorithm.SNAPPY ? Compressor.SNAPPY
+                    : protocol >= 407 ? Compressor.ZLIB_RAW : Compressor.ZLIB;
+            player.setCompressor(compressor);
+            Compression compression = new Compression(compressor, dynamicCompressor);
+            session.raknet.getEventLoop().execute(() -> session.setupSettings(settings, protocol, compression));
         }
     }
 
     public void enableEncryption(Player player) {
         NemisysRakNetSession session = this.sessions.get(player.getSocketAddress());
         if (session != null) {
-            session.enableEncryption(player.getLoginChainData().getIdentityPublicKey(), player.getProtocol());
+            String identityPublicKey = player.getLoginChainData().getIdentityPublicKey();
+            int protocol = player.getProtocol();
+            session.raknet.getEventLoop().execute(() -> session.enableEncryption(identityPublicKey, protocol));
         }
     }
 
@@ -321,11 +331,13 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
         private final Queue<DataPacket> inbound = PlatformDependent.newSpscQueue();
         private final Queue<DataPacket> outbound = PlatformDependent.newMpscQueue();
         private volatile boolean readable = true;
-        private volatile String disconnectReason = null;
+        @Nullable
+        private volatile String disconnectReason;
         private Player player;
 
-        private volatile Compression compression;
-        private volatile Encryption encryption;
+        private final Compression initCompression;
+        private Compression compression;
+        private Encryption encryption;
         private final AtomicLong encryptCounter = new AtomicLong();
         private final AtomicLong decryptCounter = new AtomicLong();
 
@@ -342,12 +354,13 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
 
         private NemisysRakNetSession(RakNetServerSession raknet, Compressor compressor) {
             this.raknet = raknet;
-            this.compression = new Compression(compressor, false);
+            Compression compression = new Compression(compressor, false);
+            this.initCompression = compression;
+            this.compression = compression;
         }
 
         @Override
         public void onSessionChangeState(RakNetState rakNetState) {
-
         }
 
         @Override
@@ -514,10 +527,11 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                 }*/
 
                 // 直接丢给nukkit
-                DataPacket batchPacket = RakNetInterface.this.network.getServerboundPacket(ProtocolInfo.BATCH_PACKET);
-                if (batchPacket == null) {
-                    return;
-                }
+//                DataPacket batchPacket = RakNetInterface.this.network.getServerboundPacket(ProtocolInfo.BATCH_PACKET);
+//                if (batchPacket == null) {
+//                    return;
+//                }
+                DataPacket batchPacket = new BatchPacket();
                 batchPacket.compressor = compressionAlgorithm;
 
                 int length = buffer.readableBytes();
@@ -551,9 +565,10 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
 
         private void sendOutbound() {
             boolean dynamicCompressor = this.compression.dynamicCompressor;
+            Queue<DataPacket> outbound = this.outbound;
             List<DataPacket> toBatch = new ObjectArrayList<>();
             DataPacket packet;
-            while ((packet = this.outbound.poll()) != null) {
+            while ((packet = outbound.poll()) != null) {
                 if (packet.pid() == ProtocolInfo.BATCH_PACKET) {
                     if (!toBatch.isEmpty()) {
                         this.sendPackets(toBatch);
@@ -610,6 +625,8 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
             Encryption encryption = this.encryption;
             if (encryption != null && encrypt) {
                 Cipher encryptCipher = encryption.encryptCipher;
+
+                NemisysMetrics metrics = RakNetInterface.this.metrics;
                 if (metrics != null) {
                     metrics.bytesOut(length);
                 }
@@ -645,6 +662,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                     byteBuf.writeByte(compressionAlgorithm);
                 }
 
+                NemisysMetrics metrics = RakNetInterface.this.metrics;
                 if (metrics != null) {
                     metrics.bytesOut(batchLength);
                 }
@@ -662,15 +680,11 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
             }
         }
 
-        private void setupSettings(NetworkSettingsPacket settings, int protocol) {
-            boolean dynamicCompressor = protocol >= 649;
-            Compressor compressor = settings.compressionThreshold == 0 || dynamicCompressor && settings.compressionAlgorithm == CompressionAlgorithm.NONE ? Compressor.NONE
-                    : protocol >= 554 && settings.compressionAlgorithm == CompressionAlgorithm.SNAPPY ? Compressor.SNAPPY
-                    : protocol >= 407 ? Compressor.ZLIB_RAW : Compressor.ZLIB;
-            this.compression = new Compression(compressor, dynamicCompressor);
-            player.setCompressor(compressor);
+        private void setupSettings(NetworkSettingsPacket settings, int protocol, Compression compression) {
+            this.compression = compression;
 
             settings.tryEncode(protocol);
+            NemisysMetrics metrics = RakNetInterface.this.metrics;
             if (metrics != null) {
                 metrics.packetOut(settings.pid(), settings.getCount());
             }
@@ -705,6 +719,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
             ServerToClientHandshakePacket handshake = new ServerToClientHandshakePacket();
             handshake.jwt = jwt.serialize();
             handshake.tryEncode(protocol);
+            NemisysMetrics metrics = RakNetInterface.this.metrics;
             if (metrics != null) {
                 metrics.packetOut(handshake.pid(), handshake.getCount());
             }
@@ -730,13 +745,10 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
             }
         }
 
-        /**
-         * @param encryptCipher FIXME: thread-safe
-         */
         private record Encryption(SecretKey secretKey, Cipher encryptCipher, Cipher decryptCipher) {
         }
+    }
 
-        private record Compression(Compressor compressor, boolean dynamicCompressor) {
-        }
+    private record Compression(Compressor compressor, boolean dynamicCompressor) {
     }
 }

@@ -15,12 +15,12 @@ public class BatchPacket extends DataPacket {
     }
 
     @Override
-    public void decode() {
-        this.payload = this.get();
+    public boolean canBeSentBeforeLogin() {
+        return true;
     }
 
     @Override
-    public void encode() {
-
+    public void decode() {
+        this.payload = this.get();
     }
 }

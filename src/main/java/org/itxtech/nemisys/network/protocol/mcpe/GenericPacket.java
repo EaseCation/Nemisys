@@ -9,14 +9,4 @@ public class GenericPacket extends DataPacket {
     public int pid() {
         return 0;
     }
-
-    @Override
-    public void encode() {
-
-    }
-
-    @Override
-    public void decode() {
-
-    }
 }

@@ -1,5 +1,6 @@
 package org.itxtech.nemisys.network.protocol.mcpe;
 
+import lombok.ToString;
 import org.itxtech.nemisys.utils.Skin;
 
 import java.util.UUID;
@@ -7,6 +8,7 @@ import java.util.UUID;
 /**
  * @author Nukkit Project Team
  */
+@ToString
 public class PlayerListPacket extends DataPacket {
 
     public static final int NETWORK_ID = ProtocolInfo.PLAYER_LIST_PACKET;
@@ -16,11 +18,6 @@ public class PlayerListPacket extends DataPacket {
 
     public byte type;
     public Entry[] entries = new Entry[0];
-
-    @Override
-    public void decode() {
-
-    }
 
     @Override
     public void encode() {
@@ -49,6 +46,7 @@ public class PlayerListPacket extends DataPacket {
         return NETWORK_ID;
     }
 
+    @ToString
     public static class Entry {
 
         public final UUID uuid;
