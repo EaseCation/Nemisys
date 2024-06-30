@@ -129,6 +129,7 @@ public class DisconnectPacket extends DataPacket {
     public int reason = REASON_UNKNOWN;
     public boolean hideDisconnectionScreen;
     public String message = "";
+    public String filteredMessage = "";
 
     @Override
     public int pid() {
@@ -141,7 +142,12 @@ public class DisconnectPacket extends DataPacket {
             this.reason = this.getVarInt();
         }
         this.hideDisconnectionScreen = this.getBoolean();
-        this.message = this.getString();
+        if (!this.hideDisconnectionScreen) {
+            this.message = this.getString();
+            if (protocol >= 705) {
+                this.filteredMessage = this.getString();
+            }
+        }
     }
 
     @Override
@@ -153,6 +159,9 @@ public class DisconnectPacket extends DataPacket {
         this.putBoolean(this.hideDisconnectionScreen);
         if (!this.hideDisconnectionScreen) {
             this.putString(this.message);
+            if (protocol >= 705) {
+                this.putString(this.filteredMessage);
+            }
         }
     }
 

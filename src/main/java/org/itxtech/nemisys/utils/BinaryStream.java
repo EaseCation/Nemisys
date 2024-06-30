@@ -197,6 +197,10 @@ public class BinaryStream {
         this.put(new byte[]{b});
     }
 
+    public void putByte(int b) {
+        putByte((byte) b);
+    }
+
     public void putUUID(UUID uuid) {
         this.put(Binary.writeUUID(uuid));
     }
