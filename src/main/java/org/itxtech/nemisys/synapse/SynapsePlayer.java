@@ -57,7 +57,7 @@ public class SynapsePlayer extends Player {
         ClientData clients = this.getSynapseEntry().getClientData();
         if (clients.clientList.containsKey(hash)) {
             TransferPacket pk = new TransferPacket();
-            pk.uuid = this.getUniqueId();
+            pk.sessionId = getSessionId();
             pk.clientHash = hash;
             this.getSynapseEntry().sendDataPacket(pk);
         }
@@ -95,7 +95,7 @@ public class SynapsePlayer extends Player {
         super.close(reason, notify);
         if (this.synapseEntry != null) {
             PlayerLogoutPacket playerLogoutPacket = new PlayerLogoutPacket();
-            playerLogoutPacket.uuid = this.getUUID();
+            playerLogoutPacket.sessionId = this.getSessionId();
             playerLogoutPacket.reason = reason;
             this.synapseEntry.sendDataPacket(playerLogoutPacket);
         }

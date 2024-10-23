@@ -27,7 +27,7 @@ public class SynLibInterface implements SourceInterface {
 
     @Override
     public int getNetworkLatency(Player player) {
-        return this.synapseInterface.getSynapse().getNetworkLatency(player.getUniqueId());
+        return player.latency;
     }
 
     @Override
@@ -46,7 +46,7 @@ public class SynLibInterface implements SourceInterface {
             packet.encode();
             RedirectPacket pk = new RedirectPacket();
             pk.protocol = player.getProtocol();
-            pk.uuid = player.getUniqueId();
+            pk.sessionId = player.getSessionId();
 //            pk.direct = immediate;
             pk.mcpeBuffer = packet.getBuffer();
             this.synapseInterface.putPacket(pk);

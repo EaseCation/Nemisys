@@ -37,6 +37,7 @@ import java.io.File;
 import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.zip.Deflater;
 
 /**
  * author: MagicDroidX & Box
@@ -84,7 +85,6 @@ public class Server {
     private final SynapseInterface synapseInterface;
     private final Map<String, Client> clients = new Object2ObjectOpenHashMap<>();
     private ClientData clientData = new ClientData();
-    private String clientDataJson = "";
     private final Map<String, Client> mainClients = new Object2ObjectOpenHashMap<>();
     private Synapse synapse;
     private final Thread currentThread;
@@ -233,7 +233,7 @@ public class Server {
         this.queryRegenerateEvent = new QueryRegenerateEvent(this, 5);
 
         this.networkEncryptionEnabled = this.getPropertyBoolean("enable-network-encryption");
-        this.networkCompressionLevel = Mth.clamp(this.getPropertyInt("network-compression-level", 7), 0, 9);
+        this.networkCompressionLevel = Mth.clamp(this.getPropertyInt("network-compression-level", 7), Deflater.BEST_SPEED, Deflater.BEST_COMPRESSION);
 
         Capabilities.PACKET_RECORDER = this.getPropertyBoolean("packet-recorder-capability");
 
@@ -310,19 +310,15 @@ public class Server {
         return clientData;
     }
 
-    public String getClientDataJson() {
-        return clientDataJson;
-    }
-
     public void updateClientData() {
         if (!this.clients.isEmpty()) {
-            this.clientData = new ClientData();
+            ClientData clientData = new ClientData();
             for (Client client : this.clients.values()) {
                 ClientData.Entry entry = new Entry(client.getIp(), client.getPort(), client.getPlayers().size(),
-                        client.getMaxPlayers(), client.getDescription(), client.getTicksPerSecond(), client.getTickUsage(), client.getUpTime());
-                this.clientData.clientList.put(client.getHash(), entry);
+                        client.getMaxPlayers(), client.getDescription());
+                clientData.clientList.put(client.getHash(), entry);
             }
-            this.clientDataJson = JsonUtil.GSON.toJson(this.clientData);
+            this.clientData = clientData;
         }
     }
 

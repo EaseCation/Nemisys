@@ -455,17 +455,16 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                     ByteBuf payload = buffer.slice(1, trailerIndex - 1);
                     long count = this.decryptCounter.getAndIncrement();
                     byte[] expected = calculateChecksum(count, payload, encryption.secretKey);
-                    for (int i = 0; i < 8; i++) {
-                        if (checksum[i] != expected[i]) {
-                            this.readable = false;
-                            this.disconnect("Invalid checksum");
-                            log.debug("[{}] Encrypted packet {} has invalid checksum (expected {}, got {})", raknet.getAddress(),
-                                    count, Binary.bytesToHexString(expected), Binary.bytesToHexString(checksum));
-                            server.getPluginManager().callEvent(new RakNetExceptionEvent(raknet.getAddress(), "checksum_mismatch"));
-                            return;
-                        }
+                    if (!Arrays.equals(checksum, expected)) {
+                        this.readable = false;
+                        this.disconnect("Invalid checksum");
+                        log.debug("[{}] Encrypted packet {} has invalid checksum (expected {}, got {})", raknet.getAddress(),
+                                count, Binary.bytesToHexString(expected), Binary.bytesToHexString(checksum));
+                        server.getPluginManager().callEvent(new RakNetExceptionEvent(raknet.getAddress(), "checksum_mismatch"));
+                        return;
                     }
                     buffer.resetReaderIndex();
+                    buffer.writerIndex(trailerIndex);
                 }
 
                 if (incomingPacketBatchBudget <= 0) {

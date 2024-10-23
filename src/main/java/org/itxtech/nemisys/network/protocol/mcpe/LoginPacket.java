@@ -24,11 +24,8 @@ public class LoginPacket extends DataPacket {
     public String username;
     public int protocol;
     public UUID clientUUID;
-    public long clientId;
     public String xuid;
     public String identityPublicKey;
-
-    public Skin skin;
 
     public transient byte[] cacheBuffer;
     public LoginChainData decodedLoginChainData;
@@ -57,7 +54,6 @@ public class LoginPacket extends DataPacket {
         this.setBuffer(this.getByteArray(), 0);
 
         decodeChainData();
-        decodeSkinData();
 
         tryDecodeLoginChainData();
     }
@@ -160,32 +156,6 @@ public class LoginPacket extends DataPacket {
             // TODO: handle exception,认证失败
             this.clientUUID = null;//若认证失败，则clientUUID为null。
         }
-    }
-
-    private void decodeSkinData() {
-        JsonObject skinToken = decodeToken(new String(this.get(this.getLInt())));
-        if (skinToken.has("ClientRandomId")) this.clientId = skinToken.get("ClientRandomId").getAsLong();
-        String skinId = Skin.MODEL_STEVE;
-        byte[] skinData;
-        if (skinToken.has("SkinId")) {
-            skinId = skinToken.get("SkinId").getAsString();
-        }
-        skinData = getImage(skinToken, "Skin").data;
-        skin = new Skin(skinData, skinId);
-    }
-
-    private static SerializedImage getImage(JsonObject token, String name) {
-        if (token.has(name + "Data")) {
-            byte[] skinImage = Base64.getDecoder().decode(token.get(name + "Data").getAsString());
-            if (token.has(name + "ImageHeight") && token.has(name + "ImageWidth")) {
-                int width = token.get(name + "ImageWidth").getAsInt();
-                int height = token.get(name + "ImageHeight").getAsInt();
-                return new SerializedImage(width, height, skinImage);
-            } else {
-                return SerializedImage.fromLegacy(skinImage);
-            }
-        }
-        return SerializedImage.EMPTY;
     }
 
     private JsonObject decodeToken(String token) {

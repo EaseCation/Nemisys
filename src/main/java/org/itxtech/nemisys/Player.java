@@ -29,6 +29,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class Player {
     public boolean closed;
     protected UUID uuid;
+    private final UUID sessionId = UUID.randomUUID();
     private byte[] cachedLoginPacket = new byte[0];
     protected String name;
     private final InetSocketAddress socketAddress;
@@ -41,10 +42,10 @@ public class Player {
     private final Server server;
     private byte[] rawUUID;
     protected boolean isFirstTimeLogin = true;
-    private Skin skin;
     private LoginChainData loginChainData;
     protected boolean neteaseClient;
     protected String hideName;
+    public int latency;
 
     private Compressor compressor;
     private boolean preLogin = true;
@@ -127,7 +128,6 @@ public class Player {
 
                 LoginPacket loginPacket = (LoginPacket) packet;
                 this.cachedLoginPacket = loginPacket.cacheBuffer;
-                this.skin = loginPacket.skin;
                 this.name = loginPacket.username;
                 this.protocol = loginPacket.protocol;
 
@@ -255,8 +255,7 @@ public class Player {
     public void redirectPacket(byte[] buffer, byte compressionAlgorithm) {
         RedirectPacket pk = new RedirectPacket();
         pk.protocol = this.protocol;
-        pk.uuid = this.uuid;
-//        pk.direct = false;
+        pk.sessionId = this.sessionId;
         pk.mcpeBuffer = buffer;
         pk.compressionAlgorithm = compressionAlgorithm;
         this.client.sendDataPacket(pk);
@@ -282,6 +281,10 @@ public class Player {
         return this.uuid;
     }
 
+    public UUID getSessionId() {
+        return sessionId;
+    }
+
     public String getName() {
         return this.name;
     }
@@ -294,21 +297,6 @@ public class Player {
         this.hideName = hideName;
     }
 
-    public void removeAllPlayers() {
-        PlayerListPacket pk = new PlayerListPacket();
-        pk.type = PlayerListPacket.TYPE_REMOVE;
-        List<PlayerListPacket.Entry> entries = new ObjectArrayList<>();
-        for (Player p : this.client.getPlayers().values()) {
-            if (p == this) {
-                continue;
-            }
-            entries.add(new PlayerListPacket.Entry(p.getUUID()));
-        }
-
-        pk.entries = entries.toArray(new PlayerListPacket.Entry[0]);
-        this.sendDataPacket(pk);
-    }
-
     public void transfer(Client client) {
         this.transfer(client, null, false);
     }
@@ -319,7 +307,7 @@ public class Player {
         if (!ev.isCancelled()) {
             if (this.client != null && needDisconnect) {
                 PlayerLogoutPacket pk = new PlayerLogoutPacket();
-                pk.uuid = this.uuid;
+                pk.sessionId = sessionId;
                 pk.reason = "Player has been transferred";
                 this.client.sendDataPacket(pk);
                 this.client.removePlayer(this);
@@ -329,6 +317,7 @@ public class Player {
             this.client.addPlayer(this);
             PlayerLoginPacket pk = new PlayerLoginPacket();
             pk.uuid = this.uuid;
+            pk.sessionId = sessionId;
             pk.address = this.getIp();
             pk.port = this.getPort();
             pk.isFirstTime = this.isFirstTimeLogin;
@@ -397,7 +386,7 @@ public class Player {
 
             if (this.client != null) {
                 PlayerLogoutPacket pk = new PlayerLogoutPacket();
-                pk.uuid = this.uuid;
+                pk.sessionId = sessionId;
                 pk.reason = reason;
                 this.client.sendDataPacket(pk);
                 this.client.removePlayer(this);
@@ -445,10 +434,6 @@ public class Player {
 
     public long getRandomClientId() {
         return randomClientId;
-    }
-
-    public Skin getSkin() {
-        return this.skin;
     }
 
     public Client getClient() {

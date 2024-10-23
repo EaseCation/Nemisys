@@ -1,8 +1,12 @@
 package org.itxtech.nemisys.utils;
 
+import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.UUID;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 /**
  * author: MagicDroidX
@@ -22,6 +26,12 @@ public class BinaryStream {
         this.count = 0;
     }
 
+    public BinaryStream(int initialCapacity) {
+        this.buffer = new byte[initialCapacity];
+        this.offset = 0;
+        this.count = 0;
+    }
+
     public BinaryStream(byte[] buffer) {
         this(buffer, 0);
     }
@@ -32,7 +42,18 @@ public class BinaryStream {
         this.count = buffer.length;
     }
 
+    public void reuse() {
+        this.offset = 0;
+        this.count = 0;
+    }
+
     public void reset() {
+        this.buffer = new byte[32];
+        this.offset = 0;
+        this.count = 0;
+    }
+
+    public final void superReset() {
         this.buffer = new byte[32];
         this.offset = 0;
         this.count = 0;
@@ -60,8 +81,24 @@ public class BinaryStream {
         return Arrays.copyOf(buffer, count);
     }
 
+    public byte[] getBuffer(int from) {
+        return Arrays.copyOfRange(buffer, from, count);
+    }
+
+    public byte[] getBuffer(int from, int to) {
+        return Arrays.copyOfRange(buffer, from, to);
+    }
+
+    public byte[] getBufferUnsafe() {
+        return buffer;
+    }
+
     public int getCount() {
         return count;
+    }
+
+    public void setCount(int count) {
+        this.count = count;
     }
 
     public byte[] get() {
@@ -73,13 +110,20 @@ public class BinaryStream {
             this.offset = this.count - 1;
             return new byte[0];
         }
-        len = Math.min(len, this.getCount() - this.offset);
+        len = Math.min(len, this.count - this.offset);
         this.offset += len;
         return Arrays.copyOfRange(this.buffer, this.offset - len, this.offset);
     }
 
+    public void skip(int len) {
+        if (len <= 0) {
+            return;
+        }
+        this.offset += Math.min(len, this.count - this.offset);
+    }
+
     public void put(byte[] bytes) {
-        if (bytes == null) {
+        if (bytes == null || bytes.length == 0) {
             return;
         }
 
@@ -89,12 +133,51 @@ public class BinaryStream {
         this.count += bytes.length;
     }
 
+    public void put(byte[] bytes, int length) {
+        if (bytes == null) {
+            return;
+        }
+        length = Math.min(bytes.length, length);
+        if (length <= 0) {
+            return;
+        }
+
+        this.ensureCapacity(this.count + length);
+
+        System.arraycopy(bytes, 0, this.buffer, this.count, length);
+        this.count += length;
+    }
+
+    /**
+     * 仅用于很小的空数组. 例如1个字节的空数组.
+     */
+    public void putEmptyBytes(int length) {
+        if (length <= 0) {
+            return;
+        }
+        int newLength = this.count + length;
+        this.ensureCapacity(newLength);
+
+        for (int i = this.count; i < newLength; i++) {
+            this.buffer[i] = 0;
+        }
+        this.count = newLength;
+    }
+
+    private int prepareWriterIndex(int length) {
+        this.ensureCapacity(this.count + length);
+        int writerIndex = this.count;
+        this.count += length;
+        return writerIndex;
+    }
+
     public long getLong() {
         return Binary.readLong(this.get(8));
     }
 
     public void putLong(long l) {
-        this.put(Binary.writeLong(l));
+        int index = this.prepareWriterIndex(8);
+        Binary.writeLong(l, this.buffer, index);
     }
 
     public int getInt() {
@@ -102,7 +185,8 @@ public class BinaryStream {
     }
 
     public void putInt(int i) {
-        this.put(Binary.writeInt(i));
+        int index = this.prepareWriterIndex(4);
+        Binary.writeInt(i, this.buffer, index);
     }
 
     public long getLLong() {
@@ -110,7 +194,8 @@ public class BinaryStream {
     }
 
     public void putLLong(long l) {
-        this.put(Binary.writeLLong(l));
+        int index = this.prepareWriterIndex(8);
+        Binary.writeLLong(l, this.buffer, index);
     }
 
     public int getLInt() {
@@ -118,7 +203,8 @@ public class BinaryStream {
     }
 
     public void putLInt(int i) {
-        this.put(Binary.writeLInt(i));
+        int index = this.prepareWriterIndex(4);
+        Binary.writeLInt(i, this.buffer, index);
     }
 
     public int getShort() {
@@ -126,7 +212,8 @@ public class BinaryStream {
     }
 
     public void putShort(int s) {
-        this.put(Binary.writeShort(s));
+        int index = this.prepareWriterIndex(2);
+        Binary.writeShort(s, this.buffer, index);
     }
 
     public int getLShort() {
@@ -134,31 +221,44 @@ public class BinaryStream {
     }
 
     public void putLShort(int s) {
-        this.put(Binary.writeLShort(s));
+        int index = this.prepareWriterIndex(2);
+        Binary.writeLShort(s, this.buffer, index);
     }
 
     public float getFloat() {
-        return getFloat(-1);
-    }
-
-    public float getFloat(int accuracy) {
-        return Binary.readFloat(this.get(4), accuracy);
+        return Binary.readFloat(this.get(4));
     }
 
     public void putFloat(float v) {
-        this.put(Binary.writeFloat(v));
+        int index = this.prepareWriterIndex(4);
+        Binary.writeFloat(v, this.buffer, index);
     }
 
     public float getLFloat() {
-        return getLFloat(-1);
-    }
-
-    public float getLFloat(int accuracy) {
-        return Binary.readLFloat(this.get(4), accuracy);
+        return Binary.readLFloat(this.get(4));
     }
 
     public void putLFloat(float v) {
-        this.put(Binary.writeLFloat(v));
+        int index = this.prepareWriterIndex(4);
+        Binary.writeLFloat(v, this.buffer, index);
+    }
+
+    public double getDouble() {
+        return Binary.readDouble(this.get(8));
+    }
+
+    public void putDouble(double v) {
+        int index = this.prepareWriterIndex(8);
+        Binary.writeDouble(v, this.buffer, index);
+    }
+
+    public double getLDouble() {
+        return Binary.readLDouble(this.get(8));
+    }
+
+    public void putLDouble(double v) {
+        int index = this.prepareWriterIndex(8);
+        Binary.writeLDouble(v, this.buffer, index);
     }
 
     public int getTriad() {
@@ -166,7 +266,8 @@ public class BinaryStream {
     }
 
     public void putTriad(int triad) {
-        this.put(Binary.writeTriad(triad));
+        int index = this.prepareWriterIndex(3);
+        Binary.writeTriad(triad, this.buffer, index);
     }
 
     public int getLTriad() {
@@ -174,7 +275,8 @@ public class BinaryStream {
     }
 
     public void putLTriad(int triad) {
-        this.put(Binary.writeLTriad(triad));
+        int index = this.prepareWriterIndex(3);
+        Binary.writeLTriad(triad, this.buffer, index);
     }
 
     public boolean getBoolean() {
@@ -194,7 +296,8 @@ public class BinaryStream {
     }
 
     public void putByte(byte b) {
-        this.put(new byte[]{b});
+        this.ensureCapacity(this.count + 1);
+        this.buffer[this.count++] = b;
     }
 
     public void putByte(int b) {
@@ -209,23 +312,29 @@ public class BinaryStream {
         return Binary.readUUID(this.get(16));
     }
 
-    public void putSkin(Skin skin) {
-        this.putString(skin.getModel());
-        this.putByteArray(skin.getData());
-    }
-
-    public Skin getSkin() {
-        String modelId = this.getString();
-        byte[] skinData = this.getByteArray();
-        return new Skin(skinData, modelId);
-    }
-
     public byte[] getByteArray() {
-        return this.get((int) this.getUnsignedVarInt());
+        int len = (int) this.getUnsignedVarInt();
+        if (!isReadable(len)) {
+            throw new IndexOutOfBoundsException("array length mismatch");
+        }
+        return this.get(len);
     }
 
     public void putByteArray(byte[] b) {
         this.putUnsignedVarInt(b.length);
+        this.put(b);
+    }
+
+    public byte[] getLByteArray() {
+        int len = this.getLInt();
+        if (!isReadable(len)) {
+            throw new IndexOutOfBoundsException("array length mismatch");
+        }
+        return this.get(len);
+    }
+
+    public void putLByteArray(byte[] b) {
+        this.putLInt(b.length);
         this.put(b);
     }
 
@@ -298,6 +407,66 @@ public class BinaryStream {
      */
     public void putEntityRuntimeId(long eid) {
         this.putUnsignedVarLong(eid);
+    }
+
+    /**
+     * @throws IndexOutOfBoundsException if the length of the array is greater than 4096
+     */
+    @SuppressWarnings("unchecked")
+    public <T> T[] getArray(Class<T> clazz, Function<BinaryStream, T> function) {
+        int count = (int) getUnsignedVarInt();
+        if (count > 4096) {
+            throw new IndexOutOfBoundsException("too many array elements");
+        }
+
+        ArrayDeque<T> deque = new ArrayDeque<>();
+        for (int i = 0; i < count; i++) {
+            deque.add(function.apply(this));
+        }
+        return deque.toArray((T[]) Array.newInstance(clazz, 0));
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T[] getArrayLInt(Class<T> clazz, Function<BinaryStream, T> function) {
+        int count = this.getLInt();
+        ArrayDeque<T> deque = new ArrayDeque<>();
+        for (int i = 0; i < count; i++) {
+            deque.add(function.apply(this));
+        }
+        return deque.toArray((T[]) Array.newInstance(clazz, 0));
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T[] getArrayLShort(Class<T> clazz, Function<BinaryStream, T> function) {
+        int count = this.getLShort();
+        ArrayDeque<T> deque = new ArrayDeque<>();
+        for (int i = 0; i < count; i++) {
+            deque.add(function.apply(this));
+        }
+        return deque.toArray((T[]) Array.newInstance(clazz, 0));
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T[] getArray(int length, Class<T> clazz, Function<BinaryStream, T> function) {
+        ArrayDeque<T> deque = new ArrayDeque<>();
+        for (int i = 0; i < length; i++) {
+            deque.add(function.apply(this));
+        }
+        return deque.toArray((T[]) Array.newInstance(clazz, 0));
+    }
+
+    public <T> void putOptional(T obj, BiConsumer<BinaryStream, T> consumer) {
+        if (obj == null) {
+            putBoolean(false);
+            return;
+        }
+
+        putBoolean(true);
+        consumer.accept(this, obj);
+    }
+
+    public boolean isReadable(int length) {
+        return count - offset >= length;
     }
 
     public boolean feof() {
