@@ -16,7 +16,6 @@ import org.apache.logging.log4j.core.config.Configuration;
 import org.apache.logging.log4j.core.config.LoggerConfig;
 import org.itxtech.nemisys.network.protocol.mcpe.ProtocolInfo;
 import org.itxtech.nemisys.utils.ServerKiller;
-import org.itxtech.nemisys.utils.bugreport.ExceptionHandler;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -101,8 +100,6 @@ public class Nemisys {
                 // ignore
             }
         }
-
-        ExceptionHandler.registerExceptionHandler();
 
         try {
             if (TITLE) {
