@@ -279,7 +279,12 @@ public class Network {
 //                    throw new ProtocolException("Illegal batch with " + count + " packets");
                     return false;
                 }
+
                 byte[] buf = stream.getByteArray();
+                if (buf.length == 0) {
+//                    throw new ProtocolException("empty packet");
+                    return false;
+                }
 
                 ByteArrayInputStream bais = new ByteArrayInputStream(buf);
                 int header = (int) VarInt.readUnsignedVarInt(bais);
