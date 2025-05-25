@@ -62,7 +62,7 @@ public class LoginPacket extends DataPacket {
         try {
             byte[] buffer = getBuffer();
 
-            decodedLoginChainData = ClientChainDataNetEase.of(buffer);
+            decodedLoginChainData = ClientChainDataNetEase.of(buffer, protocol);
             if (decodedLoginChainData.getClientUUID() != null) { // 网易认证通过！
                 this.netEaseClient = true;
                 log.debug("[Login] {} {}中国版验证通过！{}", username, TextFormat.RED, protocol);
@@ -71,7 +71,7 @@ public class LoginPacket extends DataPacket {
 
             try { // 国际版普通认证
                 log.debug("[Login] {} {}正在解析为国际版！{}", username, TextFormat.GREEN, protocol);
-                decodedLoginChainData = ClientChainData.of(buffer);
+                decodedLoginChainData = ClientChainData.of(buffer, protocol);
             } catch (Exception e) {
                 log.debug("[Login] {} {}解析时出现问题，采用紧急解析方案！", username, TextFormat.YELLOW, e);
                 decodedLoginChainData = ClientChainDataUrgency.of(buffer);
@@ -89,13 +89,38 @@ public class LoginPacket extends DataPacket {
     }
 
     private void decodeChainData() {
-        Map<String, List<String>> map = JsonUtil.GSON.fromJson(new String(this.get(getLInt()), StandardCharsets.UTF_8),
-                    new TypeToken<Map<String, List<String>>>() {
+        Map<String, ?> root = JsonUtil.GSON.fromJson(new String(this.get(getLInt()), StandardCharsets.UTF_8),
+                    new TypeToken<Map<String, ?>>() {
                     }.getType());
+        if (root.isEmpty()) {
+            return;
+        }
         try {
-            List<String> chains = map.get("chain");
-            if (chains == null || chains.isEmpty()) {
-                return;
+            List<String> chains;
+            if (protocol >= 818) {
+                Object authenticationType = root.get("AuthenticationType");
+                if (!(authenticationType instanceof Number)) { //integer 0
+                    return;
+                }
+                Object token = root.get("Token");
+                if (!(token instanceof String)) { //empty ""
+                    return;
+                }
+                Object certificate = root.get("Certificate");
+                if (!(certificate instanceof String cert)) {
+                    return;
+                }
+                Map<String, List<String>> map = JsonUtil.GSON.fromJson(cert, new TypeToken<Map<String, List<String>>>() {
+                }.getType());
+                if (map.isEmpty() || (chains = map.get("chain")) == null || chains.isEmpty()) {
+                    return;
+                }
+            } else {
+                Object chain = root.get("chain");
+                if (!(chain instanceof List list) || list.isEmpty()) {
+                    return;
+                }
+                chains = (List<String>) chain;
             }
             for (String c : chains) {
                 JsonObject chainMap = decodeToken(c);

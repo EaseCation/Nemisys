@@ -26,12 +26,12 @@ import java.util.*;
 @ToString
 public final class ClientChainDataNetEase implements LoginChainData {
 
-    public static ClientChainDataNetEase of(byte[] buffer) {
-        return new ClientChainDataNetEase(buffer);
+    public static ClientChainDataNetEase of(byte[] buffer, int protocol) {
+        return new ClientChainDataNetEase(buffer, protocol);
     }
 
     public static ClientChainDataNetEase read(LoginPacket pk) {
-        return of(pk.getBuffer());
+        return of(pk.getBuffer(), pk.getProtocol());
     }
 
     @Override
@@ -216,10 +216,10 @@ public final class ClientChainDataNetEase implements LoginChainData {
 
     private transient final BinaryStream bs = new BinaryStream();
 
-    private ClientChainDataNetEase(byte[] buffer) {
+    private ClientChainDataNetEase(byte[] buffer, int protocol) {
         bs.setBuffer(buffer, 0);
         //decodeChainData();
-        neteaseDecode();
+        neteaseDecode(protocol);
         decodeSkinData();
     }
 
@@ -256,17 +256,44 @@ public final class ClientChainDataNetEase implements LoginChainData {
     }
 
     //netease解析客户端信息。
-    private void neteaseDecode() {
+    private void neteaseDecode(int protocol) {
         this.xuid = null;
         this.clientUUID = null;
         this.username = null;
-        Map<String, List<String>> map = JsonUtil.GSON.fromJson(new String(bs.get(bs.getLInt()), StandardCharsets.UTF_8),
-            new TypeToken<Map<String, List<String>>>() {
-            }.getType());
-        List<String> chains = map.get("chain");
-        if (chains == null) {
+
+        Map<String, ?> root = JsonUtil.GSON.fromJson(new String(bs.get(bs.getLInt()), StandardCharsets.UTF_8),
+                new TypeToken<Map<String, ?>>() {
+                }.getType());
+        if (root.isEmpty()) {
             return;
         }
+        List<String> chains;
+        if (protocol >= 818) {
+            Object authenticationType = root.get("AuthenticationType");
+            if (!(authenticationType instanceof Number)) { //integer 0
+                return;
+            }
+            Object token = root.get("Token");
+            if (!(token instanceof String)) { //empty ""
+                return;
+            }
+            Object certificate = root.get("Certificate");
+            if (!(certificate instanceof String cert)) {
+                return;
+            }
+            Map<String, List<String>> map = JsonUtil.GSON.fromJson(cert, new TypeToken<Map<String, List<String>>>() {
+            }.getType());
+            if (map.isEmpty() || (chains = map.get("chain")) == null || chains.isEmpty()) {
+                return;
+            }
+        } else {
+            Object chain = root.get("chain");
+            if (!(chain instanceof List list) || list.isEmpty()) {
+                return;
+            }
+            chains = (List<String>) chain;
+        }
+
         int chainSize = chains.size();
         if (chainSize < 2) { //最少2个字符串。
 //            Server.getInstance().getLogger().warning("短chainSize");

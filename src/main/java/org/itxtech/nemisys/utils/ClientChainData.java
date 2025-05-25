@@ -77,12 +77,12 @@ public final class ClientChainData implements LoginChainData {
         xboxAuth = !notAvailable;
     }
 
-    public static ClientChainData of(byte[] buffer) {
-        return new ClientChainData(buffer);
+    public static ClientChainData of(byte[] buffer, int protocol) {
+        return new ClientChainData(buffer, protocol);
     }
 
     public static ClientChainData read(LoginPacket pk) {
-        return of(pk.getBuffer());
+        return of(pk.getBuffer(), pk.protocol);
     }
 
     @Override
@@ -270,19 +270,44 @@ public final class ClientChainData implements LoginChainData {
 
     private transient final BinaryStream bs = new BinaryStream();
 
-    private ClientChainData(byte[] buffer) {
+    private ClientChainData(byte[] buffer, int protocol) {
         bs.setBuffer(buffer, 0);
-        decodeChainData();
+        decodeChainData(protocol);
         decodeSkinData();
     }
 
-    private void decodeChainData() {
-        Map<String, List<String>> map = JsonUtil.GSON.fromJson(new String(bs.get(bs.getLInt()), StandardCharsets.UTF_8),
-            new TypeToken<Map<String, List<String>>>() {
+    private void decodeChainData(int protocol) {
+        Map<String, ?> root = JsonUtil.GSON.fromJson(new String(bs.get(bs.getLInt()), StandardCharsets.UTF_8),
+            new TypeToken<Map<String, ?>>() {
             }.getType());
-        List<String> chains = map.get("chain");
-        if (chains == null || chains.isEmpty()) {
+        if (root.isEmpty()) {
             return;
+        }
+        List<String> chains;
+        if (protocol >= 818) {
+            Object authenticationType = root.get("AuthenticationType");
+            if (!(authenticationType instanceof Number)) { //integer 0
+                return;
+            }
+            Object token = root.get("Token");
+            if (!(token instanceof String)) { //empty ""
+                return;
+            }
+            Object certificate = root.get("Certificate");
+            if (!(certificate instanceof String cert)) {
+                return;
+            }
+            Map<String, List<String>> map = JsonUtil.GSON.fromJson(cert, new TypeToken<Map<String, List<String>>>() {
+            }.getType());
+            if (map.isEmpty() || (chains = map.get("chain")) == null || chains.isEmpty()) {
+                return;
+            }
+        } else {
+            Object chain = root.get("chain");
+            if (!(chain instanceof List list) || list.isEmpty()) {
+                return;
+            }
+            chains = (List<String>) chain;
         }
 
         if (xboxAuth) {
