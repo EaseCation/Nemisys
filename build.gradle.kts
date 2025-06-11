@@ -17,7 +17,7 @@ dependencies {
     } else {
         implementation(project(":AuthLibPackage"))
     }
-    api("com.nukkitx.network:raknet")
+    api(project(":Network:raknet"))
     api(libs.apache.commons.compress)
     api(libs.apache.commons.lang3)
     api(libs.commons.io)
