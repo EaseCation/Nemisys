@@ -7,7 +7,7 @@ import org.itxtech.nemisys.Player;
 import org.itxtech.nemisys.event.server.DataPacketSendEvent;
 import org.itxtech.nemisys.event.synapse.player.SynapsePlayerConnectEvent;
 import org.itxtech.nemisys.network.Compressor;
-import org.itxtech.nemisys.network.SourceInterface;
+import org.itxtech.nemisys.network.NetworkSession;
 import org.itxtech.nemisys.network.protocol.mcpe.DataPacket;
 import org.itxtech.nemisys.network.protocol.mcpe.LoginPacket;
 import org.itxtech.nemisys.network.protocol.spp.PlayerLoginPacket;
@@ -25,8 +25,8 @@ public class SynapsePlayer extends Player {
     private final SynapseEntry synapseEntry;
     private JsonObject cachedExtra;
 
-    public SynapsePlayer(SourceInterface interfaz, SynapseEntry synapseEntry, Long clientID, InetSocketAddress socketAddress, Compressor compressor) {
-        super(interfaz, clientID, socketAddress, compressor);
+    public SynapsePlayer(NetworkSession session, SynapseEntry synapseEntry, Long clientID, InetSocketAddress socketAddress, Compressor compressor) {
+        super(session, clientID, socketAddress, compressor);
         this.synapseEntry = synapseEntry;
     }
 

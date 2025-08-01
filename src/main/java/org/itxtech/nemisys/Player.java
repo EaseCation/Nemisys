@@ -8,8 +8,7 @@ import org.itxtech.nemisys.event.player.PlayerLoginEvent;
 import org.itxtech.nemisys.event.player.PlayerLogoutEvent;
 import org.itxtech.nemisys.event.player.PlayerTransferEvent;
 import org.itxtech.nemisys.network.Compressor;
-import org.itxtech.nemisys.network.RakNetInterface;
-import org.itxtech.nemisys.network.SourceInterface;
+import org.itxtech.nemisys.network.NetworkSession;
 import org.itxtech.nemisys.network.protocol.mcpe.*;
 import org.itxtech.nemisys.network.protocol.spp.PlayerLoginPacket;
 import org.itxtech.nemisys.network.protocol.spp.PlayerLogoutPacket;
@@ -37,7 +36,7 @@ public class Player {
     private long randomClientId;
     private String xuid;
     private int protocol;
-    private final SourceInterface interfaz;
+    private final NetworkSession session;
     private Client client;
     private final Server server;
     private byte[] rawUUID;
@@ -54,8 +53,8 @@ public class Player {
     private boolean awaitingEncryptionHandshake;
     private boolean loginVerified;
 
-    public Player(SourceInterface interfaz, long clientId, InetSocketAddress socketAddress, Compressor compressor) {
-        this.interfaz = interfaz;
+    public Player(NetworkSession session, long clientId, InetSocketAddress socketAddress, Compressor compressor) {
+        this.session = session;
         this.clientId = clientId;
         this.socketAddress = socketAddress;
         this.compressor = compressor;
@@ -343,7 +342,7 @@ public class Player {
     }
 
     public void sendDataPacket(DataPacket pk) {
-        this.interfaz.putPacket(this, pk, false, true);
+        session.sendPacket(protocol, pk);
     }
 
     @Deprecated
@@ -357,7 +356,7 @@ public class Player {
     }
 
     public int getPing() {
-        return this.interfaz.getNetworkLatency(this);
+        return (int) this.session.getPing();
     }
 
     public void close() {
@@ -370,9 +369,7 @@ public class Player {
 
     public void close(String reason, boolean notify) {
         if (!this.closed) {
-            if (interfaz instanceof RakNetInterface) {
-                ((RakNetInterface) interfaz).closeReader(this);
-            }
+            session.closeReader();
 
             if (notify && !reason.isEmpty()) {
                 DisconnectPacket pk = new DisconnectPacket();
@@ -399,7 +396,7 @@ public class Player {
                     this.getServer().getLanguage().translateString(reason)
             }));
 
-            Server.getInstance().getScheduler().scheduleDelayedTask(() -> this.interfaz.close(this, notify ? reason : ""), 2);
+            Server.getInstance().getScheduler().scheduleDelayedTask(() -> this.session.close(notify ? reason : ""), 2);
             this.getServer().removePlayer(this);
         }
     }
@@ -453,17 +450,11 @@ public class Player {
     }
 
     protected void setupNetworkSettings() {
-        if (!(this.interfaz instanceof RakNetInterface)) {
-            return;
-        }
-
         NetworkSettingsPacket networkSettingsPacket = new NetworkSettingsPacket();
-        ((RakNetInterface) this.interfaz).setupSettings(this, networkSettingsPacket);
+        session.setupSettings(this, networkSettingsPacket);
     }
 
     protected void setupNetworkEncryption() {
-        if (this.interfaz instanceof RakNetInterface) {
-            ((RakNetInterface) this.interfaz).enableEncryption(this);
-        }
+        session.enableEncryption(protocol, loginChainData.getIdentityPublicKey());
     }
 }

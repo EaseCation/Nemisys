@@ -8,11 +8,12 @@ import org.itxtech.nemisys.Player;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.event.synapse.player.SynapsePlayerCreationEvent;
 import org.itxtech.nemisys.network.Compressor;
-import org.itxtech.nemisys.network.SourceInterface;
+import org.itxtech.nemisys.network.NetworkSession;
 import org.itxtech.nemisys.network.protocol.mcpe.DataPacket;
 import org.itxtech.nemisys.network.protocol.spp.*;
 import org.itxtech.nemisys.synapse.network.SynLibInterface;
 import org.itxtech.nemisys.synapse.network.SynapseInterface;
+import org.itxtech.nemisys.synapse.network.SynapseNetworkSession;
 import org.itxtech.nemisys.utils.ClientData;
 import org.itxtech.nemisys.utils.ClientData.Entry;
 
@@ -267,9 +268,11 @@ public class SynapseEntry {
                 this.getSynapse().getServer().getPluginManager().callEvent(ev);
                 Class<? extends SynapsePlayer> clazz = ev.getPlayerClass();
                 try {
-                    Constructor<?> constructor = clazz.getConstructor(SourceInterface.class, SynapseEntry.class, Long.class, InetSocketAddress.class, Compressor.class);
-                    SynapsePlayer player = (SynapsePlayer) constructor.newInstance(this.synLibInterface, this, ev.getClientId(), ev.getSocketAddress(),
+                    Constructor<?> constructor = clazz.getConstructor(NetworkSession.class, SynapseEntry.class, Long.class, InetSocketAddress.class, Compressor.class);
+                    SynapseNetworkSession session = new SynapseNetworkSession(synLibInterface);
+                    SynapsePlayer player = (SynapsePlayer) constructor.newInstance(session, this, ev.getClientId(), ev.getSocketAddress(),
                             playerLoginPacket.protocol >= 407 ? Compressor.ZLIB_RAW : Compressor.ZLIB);
+                    session.setPlayer(player);
                     player.setUniqueId(playerLoginPacket.uuid);
                     this.players.put(playerLoginPacket.sessionId, player);
                     this.getSynapse().getServer().addPlayer(socketAddress, player);
