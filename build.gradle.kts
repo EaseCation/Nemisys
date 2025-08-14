@@ -2,6 +2,7 @@ plugins {
     application
     id("ecbuild.java-conventions")
     id("ecbuild.copy-conventions")
+    alias(libs.plugins.git)
 }
 
 application {
@@ -9,6 +10,12 @@ application {
 }
 
 extra.set("copyTo", listOf("proxy", "login-proxy"))
+
+gitProperties {
+    dateFormat = "yyyy.MM.dd '@' HH:mm:ss z"
+    failOnNoGitDirectory = false
+    dotGitDirectory = rootProject.file(".git")
+}
 
 dependencies {
     val authLibPkg = findProject(":AuthLibPackage")
