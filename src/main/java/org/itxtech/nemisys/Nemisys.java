@@ -54,6 +54,7 @@ public class Nemisys {
 
         System.setProperty("java.net.preferIPv4Stack" , "true");
         System.setProperty("log4j.skipJansi", "false");
+        System.setProperty("io.netty.tryReflectionSetAccessible", "true");
         System.getProperties().putIfAbsent("io.netty.allocator.type", "unpooled"); // Disable memory pooling unless specified
 
         // DO NOT REMOVE THIS
