@@ -7,6 +7,7 @@ import org.itxtech.nemisys.event.player.PlayerAsyncLoginEvent;
 import org.itxtech.nemisys.event.player.PlayerLoginEvent;
 import org.itxtech.nemisys.event.player.PlayerLogoutEvent;
 import org.itxtech.nemisys.event.player.PlayerTransferEvent;
+import org.itxtech.nemisys.network.CompressionAlgorithm;
 import org.itxtech.nemisys.network.Compressor;
 import org.itxtech.nemisys.network.NetworkSession;
 import org.itxtech.nemisys.network.protocol.mcpe.*;
@@ -451,6 +452,7 @@ public class Player {
 
     protected void setupNetworkSettings() {
         NetworkSettingsPacket networkSettingsPacket = new NetworkSettingsPacket();
+        networkSettingsPacket.compressionAlgorithm = CompressionAlgorithm.SNAPPY;
         session.setupSettings(this, networkSettingsPacket);
     }
 

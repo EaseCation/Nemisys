@@ -287,6 +287,7 @@ public class SynapseEntry {
                 if (player != null) {
                     DataPacket pk0 = this.getSynapse().getPacket(redirectPacket.mcpeBuffer);
                     if (pk0 != null) {
+                        pk0.compressor = redirectPacket.compressionAlgorithm;
                         pk0.decode();
                         player.handleDataPacket(pk0);
                     } else if (player.getClient() != null) {

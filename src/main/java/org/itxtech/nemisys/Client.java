@@ -176,28 +176,30 @@ public class Client {
                 this.close(((DisconnectPacket) packet).message, false);
                 break;
             case SynapseInfo.REDIRECT_PACKET:
-                Player player = this.players.get(((RedirectPacket) packet).sessionId);
+                RedirectPacket redirect = (RedirectPacket) packet;
+                Player player = this.players.get(redirect.sessionId);
                 if (player != null) {
-                    byte[] buffer = ((RedirectPacket) packet).mcpeBuffer;
+                    byte[] buffer = redirect.mcpeBuffer;
                     DataPacket send;
                     if (buffer.length > 0 && buffer[0] == (byte) ProtocolInfo.BATCH_PACKET) {
                         send = new BatchPacket();
-//                        send.reliability = RakNetReliability.fromId(((RedirectPacket) packet).reliability);
+                        send.compressor = redirect.compressionAlgorithm;
+//                        send.reliability = RakNetReliability.fromId(redirect.reliability);
                         send.setBuffer(buffer, 1);
                         send.decode();
-//                        send.setChannel(((RedirectPacket) packet).channel);
+//                        send.setChannel(redirect.channel);
                         //if (send.reliability != RakNetReliability.RELIABLE_ORDERED || send.getChannel() != 0)
-                        //    this.server.getLogger().info("batch: " + ((RedirectPacket) packet).mcpeBuffer.length + "  reliability: " + send.reliability.name() + "  channel: " + send.getChannel());
+                        //    this.server.getLogger().info("batch: " + redirect.mcpeBuffer.length + "  reliability: " + send.reliability.name() + "  channel: " + send.getChannel());
                     } else {
                         send = new GenericPacket();
-//                        send.reliability = RakNetReliability.fromId(((RedirectPacket) packet).reliability);
-//                        send.setChannel(((RedirectPacket) packet).channel);
-                        send.setBuffer(((RedirectPacket) packet).mcpeBuffer);
-                        //this.server.getLogger().info("len: " + ((RedirectPacket) packet).mcpeBuffer.length + "  reliability: " + send.reliability.name() + "  channel: " + send.getChannel());
+//                        send.reliability = RakNetReliability.fromId(redirect.reliability);
+//                        send.setChannel(redirect.channel);
+                        send.setBuffer(redirect.mcpeBuffer);
+                        //this.server.getLogger().info("len: " + redirect.mcpeBuffer.length + "  reliability: " + send.reliability.name() + "  channel: " + send.getChannel());
                     }
 
                     player.sendDataPacket(send);
-                    //this.server.getLogger().warning("Send to player: " + Binary.bytesToHexString(new byte[]{((RedirectPacket) packet).mcpeBuffer[0]}) + "  len: " + ((RedirectPacket) packet).mcpeBuffer.length);
+                    //this.server.getLogger().warning("Send to player: " + Binary.bytesToHexString(new byte[]{redirect.mcpeBuffer[0]}) + "  len: " + redirect.mcpeBuffer.length);
                 }/*else{
 					this.server.getLogger().error("Error RedirectPacket 0x" + bin2hex(packet.buffer));
 				}*/

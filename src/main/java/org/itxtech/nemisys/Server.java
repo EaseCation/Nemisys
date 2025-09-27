@@ -952,19 +952,17 @@ public class Server {
             }
         }
 
+        Compressor compressor = Compressor.byProtocol(players[0].getProtocol());
         try {
-            if (players[0].getProtocol() >= 407) {
-                this.broadcastPacketsCallback(Compressor.ZLIB_RAW.compress(data, networkCompressionLevel), targets);
-            } else {
-                this.broadcastPacketsCallback(Compressor.ZLIB.compress(data, networkCompressionLevel), targets);
-            }
+            this.broadcastPacketsCallback(compressor.compress(data, networkCompressionLevel), targets, compressor);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    public void broadcastPacketsCallback(byte[] data, List<InetSocketAddress> targets) {
+    public void broadcastPacketsCallback(byte[] data, List<InetSocketAddress> targets, Compressor compressor) {
         BatchPacket pk = new BatchPacket();
+        pk.compressor = compressor.getAlgorithm();
         pk.payload = data;
 
         for (InetSocketAddress i : targets) {
