@@ -46,6 +46,7 @@ public class Player {
     protected boolean neteaseClient;
     protected String hideName;
     public int latency;
+    private long age;
 
     private Compressor compressor;
     private boolean preLogin = true;
@@ -262,7 +263,11 @@ public class Player {
     }
 
     public void onUpdate(long currentTick) {
+        age++;
+    }
 
+    public long getAge() {
+        return age;
     }
 
     public String getIp() {
