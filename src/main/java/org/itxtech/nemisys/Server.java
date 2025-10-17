@@ -149,6 +149,7 @@ public class Server {
                 put("enable-jmx-monitoring", false);
                 put("enable-network-encryption", true);
                 put("network-compression-level", 7);
+                put("compression-algorithm", "snappy");
                 put("packet-recorder-capability", false);
             }
         });
@@ -160,6 +161,7 @@ public class Server {
                 .motd(getPropertyString("motd", "Nemisys Server"))
                 .plusOneMaxCount(getPropertyBoolean("plus-one-max-count", false))
                 .xboxAuth(getPropertyBoolean("xbox-auth", false))
+                .compressionAlgorithm(Compressor.getAlgorithmByName(getPropertyString("compression-algorithm", "snappy")))
                 .build();
 
         this.baseLang = new BaseLang((String) this.getConfig("lang", BaseLang.FALLBACK_LANGUAGE));
@@ -214,6 +216,8 @@ public class Server {
         if (this.enableJmxMonitoring) {
             ServerStatistics.registerJmxMonitoring(this);
         }
+
+        log.info("Client network compression algorithm: {}", Compressor.get(configuration.getCompressionAlgorithm()).name().toLowerCase());
 
         log.info(this.getLanguage().translateString("nemisys.server.networkStart", new String[]{this.getIp().isEmpty() ? "*" : this.getIp(), String.valueOf(this.getPort())}));
         this.serverID = UUID.randomUUID();
@@ -920,6 +924,10 @@ public class Server {
 
     public Synapse getSynapse() {
         return synapse;
+    }
+
+    public byte getCompressionAlgorithm() {
+        return configuration.getCompressionAlgorithm();
     }
 
     @Deprecated

@@ -457,7 +457,7 @@ public class Player {
 
     protected void setupNetworkSettings() {
         NetworkSettingsPacket networkSettingsPacket = new NetworkSettingsPacket();
-        networkSettingsPacket.compressionAlgorithm = CompressionAlgorithm.SNAPPY;
+        networkSettingsPacket.compressionAlgorithm = server.getCompressionAlgorithm();
         session.setupSettings(this, networkSettingsPacket);
     }
 

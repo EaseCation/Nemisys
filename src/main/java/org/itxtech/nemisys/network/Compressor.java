@@ -249,4 +249,14 @@ public enum Compressor {
         }
         return ZLIB;
     }
+
+    public static byte getAlgorithmByName(String name) {
+        if ("snappy".equalsIgnoreCase(name)) {
+            return CompressionAlgorithm.SNAPPY;
+        }
+        if ("none".equalsIgnoreCase(name)) {
+            return CompressionAlgorithm.NONE;
+        }
+        return CompressionAlgorithm.ZLIB;
+    }
 }
