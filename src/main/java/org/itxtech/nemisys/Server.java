@@ -160,6 +160,7 @@ public class Server {
                 .motd(getPropertyString("motd", "Nemisys Server"))
                 .plusOneMaxCount(getPropertyBoolean("plus-one-max-count", false))
                 .xboxAuth(getPropertyBoolean("xbox-auth", false))
+                .disableRaknet(getPropertyBoolean("disable-raknet", false))
                 .compressionAlgorithm(Compressor.getAlgorithmByName(getPropertyString("compression-algorithm", "snappy")))
                 .build();
 
@@ -243,9 +244,11 @@ public class Server {
             Compressor.setDynamicCompressor(compressor);
         }
 
+        log.info("network encryption: {}", networkEncryptionEnabled);
+
         Capabilities.PACKET_RECORDER = this.getPropertyBoolean("packet-recorder-capability");
 
-        if (!Boolean.getBoolean("nemisys.disableRak")) {
+        if (!configuration.isDisableRaknet() && !Boolean.getBoolean("nemisys.disableRak")) {
             this.network.registerInterface(new RakNetInterface(this));
         }
 

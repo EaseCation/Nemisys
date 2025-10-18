@@ -730,7 +730,11 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                 metrics.packetOut(handshake.pid(), handshake.getCount());
             }
             // This is sent in cleartext to complete the Diffie Hellman key exchange.
-            this.sendPackets(Collections.singletonList(handshake), false);
+            if (protocol >= 649) {
+                this.sendPackets(Collections.singletonList(handshake), false, Compressor.NONE, true);
+            } else {
+                this.sendPackets(Collections.singletonList(handshake), false);
+            }
         }
 
         private static byte[] calculateChecksum(long count, ByteBuf payload, SecretKey key) {

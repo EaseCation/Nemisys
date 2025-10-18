@@ -14,6 +14,7 @@ public class ServerConfiguration {
     String motd;
     boolean plusOneMaxCount;
     boolean xboxAuth;
+    boolean disableRaknet;
     @Default
     byte compressionAlgorithm = CompressionAlgorithm.SNAPPY;
 }
