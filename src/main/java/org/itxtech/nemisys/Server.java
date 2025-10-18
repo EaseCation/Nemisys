@@ -12,13 +12,12 @@ import org.itxtech.nemisys.command.*;
 import org.itxtech.nemisys.console.NemisysConsole;
 import org.itxtech.nemisys.data.ServerConfiguration;
 import org.itxtech.nemisys.event.HandlerList;
-import org.itxtech.nemisys.lang.TranslationContainer;
 import org.itxtech.nemisys.event.server.QueryRegenerateEvent;
 import org.itxtech.nemisys.lang.BaseLang;
+import org.itxtech.nemisys.lang.TranslationContainer;
 import org.itxtech.nemisys.math.Mth;
 import org.itxtech.nemisys.math.NemisysMath;
 import org.itxtech.nemisys.network.*;
-import org.itxtech.nemisys.network.protocol.mcpe.BatchPacket;
 import org.itxtech.nemisys.network.protocol.mcpe.DataPacket;
 import org.itxtech.nemisys.network.query.QueryHandler;
 import org.itxtech.nemisys.network.rcon.RCON;
@@ -238,6 +237,11 @@ public class Server {
 
         this.networkEncryptionEnabled = this.getPropertyBoolean("enable-network-encryption");
         this.networkCompressionLevel = Mth.clamp(this.getPropertyInt("network-compression-level", 7), Deflater.BEST_SPEED, Deflater.BEST_COMPRESSION);
+
+        Compressor compressor = Compressor.get(configuration.getCompressionAlgorithm());
+        if (compressor != Compressor.SNAPPY) {
+            Compressor.setDynamicCompressor(compressor);
+        }
 
         Capabilities.PACKET_RECORDER = this.getPropertyBoolean("packet-recorder-capability");
 
@@ -928,57 +932,6 @@ public class Server {
 
     public byte getCompressionAlgorithm() {
         return configuration.getCompressionAlgorithm();
-    }
-
-    @Deprecated
-    public void batchPackets(Player[] players, DataPacket[] packets) {
-        this.batchPackets(players, packets, false);
-    }
-
-    @Deprecated
-    public void batchPackets(Player[] players, DataPacket[] packets, boolean forceSync) {
-        if (players == null || packets == null || players.length == 0 || packets.length == 0) {
-            return;
-        }
-
-        byte[][] payload = new byte[packets.length * 2][];
-        for (int i = 0; i < packets.length; i++) {
-            DataPacket p = packets[i];
-            int idx = i * 2;
-            p.tryEncode(players[0].getProtocol());
-            byte[] buf = p.getBuffer();
-            payload[idx] = Binary.writeUnsignedVarInt(buf.length);
-            payload[idx + 1] = buf;
-        }
-        byte[] data;
-        data = Binary.appendBytes(payload);
-
-        List<InetSocketAddress> targets = new ObjectArrayList<>();
-        for (Player p : players) {
-            if (!p.closed) {
-                targets.add(p.getSocketAddress());
-            }
-        }
-
-        Compressor compressor = Compressor.byProtocol(players[0].getProtocol());
-        try {
-            this.broadcastPacketsCallback(compressor.compress(data, networkCompressionLevel), targets, compressor);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public void broadcastPacketsCallback(byte[] data, List<InetSocketAddress> targets, Compressor compressor) {
-        BatchPacket pk = new BatchPacket();
-        pk.compressor = compressor.getAlgorithm();
-        pk.payload = data;
-
-        for (InetSocketAddress i : targets) {
-            Player player = this.players.get(i);
-            if (player != null) {
-                player.sendDataPacket(pk);
-            }
-        }
     }
 
     public boolean isPrimaryThread() {
