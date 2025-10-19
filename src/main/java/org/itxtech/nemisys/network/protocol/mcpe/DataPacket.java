@@ -35,15 +35,15 @@ public abstract class DataPacket extends BinaryStream implements Cloneable {
         }
     }
 
-    public void encode(int protocol) {
+    public void encode(int protocol, boolean netease) {
         this.encode();
     }
 
-    public void decode(int protocol) {
+    public void decode(int protocol, boolean netease) {
         this.decode();
     }
 
-    public void tryEncode(int protocol) {
+    public void tryEncode(int protocol, boolean netease) {
         this.tryEncode();
     }
 

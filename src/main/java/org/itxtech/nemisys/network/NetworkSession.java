@@ -5,7 +5,7 @@ import org.itxtech.nemisys.network.protocol.mcpe.DataPacket;
 import org.itxtech.nemisys.network.protocol.mcpe.NetworkSettingsPacket;
 
 public interface NetworkSession {
-    void sendPacket(int protocol, DataPacket packet);
+    void sendPacket(int protocol, boolean netease, DataPacket packet);
 
     long getPing();
 

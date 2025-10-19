@@ -24,7 +24,7 @@ public class NetworkSettingsPacket extends DataPacket {
     }
 
     @Override
-    public void encode(int protocol) {
+    public void encode(int protocol, boolean netease) {
         this.reset(protocol);
         this.putLShort(this.compressionThreshold);
         if (protocol < 554) {
@@ -37,11 +37,11 @@ public class NetworkSettingsPacket extends DataPacket {
     }
 
     @Override
-    public void tryEncode(int protocol) {
+    public void tryEncode(int protocol, boolean netease) {
         if (this.isEncoded) {
             return;
         }
         this.isEncoded = true;
-        this.encode(protocol);
+        this.encode(protocol, netease);
     }
 }

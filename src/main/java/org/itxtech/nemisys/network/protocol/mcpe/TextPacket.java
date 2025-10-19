@@ -19,7 +19,7 @@ public class TextPacket extends DataPacket {
     public static final byte TYPE_CHAT = 1;
     public static final byte TYPE_TRANSLATION = 2;
     public static final byte TYPE_POPUP = 3;
-    public static final byte JUKE_BOX_POPUP = 4;
+    public static final byte TYPE_JUKEBOX_POPUP = 4;
     public static final byte TYPE_TIP = 5;
     public static final byte TYPE_SYSTEM = 6;
     public static final byte TYPE_WHISPER = 7;
@@ -40,11 +40,11 @@ public class TextPacket extends DataPacket {
     public String filteredMessage = "";
 
     @Override
-    public void decode(int protocol) {
+    public void decode(int protocol, boolean netease) {
     }
 
     @Override
-    public void encode(int protocol) {
+    public void encode(int protocol, boolean netease) {
         this.reset(protocol);
         this.putByte(this.type);
         this.putBoolean(this.isLocalized);
@@ -63,7 +63,7 @@ public class TextPacket extends DataPacket {
                 break;
             case TYPE_TRANSLATION:
             case TYPE_POPUP:
-            case JUKE_BOX_POPUP:
+            case TYPE_JUKEBOX_POPUP:
                 this.putString(this.message);
                 this.putUnsignedVarInt(this.parameters.length);
                 for (String parameter : this.parameters) {
@@ -79,7 +79,7 @@ public class TextPacket extends DataPacket {
             this.putString(filteredMessage);
         }
 
-        if (protocol >= 410) { // netease only
+        if (netease && protocol >= 410) { // netease only
             if (type == TYPE_CHAT || type == TYPE_POPUP) {
                 this.putString("");
             }
@@ -87,10 +87,10 @@ public class TextPacket extends DataPacket {
     }
 
     @Override
-    public void tryEncode(int protocol) {
+    public void tryEncode(int protocol, boolean netease) {
         if (!this.isEncoded) {
             this.isEncoded = true;
-            this.encode(protocol);
+            this.encode(protocol, netease);
         }
     }
 }

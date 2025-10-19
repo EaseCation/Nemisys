@@ -7,7 +7,6 @@ import org.itxtech.nemisys.event.player.PlayerAsyncLoginEvent;
 import org.itxtech.nemisys.event.player.PlayerLoginEvent;
 import org.itxtech.nemisys.event.player.PlayerLogoutEvent;
 import org.itxtech.nemisys.event.player.PlayerTransferEvent;
-import org.itxtech.nemisys.network.CompressionAlgorithm;
 import org.itxtech.nemisys.network.Compressor;
 import org.itxtech.nemisys.network.NetworkSession;
 import org.itxtech.nemisys.network.protocol.mcpe.*;
@@ -348,17 +347,7 @@ public class Player {
     }
 
     public void sendDataPacket(DataPacket pk) {
-        session.sendPacket(protocol, pk);
-    }
-
-    @Deprecated
-    public void sendDataPacket(DataPacket pk, boolean direct) {
-        this.sendDataPacket(pk);
-    }
-
-    @Deprecated
-    public void sendDataPacket(DataPacket pk, boolean direct, boolean needACK) {
-        this.sendDataPacket(pk);
+        session.sendPacket(protocol, neteaseClient, pk);
     }
 
     public int getPing() {
@@ -415,19 +404,13 @@ public class Player {
         TextPacket pk = new TextPacket();
         pk.type = TextPacket.TYPE_RAW;
         pk.message = message;
-
         this.sendDataPacket(pk);
     }
 
     public void sendPopup(String message) {
-        this.sendPopup(message, "");
-    }
-
-    public void sendPopup(String message, String subtitle) {
         TextPacket pk = new TextPacket();
-        pk.type = TextPacket.TYPE_POPUP;
+        pk.type = TextPacket.TYPE_JUKEBOX_POPUP; // 游戏服大多使用TYPE_POPUP,因此这里换成TYPE_JUKEBOX_POPUP尽可能避免争抢覆盖冲突
         pk.message = message;
-        pk.primaryName = subtitle;
         this.sendDataPacket(pk);
     }
 

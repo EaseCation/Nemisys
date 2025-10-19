@@ -19,7 +19,7 @@ public class SynapseNetworkSession implements NetworkSession {
     }
 
     @Override
-    public void sendPacket(int protocol, DataPacket packet) {
+    public void sendPacket(int protocol, boolean netease, DataPacket packet) {
         synLibInterface.putPacket(player, packet, false, true);
     }
 

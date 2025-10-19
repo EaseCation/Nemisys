@@ -15,16 +15,16 @@ public class ServerToClientHandshakePacket extends DataPacket {
     public String jwt;
 
     @Override
-    public void encode(int protocol) {
+    public void encode(int protocol, boolean netease) {
         this.reset(protocol);
         this.putString(this.jwt);
     }
 
     @Override
-    public void tryEncode(int protocol) {
+    public void tryEncode(int protocol, boolean netease) {
         if (!this.isEncoded) {
             this.isEncoded = true;
-            this.encode(protocol);
+            this.encode(protocol, netease);
         }
     }
 }

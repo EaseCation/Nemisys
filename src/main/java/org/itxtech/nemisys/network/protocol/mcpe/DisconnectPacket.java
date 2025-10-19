@@ -146,7 +146,7 @@ public class DisconnectPacket extends DataPacket {
     }
 
     @Override
-    public void decode(int protocol) {
+    public void decode(int protocol, boolean netease) {
         if (protocol >= 622) {
             this.reason = this.getVarInt();
         }
@@ -160,7 +160,7 @@ public class DisconnectPacket extends DataPacket {
     }
 
     @Override
-    public void encode(int protocol) {
+    public void encode(int protocol, boolean netease) {
         this.reset(protocol);
         if (protocol >= 622) {
             this.putVarInt(this.reason);
@@ -175,10 +175,10 @@ public class DisconnectPacket extends DataPacket {
     }
 
     @Override
-    public void tryEncode(int protocol) {
+    public void tryEncode(int protocol, boolean netease) {
         if (!this.isEncoded) {
             this.isEncoded = true;
-            this.encode(protocol);
+            this.encode(protocol, netease);
         }
     }
 }

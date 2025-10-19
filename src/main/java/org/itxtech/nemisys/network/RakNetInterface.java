@@ -255,7 +255,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
         NemisysRakNetSession session = this.sessions.get(player.getSocketAddress());
 
         if (session != null) {
-            session.sendPacket(player.getProtocol(), packet);
+            session.sendPacket(player.getProtocol(), player.isNeteaseClient(), packet);
         }
 
         return null;
@@ -329,8 +329,8 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
         }
 
         @Override
-        public void sendPacket(int protocol, DataPacket packet) {
-            packet.tryEncode(protocol);
+        public void sendPacket(int protocol, boolean netease, DataPacket packet) {
+            packet.tryEncode(protocol, netease);
             outbound.offer(packet);
         }
 
@@ -689,7 +689,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
         private void setupSettings(NetworkSettingsPacket settings, int protocol, Compression compression) {
             this.compression = compression;
 
-            settings.tryEncode(protocol);
+            settings.tryEncode(protocol, true);
             NemisysMetrics metrics = RakNetInterface.this.metrics;
             if (metrics != null) {
                 metrics.packetOut(settings.pid(), settings.getCount());
@@ -724,7 +724,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
 
             ServerToClientHandshakePacket handshake = new ServerToClientHandshakePacket();
             handshake.jwt = jwt.serialize();
-            handshake.tryEncode(protocol);
+            handshake.tryEncode(protocol, true);
             NemisysMetrics metrics = RakNetInterface.this.metrics;
             if (metrics != null) {
                 metrics.packetOut(handshake.pid(), handshake.getCount());
