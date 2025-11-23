@@ -1,6 +1,8 @@
 package org.itxtech.nemisys.network.protocol.mcpe;
 
 import lombok.ToString;
+import org.itxtech.nemisys.utils.BinaryStream;
+import org.itxtech.nemisys.utils.Utils;
 
 /**
  * Created on 15-10-13.
@@ -28,6 +30,10 @@ public class TextPacket extends DataPacket {
     public static final byte TYPE_OBJECT_WHISPER = 10;
     public static final byte TYPE_OBJECT_ANNOUNCEMENT = 11;
 
+    public static final byte BODY_TYPE_MESSAGE_ONLY = 0;
+    public static final byte BODY_TYPE_AUTHOR_AND_MESSAGE = 1;
+    public static final byte BODY_TYPE_MESSAGE_AND_PARAMS = 2;
+
     public byte type;
     public boolean isLocalized = false;
 
@@ -46,31 +52,48 @@ public class TextPacket extends DataPacket {
     @Override
     public void encode(int protocol, boolean netease) {
         this.reset(protocol);
-        this.putByte(this.type);
+        if (protocol < 897) {
+            this.putByte(this.type);
+        }
         this.putBoolean(this.isLocalized);
         switch (this.type) {
             case TYPE_CHAT:
             case TYPE_WHISPER:
             case TYPE_ANNOUNCEMENT:
+                if (protocol >= 897) {
+                    this.putUnsignedVarInt(BODY_TYPE_AUTHOR_AND_MESSAGE);
+                    this.put(BODY_MAGIC_AUTHOR_AND_MESSAGE);
+                    this.putByte(this.type);
+                }
                 this.putString(primaryName);
+                this.putString(message);
+                break;
             case TYPE_RAW:
             case TYPE_TIP:
             case TYPE_SYSTEM:
             case TYPE_OBJECT:
             case TYPE_OBJECT_WHISPER:
             case TYPE_OBJECT_ANNOUNCEMENT:
+                if (protocol >= 897) {
+                    this.putUnsignedVarInt(BODY_TYPE_MESSAGE_ONLY);
+                    this.put(BODY_MAGIC_MESSAGE_ONLY);
+                    this.putByte(this.type);
+                }
                 this.putString(message);
                 break;
             case TYPE_TRANSLATION:
             case TYPE_POPUP:
             case TYPE_JUKEBOX_POPUP:
+                if (protocol >= 897) {
+                    this.putUnsignedVarInt(BODY_TYPE_MESSAGE_AND_PARAMS);
+                    this.put(BODY_MAGIC_MESSAGE_AND_PARAMS);
+                    this.putByte(this.type);
+                }
                 this.putString(this.message);
                 this.putUnsignedVarInt(this.parameters.length);
                 for (String parameter : this.parameters) {
                     this.putString(parameter);
                 }
-                break;
-            default:
                 break;
         }
         this.putString(sendersXUID);
@@ -93,4 +116,29 @@ public class TextPacket extends DataPacket {
             this.encode(protocol, netease);
         }
     }
+
+    private static final byte[] BODY_MAGIC_MESSAGE_ONLY = Utils.make(() -> {
+        BinaryStream stream = new BinaryStream();
+        stream.putString("raw");
+        stream.putString("tip");
+        stream.putString("systemmessage");
+        stream.putString("textobjectwhisper");
+        stream.putString("textobjectannouncement");
+        stream.putString("textobject");
+        return stream.getBuffer();
+    });
+    private static final byte[] BODY_MAGIC_AUTHOR_AND_MESSAGE = Utils.make(() -> {
+        BinaryStream stream = new BinaryStream();
+        stream.putString("chat");
+        stream.putString("whisper");
+        stream.putString("announcement");
+        return stream.getBuffer();
+    });
+    private static final byte[] BODY_MAGIC_MESSAGE_AND_PARAMS = Utils.make(() -> {
+        BinaryStream stream = new BinaryStream();
+        stream.putString("translate");
+        stream.putString("popup");
+        stream.putString("jukeboxpopup");
+        return stream.getBuffer();
+    });
 }

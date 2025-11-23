@@ -6,6 +6,8 @@ import java.lang.management.ThreadInfo;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * author: MagicDroidX
@@ -150,4 +152,12 @@ public class Utils {
         return result & 0xFFFFFFFFL;
     }
 
+    public static <T> T make(Supplier<T> supplier) {
+        return supplier.get();
+    }
+
+    public static <T> T make(T value, Consumer<? super T> consumer) {
+        consumer.accept(value);
+        return value;
+    }
 }
