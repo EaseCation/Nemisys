@@ -52,7 +52,7 @@ public class TextPacket extends DataPacket {
     @Override
     public void encode(int protocol, boolean netease) {
         this.reset(protocol);
-        if (protocol < 897) {
+        if (protocol < 878) {
             this.putByte(this.type);
         }
         this.putBoolean(this.isLocalized);
@@ -60,9 +60,11 @@ public class TextPacket extends DataPacket {
             case TYPE_CHAT:
             case TYPE_WHISPER:
             case TYPE_ANNOUNCEMENT:
-                if (protocol >= 897) {
-                    this.putUnsignedVarInt(BODY_TYPE_AUTHOR_AND_MESSAGE);
-                    this.put(BODY_MAGIC_AUTHOR_AND_MESSAGE);
+                if (protocol >= 878) {
+                    this.putByte(BODY_TYPE_AUTHOR_AND_MESSAGE);
+                    if (protocol < 923) {
+                        this.put(BODY_MAGIC_AUTHOR_AND_MESSAGE);
+                    }
                     this.putByte(this.type);
                 }
                 this.putString(primaryName);
@@ -74,9 +76,11 @@ public class TextPacket extends DataPacket {
             case TYPE_OBJECT:
             case TYPE_OBJECT_WHISPER:
             case TYPE_OBJECT_ANNOUNCEMENT:
-                if (protocol >= 897) {
-                    this.putUnsignedVarInt(BODY_TYPE_MESSAGE_ONLY);
-                    this.put(BODY_MAGIC_MESSAGE_ONLY);
+                if (protocol >= 878) {
+                    this.putByte(BODY_TYPE_MESSAGE_ONLY);
+                    if (protocol < 923) {
+                        this.put(BODY_MAGIC_MESSAGE_ONLY);
+                    }
                     this.putByte(this.type);
                 }
                 this.putString(message);
@@ -84,9 +88,11 @@ public class TextPacket extends DataPacket {
             case TYPE_TRANSLATION:
             case TYPE_POPUP:
             case TYPE_JUKEBOX_POPUP:
-                if (protocol >= 897) {
-                    this.putUnsignedVarInt(BODY_TYPE_MESSAGE_AND_PARAMS);
-                    this.put(BODY_MAGIC_MESSAGE_AND_PARAMS);
+                if (protocol >= 878) {
+                    this.putByte(BODY_TYPE_MESSAGE_AND_PARAMS);
+                    if (protocol < 923) {
+                        this.put(BODY_MAGIC_MESSAGE_AND_PARAMS);
+                    }
                     this.putByte(this.type);
                 }
                 this.putString(this.message);
