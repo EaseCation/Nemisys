@@ -62,4 +62,8 @@ public interface LoginChainData {
     int getUIProfile();
 
     String[] getOriginChainArr();
+
+    default String getViaProxyAuthToken() {
+        return null;
+    }
 }

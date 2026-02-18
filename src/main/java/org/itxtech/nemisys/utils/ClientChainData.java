@@ -267,6 +267,7 @@ public final class ClientChainData implements LoginChainData {
     private String capeData;
     private boolean xboxAuthed = true;
     private String[] originChainArr;
+    private String viaProxyAuthToken;
 
     private transient final BinaryStream bs = new BinaryStream();
 
@@ -361,6 +362,12 @@ public final class ClientChainData implements LoginChainData {
         if (skinToken.has("DefaultInputMode")) this.defaultInputMode = skinToken.get("DefaultInputMode").getAsInt();
         if (skinToken.has("UIProfile")) this.UIProfile = skinToken.get("UIProfile").getAsInt();
         if (skinToken.has("CapeData")) this.capeData = skinToken.get("CapeData").getAsString();
+        if (skinToken.has("ViaProxyAuthToken")) this.viaProxyAuthToken = skinToken.get("ViaProxyAuthToken").getAsString();
+    }
+
+    @Override
+    public String getViaProxyAuthToken() {
+        return viaProxyAuthToken;
     }
 
     private JsonObject decodeToken(String token) {

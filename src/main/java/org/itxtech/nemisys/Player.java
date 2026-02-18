@@ -137,8 +137,20 @@ public class Player {
 
                 this.loginChainData = loginPacket.decodedLoginChainData;
                 this.neteaseClient = loginPacket.netEaseClient;
-                if (loginChainData == null || !loginChainData.isXboxAuthed() && server.getConfiguration().isXboxAuth()) {
+                if (loginChainData == null) {
                     this.close("disconnectionScreen.notAuthenticated");
+                    break;
+                }
+
+                boolean xboxAuthed = loginChainData.isXboxAuthed();
+                org.itxtech.nemisys.event.player.PlayerPreAuthEvent preAuthEvent =
+                        new org.itxtech.nemisys.event.player.PlayerPreAuthEvent(this, loginChainData, xboxAuthed);
+                this.server.getPluginManager().callEvent(preAuthEvent);
+
+                if (!preAuthEvent.isAuthenticated() && server.getConfiguration().isXboxAuth()) {
+                    this.close(preAuthEvent.getKickMessage() != null
+                            ? preAuthEvent.getKickMessage()
+                            : "disconnectionScreen.notAuthenticated");
                     break;
                 }
 
