@@ -1,5 +1,8 @@
 package org.itxtech.nemisys.network.protocol.spp;
 
+import com.google.gson.JsonObject;
+import org.itxtech.nemisys.utils.JsonUtil;
+
 /**
  * Created by boybook on 16/6/24.
  */
@@ -12,6 +15,7 @@ public class ConnectPacket extends SynapseDataPacket {
     public boolean isMainServer;
     public String description;
     public String password;
+    public JsonObject metadata = new JsonObject();
 
     @Override
     public byte pid() {
@@ -26,6 +30,7 @@ public class ConnectPacket extends SynapseDataPacket {
         this.putBoolean(this.isMainServer);
         this.putString(this.description);
         this.putString(this.password);
+        this.putString(JsonUtil.GSON.toJson(this.metadata));
     }
 
     @Override
@@ -35,5 +40,6 @@ public class ConnectPacket extends SynapseDataPacket {
         this.isMainServer = this.getBoolean();
         this.description = this.getString();
         this.password = this.getString();
+        this.metadata = JsonUtil.GSON.fromJson(this.getString(), JsonObject.class);
     }
 }

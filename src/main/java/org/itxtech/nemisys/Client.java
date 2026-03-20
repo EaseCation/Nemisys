@@ -2,6 +2,7 @@ package org.itxtech.nemisys;
 
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
+import com.google.gson.JsonObject;
 import it.unimi.dsi.fastutil.Pair;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectIntPair;
@@ -43,6 +44,7 @@ public class Client {
     private float load;
     private long upTime;
     private long lastUpdatePlayerNetworkLatency;
+    private JsonObject metadata;
 
     public Client(SynapseInterface interfaz, String ip, int port) {
         this.server = interfaz.getServer();
@@ -72,6 +74,14 @@ public class Client {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public JsonObject getMetadata() {
+        return this.metadata;
+    }
+
+    public void setMetadata(JsonObject metadata) {
+        this.metadata = metadata;
     }
 
     public float getTicksPerSecond() {
@@ -157,6 +167,7 @@ public class Client {
                     this.isMainServer = connectPacket.isMainServer;
                     this.description = connectPacket.description;
                     this.maxPlayers = connectPacket.maxPlayers;
+                    this.metadata = connectPacket.metadata;
                     this.server.addClient(this);
                     this.server.getLogger().info("Client " + this.getIp() + ":" + this.getPort() + " has connected successfully");
                     this.server.getLogger().info("mainServer: " + (this.isMainServer ? "true" : "false"));
@@ -164,13 +175,13 @@ public class Client {
                     this.server.getLogger().info("maxPlayers: " + this.maxPlayers);
                     this.server.updateClientData();
                     this.sendDataPacket(pk2);
+                    this.server.getPluginManager().callEvent(new ClientAuthEvent(this, connectPacket.password));
                 } else {
                     pk2.type = ConnectionStatusPacket.TYPE_LOGIN_FAILED;
                     log.fatal("Client {}:{} tried to connect with wrong password!", this.getIp(), this.getPort());
                     this.sendDataPacket(pk2);
                     this.close("Auth failed!");
                 }
-                this.server.getPluginManager().callEvent(new ClientAuthEvent(this, connectPacket.password));
                 break;
             case SynapseInfo.DISCONNECT_PACKET:
                 this.close(((DisconnectPacket) packet).message, false);
