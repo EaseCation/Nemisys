@@ -3,10 +3,7 @@ package org.itxtech.nemisys;
 import com.google.gson.JsonObject;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import lombok.extern.log4j.Log4j2;
-import org.itxtech.nemisys.event.player.PlayerAsyncLoginEvent;
-import org.itxtech.nemisys.event.player.PlayerLoginEvent;
-import org.itxtech.nemisys.event.player.PlayerLogoutEvent;
-import org.itxtech.nemisys.event.player.PlayerTransferEvent;
+import org.itxtech.nemisys.event.player.*;
 import org.itxtech.nemisys.network.Compressor;
 import org.itxtech.nemisys.network.NetworkSession;
 import org.itxtech.nemisys.network.protocol.mcpe.*;
@@ -128,35 +125,31 @@ public class Player {
 
                 LoginPacket loginPacket = (LoginPacket) packet;
                 this.cachedLoginPacket = loginPacket.cacheBuffer;
-                this.name = loginPacket.username;
                 this.protocol = loginPacket.protocol;
 
 //                if (protocol < 554) {
                     preLogin = false;
 //                }
 
-                this.loginChainData = loginPacket.decodedLoginChainData;
-                this.neteaseClient = loginPacket.netEaseClient;
+                this.loginChainData = loginPacket.loginChainData;
                 if (loginChainData == null) {
                     this.close("disconnectionScreen.notAuthenticated");
                     break;
                 }
+                this.neteaseClient = loginChainData.getAuthenticationOffer() == LoginChainData.AUTHENTICATION_OFFER_NETEASE;
+                this.name = loginChainData.getUsername();
 
-                boolean xboxAuthed = loginChainData.isXboxAuthed();
-                org.itxtech.nemisys.event.player.PlayerPreAuthEvent preAuthEvent =
-                        new org.itxtech.nemisys.event.player.PlayerPreAuthEvent(this, loginChainData, xboxAuthed);
+                PlayerPreAuthEvent preAuthEvent = new PlayerPreAuthEvent(this, loginChainData, loginChainData.getAuthenticationOffer() != LoginChainData.AUTHENTICATION_OFFER_INVALID);
                 this.server.getPluginManager().callEvent(preAuthEvent);
 
                 if (!preAuthEvent.isAuthenticated() && server.getConfiguration().isXboxAuth()) {
-                    this.close(preAuthEvent.getKickMessage() != null
-                            ? preAuthEvent.getKickMessage()
-                            : "disconnectionScreen.notAuthenticated");
+                    this.close(preAuthEvent.getKickMessage() != null ? preAuthEvent.getKickMessage() : "disconnectionScreen.notAuthenticated");
                     break;
                 }
 
                 this.uuid = this.loginChainData.getClientUUID();
                 if (this.uuid == null) {
-                    this.close(TextFormat.RED + "Please choose another name and try again!");
+                    this.close("disconnectionScreen.notAuthenticated");
                     break;
                 }
                 this.xuid = this.loginChainData.getXUID();

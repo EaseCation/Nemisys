@@ -15,10 +15,10 @@ public class PlayerPreAuthEvent extends PlayerEvent {
     private boolean authenticated;
     private String kickMessage;
 
-    public PlayerPreAuthEvent(Player player, LoginChainData loginChainData, boolean xboxAuthed) {
+    public PlayerPreAuthEvent(Player player, LoginChainData loginChainData, boolean authenticated) {
         super(player);
         this.loginChainData = loginChainData;
-        this.authenticated = xboxAuthed;
+        this.authenticated = authenticated;
     }
 
     public LoginChainData getLoginChainData() {

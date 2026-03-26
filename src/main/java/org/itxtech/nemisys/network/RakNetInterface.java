@@ -41,6 +41,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
@@ -88,6 +89,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
     private byte[] advertisement;
 
     private static final KeyPair SERVER_KEY_PAIR = EncryptionUtils.createKeyPair();
+    private static final URI X509_CERT_URL = URI.create(Base64.getEncoder().encodeToString(SERVER_KEY_PAIR.getPublic().getEncoded()));
 
     private static final FastThreadLocal<Sha256> HASH_LOCAL = new FastThreadLocal<Sha256>() {
         @Override
@@ -704,7 +706,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
             JWSObject jwt;
             SecretKey secretKey;
             try {
-                jwt = EncryptionUtils.createHandshakeJwt(SERVER_KEY_PAIR, token);
+                jwt = EncryptionUtils.createHandshakeJwt(SERVER_KEY_PAIR, X509_CERT_URL, token);
                 secretKey = EncryptionUtils.getSecretKey(SERVER_KEY_PAIR.getPrivate(), EncryptionUtils.generateKey(clientPublicKey), token);
             } catch (JOSEException | InvalidKeyException | NoSuchAlgorithmException | InvalidKeySpecException e) {
                 throw new RuntimeException(e);

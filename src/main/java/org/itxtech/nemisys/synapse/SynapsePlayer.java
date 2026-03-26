@@ -39,9 +39,6 @@ public class SynapsePlayer extends Player {
             DataPacket pk = this.getSynapseEntry().getSynapse().getPacket(packet.cachedLoginPacket);
             //pk.decode();
             if (pk instanceof LoginPacket) {
-                ((LoginPacket) pk).username = packet.extra.get("username").getAsString();
-                ((LoginPacket) pk).xuid = packet.extra.get("xuid").getAsString();
-                ((LoginPacket) pk).clientUUID = packet.uuid;
                 this.neteaseClient = Optional.ofNullable(packet.extra.get("netease")).orElseGet(() -> new JsonPrimitive(false)).getAsBoolean();
             }
 

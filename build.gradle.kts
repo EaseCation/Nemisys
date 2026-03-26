@@ -23,12 +23,6 @@ tasks.shadowJar {
 }
 
 dependencies {
-    val authLibPkg = findProject(":AuthLibPackage")
-    if (authLibPkg == null) {
-        api(files(File(rootProject.projectDir, "lib/AuthLibPackage.jar")))
-    } else {
-        api(project(":AuthLibPackage"))
-    }
     api(project(":Network:raknet"))
     api(libs.apache.commons.compress)
     api(libs.apache.commons.lang3)

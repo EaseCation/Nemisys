@@ -245,6 +245,7 @@ public class Server {
         }
 
         log.info("network encryption: {}", networkEncryptionEnabled);
+        EncryptionUtils.init();
 
         Capabilities.PACKET_RECORDER = this.getPropertyBoolean("packet-recorder-capability");
 
