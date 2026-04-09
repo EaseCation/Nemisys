@@ -10,8 +10,8 @@ public interface ProtocolInfo {
      * Actual Minecraft: PE protocol version
      */
     int MINIMUM_PROTOCOL = 140;
-    int CURRENT_PROTOCOL = 594;
-    String MINECRAFT_VERSION_NETWORK = "1.20.10";
+    int CURRENT_PROTOCOL = 766;
+    String MINECRAFT_VERSION_NETWORK = "1.21.50";
     String MINECRAFT_VERSION = "v" + MINECRAFT_VERSION_NETWORK;
 
     int LOGIN_PACKET = 0x01;

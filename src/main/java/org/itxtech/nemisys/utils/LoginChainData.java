@@ -79,6 +79,8 @@ public interface LoginChainData {
 
     int getGraphicsMode();
 
+    String getPartyId();
+
     boolean isNetEaseReconnect();
 
     String getNetEaseSkinIID();

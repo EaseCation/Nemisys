@@ -270,6 +270,11 @@ public final class ClientChainData implements LoginChainData {
     }
 
     @Override
+    public String getPartyId() {
+        return partyId;
+    }
+
+    @Override
     public boolean isNetEaseReconnect() {
         return neteaseReconnect;
     }
@@ -386,6 +391,7 @@ public final class ClientChainData implements LoginChainData {
     private int memoryTier;
     private int maxViewDistance;
     private int graphicsMode;
+    private String partyId;
 
     private boolean neteaseReconnect;
     private String neteaseSkinIID;
@@ -566,6 +572,7 @@ public final class ClientChainData implements LoginChainData {
         if (skinToken.has("MemoryTier")) this.memoryTier = skinToken.get("MemoryTier").getAsInt();
         if (skinToken.has("MaxViewDistance")) this.maxViewDistance = skinToken.get("MaxViewDistance").getAsInt();
         if (skinToken.has("GraphicsMode")) this.graphicsMode = skinToken.get("GraphicsMode").getAsInt();
+        if (skinToken.has("PartyId")) this.partyId = skinToken.get("PartyId").getAsString();
 
         if (skinToken.has("IsReconnect")) this.neteaseReconnect = skinToken.get("IsReconnect").getAsBoolean();
         if (skinToken.has("SkinIID")) this.neteaseSkinIID = skinToken.get("SkinIID").getAsString();
