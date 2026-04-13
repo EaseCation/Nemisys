@@ -372,7 +372,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
         public void onSessionChangeState(RakNetState rakNetState) {
         }
 
-        @Override
+        //@Override // Community API compatibility
         public void onPreDisconnect(DisconnectReason reason) {
             this.readable = false;
 

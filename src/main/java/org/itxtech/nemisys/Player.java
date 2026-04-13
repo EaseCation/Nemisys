@@ -72,6 +72,15 @@ public class Player {
         return this.uuid;
     }
 
+    /**
+     * Community API compatibility.
+     * @deprecated Use {@link #getUniqueId()} instead.
+     */
+    @Deprecated
+    public UUID getUuid() {
+        return getUniqueId();
+    }
+
     public byte[] getRawUUID() {
         return this.rawUUID;
     }

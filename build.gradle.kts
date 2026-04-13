@@ -1,29 +1,215 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import com.github.jengelman.gradle.plugins.shadow.transformers.Log4j2PluginsCacheFileTransformer
+import org.gradle.api.publish.maven.MavenPublication
+
 plugins {
     application
-    id("ecbuild.java-conventions")
-    id("ecbuild.copy-conventions")
+    `java-library`
+    `maven-publish`
+    alias(libs.plugins.shadow)
     alias(libs.plugins.git)
+    alias(libs.plugins.versions)
 }
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    maven { url = uri("https://repo.opencollab.dev/maven-releases/") }
+    maven { url = uri("https://repo.opencollab.dev/maven-snapshots/") }
+}
+
+group = "org.itxtech.nemisys"
+description = "Nemisys"
 
 application {
     mainClass = "org.itxtech.nemisys.Nemisys"
 }
 
-extra.set("copyTo", listOf("proxy", "login-proxy"))
-
 gitProperties {
     dateFormat = "yyyy.MM.dd '@' HH:mm:ss z"
     failOnNoGitDirectory = false
-    dotGitDirectory = rootProject.file(".git")
+}
+
+val shadowJarTask = tasks.named<ShadowJar>("shadowJar")
+if (gradle.parent != null) {
+    val shadow = shadowJarTask.get()
+    val name = shadow.archiveBaseName.get()
+    val extension = shadow.archiveExtension.get()
+    val fileName = "$name.$extension"
+    val output = shadow.outputs.files.singleFile
+    val root = rootProject.projectDir.parentFile
+
+    val subtasks = listOf(File(root, "_proxy"), File(root, "_proxy0"), File(root, "_proxy1"))
+        .mapIndexed { idx, dest ->
+            tasks.register<Copy>("copyShadowJarSubtask$idx") {
+                from(output)
+                into(dest)
+                rename { fileName }
+                dependsOn(shadowJarTask)
+            }
+        }
+
+    tasks.register<DefaultTask>("copyShadowJar") {
+        group = "_ec"
+        subtasks.forEach { dependsOn(it) }
+    }
+
+    fun getBool(key: String, default: Boolean) =
+        runCatching { project.extra.get(key) }
+            .getOrNull()
+            ?.let {
+                if (it !is Boolean) throw GradleException("'copyToDeployTest' is not a Boolean")
+                it
+            }
+            ?: default
+
+    if (getBool("copyToDeployTest", default = true)) {
+        tasks.register<Copy>("copyToDeployTest") {
+            group = "_ec"
+            from(output)
+            into(File(root, "deploytest"))
+            rename { fileName }
+            dependsOn(shadowJarTask)
+        }
+    }
+
+    if (getBool("copyToDeploy", default = true)) {
+        tasks.register<Copy>("copyToDeploy") {
+            group = "_ec"
+            from(output)
+            into(File(root, "deploy"))
+            rename { fileName }
+            dependsOn(shadowJarTask)
+        }
+    }
+}
+
+// 给普通 jar 添加 classifier，避免与 shadow jar 混淆
+tasks.jar {
+    archiveClassifier.set("thin")
 }
 
 tasks.shadowJar {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
     manifest.attributes["Enable-Native-Access"] = "ALL-UNNAMED"
     manifest.attributes["Add-Opens"] = "java.base/jdk.internal.misc=ALL-UNNAMED java.base/java.nio=ALL-UNNAMED"
+    transform(Log4j2PluginsCacheFileTransformer::class.java) {}
+    mergeServiceFiles()
+    exclude("**/module-info.class")
+    exclude("freebsd/**/*")
+    exclude("aix/**/*")
+    arrayOf("arm", "armv6", "armv7", "ppc64", "ppc64le", "i386", "riscv64", "s390x", "loongarch64").forEach {
+        exclude("darwin/$it/**/*")
+        exclude("linux/$it/**/*")
+        exclude("win/$it/**/*")
+    }
+}
+
+val javaLanguageVersion = JavaLanguageVersion.of(21)
+the<JavaPluginExtension>().apply {
+    toolchain {
+        languageVersion = javaLanguageVersion
+    }
+}
+
+tasks.withType<JavaCompile> {
+    options.encoding = "UTF-8"
+}
+
+tasks.withType<Javadoc> {
+    options.encoding = "UTF-8"
+    // 忽略 javadoc 警告和错误，避免构建失败
+    (options as StandardJavadocDocletOptions).apply {
+        addStringOption("Xdoclint:none", "-quiet")
+        addStringOption("encoding", "UTF-8")
+        addStringOption("charSet", "UTF-8")
+    }
+    // 忽略 javadoc 错误
+    isFailOnError = false
+}
+
+// 创建源码 JAR 任务
+tasks.register<Jar>("sourcesJar") {
+    archiveClassifier.set("sources")
+    from(sourceSets["main"].allSource)
+}
+
+// 创建 Javadoc JAR 任务
+tasks.register<Jar>("javadocJar") {
+    archiveClassifier.set("javadoc")
+    from(tasks.javadoc.get().destinationDir)
+    dependsOn(tasks.javadoc)
+}
+
+publishing {
+    publications.create<MavenPublication>("maven") {
+        // 发布 shadow jar 作为主 artifact（包含所有依赖）
+        artifact(tasks.shadowJar.get()) {
+            // 空 classifier 表示这是主 artifact
+            classifier = ""
+        }
+
+        // 添加源码和文档 artifact
+        artifact(tasks["sourcesJar"])
+        artifact(tasks["javadocJar"])
+
+        // 手动设置 Maven 坐标
+        groupId = project.group.toString()
+        artifactId = project.name
+        version = project.version.toString()
+
+        // 配置 POM 元数据
+        pom {
+            name = "Nemisys"
+            description = "Nuclear-powered server software for Minecraft: Bedrock Edition - EaseCation Fork (Self-contained)"
+            url = "https://github.com/EaseCation/Nemisys"
+
+            licenses {
+                license {
+                    name = "GNU General Public License v3.0"
+                    url = "https://www.gnu.org/licenses/gpl-3.0.html"
+                }
+            }
+
+            developers {
+                developer {
+                    id = "easecation"
+                    name = "EaseCation Team"
+                    url = "https://github.com/EaseCation"
+                }
+            }
+
+            scm {
+                connection = "scm:git:git://github.com/EaseCation/Nemisys.git"
+                developerConnection = "scm:git:ssh://github.com/EaseCation/Nemisys.git"
+                url = "https://github.com/EaseCation/Nemisys"
+            }
+
+            // 自定义依赖列表：只包含 compile-only 依赖，排除所有运行时依赖
+            // 因为 shadow jar 已经包含了所有运行时依赖
+            withXml {
+                val dependenciesNode = asNode().appendNode("dependencies")
+
+                // 添加 compile-only 依赖（如 lombok、annotations 等）
+                configurations.compileOnly.get().allDependencies.forEach { dep ->
+                    if (dep.group != null && dep.name != "unspecified") {
+                        val dependencyNode = dependenciesNode.appendNode("dependency")
+                        dependencyNode.appendNode("groupId", dep.group)
+                        dependencyNode.appendNode("artifactId", dep.name)
+                        dependencyNode.appendNode("version", dep.version)
+                        dependencyNode.appendNode("scope", "provided")
+                    }
+                }
+
+                // 注意：不添加任何 api/implementation 依赖
+                // 它们都已经打包在 shadow jar 中了
+            }
+        }
+    }
 }
 
 dependencies {
-    api(project(":Network:raknet"))
+    api("com.nukkitx.network:raknet")
     api(libs.apache.commons.compress)
     api(libs.apache.commons.lang3)
     api(libs.commons.io)
@@ -43,13 +229,11 @@ dependencies {
     api(libs.lmax.disruptor)
     api(libs.lmbda)
     api(libs.log4j.core)
-    annotationProcessor(libs.log4j.core)
     api(libs.log4j.slf4j2)
     api(libs.maven.provider)
     api(libs.maven.connector)
     api(libs.maven.http)
     api(libs.minecrell.console)
-    api(libs.netty.all)
     api(libs.nukkitx.natives)
     api(libs.org.cloudburstmc.upnp)
     api(libs.slf4j.api)
@@ -57,7 +241,8 @@ dependencies {
     api(libs.snakeyaml.engine)
     api(libs.snappy)
     api(libs.zstd)
+    annotationProcessor(libs.lombok)
+    annotationProcessor(libs.log4j.core)
+    compileOnly(libs.lombok)
+    compileOnly(libs.javax.annotations)
 }
-
-group = "org.itxtech.nemisys"
-description = "Nemisys"

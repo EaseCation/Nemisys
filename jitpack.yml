@@ -1,0 +1,8 @@
+jdk:
+  - openjdk21
+
+before_install:
+  - git clone --depth=1 https://github.com/EaseCation/Network.git ../Network
+
+install:
+  - ./gradlew clean build publishToMavenLocal -x test
