@@ -29,7 +29,7 @@ jline-terminal-ffm = { module = "org.jline:jline-terminal-ffm", version.ref = "j
 jopt = { module = "net.sf.jopt-simple:jopt-simple", version = "5.0.4" }
 jwt = { module = "com.nimbusds:nimbus-jose-jwt", version = "10.5" }
 lmax-disruptor = { module = "com.lmax:disruptor", version = "4.0.0" }
-lmbda = { group = "org.lanternpowered", name = "lmbda", version = "2.0.0" }
+lmbda = { group = "org.lanternpowered", name = "lmbda", version = "3.0.0" }
 log4j-core = { module = "org.apache.logging.log4j:log4j-core", version.ref = "log4j" }
 log4j-slf4j2 = { module = "org.apache.logging.log4j:log4j-slf4j2-impl", version.ref = "log4j" }
 lombok = { module = "org.projectlombok:lombok", version = "1.18.42" }
