@@ -2,6 +2,7 @@ package org.itxtech.nemisys.network.protocol.mcpe;
 
 import org.itxtech.nemisys.network.CompressionAlgorithm;
 import org.itxtech.nemisys.network.Compressor;
+import org.itxtech.nemisys.network.protocol.spp.RedirectTraceData;
 import org.itxtech.nemisys.utils.BinaryStream;
 
 import javax.annotation.Nullable;
@@ -15,6 +16,7 @@ public abstract class DataPacket extends BinaryStream implements Cloneable {
     public volatile boolean isEncoded = false;
     private int channel = 0;
     public byte compressor = CompressionAlgorithm.ZLIB;
+    public RedirectTraceData traceData;
 
     public abstract int pid();
 

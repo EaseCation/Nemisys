@@ -549,6 +549,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                 batchPacket.setBuffer(packetBuffer, 1);
                 batchPacket.decode();
 
+                batchPacket.traceData = server.getLatencyTraceManager().markUpstreamReceive(this.player);
                 this.inbound.offer(batchPacket);
 
                 if (PACKET_RECORDER) {
@@ -577,6 +578,9 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
             List<DataPacket> toBatch = new ObjectArrayList<>();
             DataPacket packet;
             while ((packet = outbound.poll()) != null) {
+                if (packet.traceData != null) {
+                    packet.traceData = server.getLatencyTraceManager().markDownstreamFlush(this.player, packet.traceData);
+                }
                 if (packet.pid() == ProtocolInfo.BATCH_PACKET) {
                     if (!toBatch.isEmpty()) {
                         this.sendPackets(toBatch);

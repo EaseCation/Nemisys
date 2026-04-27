@@ -189,6 +189,7 @@ public class Client {
             case SynapseInfo.REDIRECT_PACKET:
                 RedirectPacket redirect = (RedirectPacket) packet;
                 Player player = this.players.get(redirect.sessionId);
+                this.server.getLatencyTraceManager().markDownstreamReceive(player, redirect.traceData);
                 if (player != null) {
                     byte[] buffer = redirect.mcpeBuffer;
                     DataPacket send;
@@ -209,6 +210,7 @@ public class Client {
                         //this.server.getLogger().info("len: " + redirect.mcpeBuffer.length + "  reliability: " + send.reliability.name() + "  channel: " + send.getChannel());
                     }
 
+                    send.traceData = this.server.getLatencyTraceManager().markDownstreamQueue(player, redirect.traceData);
                     player.sendDataPacket(send);
                     //this.server.getLogger().warning("Send to player: " + Binary.bytesToHexString(new byte[]{redirect.mcpeBuffer[0]}) + "  len: " + redirect.mcpeBuffer.length);
                 }/*else{

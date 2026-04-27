@@ -10,6 +10,7 @@ import org.itxtech.nemisys.network.protocol.mcpe.*;
 import org.itxtech.nemisys.network.protocol.spp.PlayerLoginPacket;
 import org.itxtech.nemisys.network.protocol.spp.PlayerLogoutPacket;
 import org.itxtech.nemisys.network.protocol.spp.RedirectPacket;
+import org.itxtech.nemisys.network.protocol.spp.RedirectTraceData;
 import org.itxtech.nemisys.scheduler.AsyncTask;
 import org.itxtech.nemisys.utils.*;
 
@@ -111,7 +112,9 @@ public class Player {
                     }
                     this.getServer().getNetwork().processBatch((BatchPacket) packet, this, compressor);
                 } else if (this.client != null) {
-                    this.redirectPacket(packet.getBuffer(), packet.compressor);
+                    RedirectTraceData traceData = this.server.getLatencyTraceManager().markUpstreamProcess(this, packet.traceData);
+                    traceData = this.server.getLatencyTraceManager().markUpstreamSend(this, traceData);
+                    this.redirectPacket(packet.getBuffer(), packet.compressor, traceData);
                 }
                 break;
             case ProtocolInfo.REQUEST_NETWORK_SETTINGS_PACKET: // 1.19.30+
@@ -267,11 +270,16 @@ public class Player {
     }
 
     public void redirectPacket(byte[] buffer, byte compressionAlgorithm) {
+        this.redirectPacket(buffer, compressionAlgorithm, null);
+    }
+
+    public void redirectPacket(byte[] buffer, byte compressionAlgorithm, RedirectTraceData traceData) {
         RedirectPacket pk = new RedirectPacket();
         pk.protocol = this.protocol;
         pk.sessionId = this.sessionId;
         pk.mcpeBuffer = buffer;
         pk.compressionAlgorithm = compressionAlgorithm;
+        pk.traceData = traceData;
         this.client.sendDataPacket(pk);
     }
 

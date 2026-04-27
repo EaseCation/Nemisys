@@ -18,6 +18,7 @@ import org.itxtech.nemisys.lang.TranslationContainer;
 import org.itxtech.nemisys.math.Mth;
 import org.itxtech.nemisys.math.NemisysMath;
 import org.itxtech.nemisys.network.*;
+import org.itxtech.nemisys.network.latency.NemisysLatencyTraceManager;
 import org.itxtech.nemisys.network.protocol.mcpe.DataPacket;
 import org.itxtech.nemisys.network.query.QueryHandler;
 import org.itxtech.nemisys.network.rcon.RCON;
@@ -88,6 +89,8 @@ public class Server {
     private Synapse synapse;
     private final Thread currentThread;
     private Watchdog watchdog;
+    @Getter
+    private final NemisysLatencyTraceManager latencyTraceManager = new NemisysLatencyTraceManager();
     private final boolean enableJmxMonitoring;
     /**
      * 过去 100 tick 的耗时 (ns). 用于 JMX Monitoring.
