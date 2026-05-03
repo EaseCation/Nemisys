@@ -275,6 +275,11 @@ public final class ClientChainData implements LoginChainData {
     }
 
     @Override
+    public boolean isPartyLeader() {
+        return partyLeader;
+    }
+
+    @Override
     public boolean isNetEaseReconnect() {
         return neteaseReconnect;
     }
@@ -392,6 +397,7 @@ public final class ClientChainData implements LoginChainData {
     private int maxViewDistance;
     private int graphicsMode;
     private String partyId;
+    private boolean partyLeader;
 
     private boolean neteaseReconnect;
     private String neteaseSkinIID;
@@ -426,7 +432,7 @@ public final class ClientChainData implements LoginChainData {
         int size = bs.getLInt();
         String json = new String(bs.get(size), StandardCharsets.UTF_8);
         Map<String, ?> root = JsonUtil.GSON.fromJson(json, new TypeToken<Map<String, ?>>(){}.getType());
-        if (root.isEmpty()) {
+        if (root == null || root.isEmpty()) {
             return;
         }
 
@@ -460,7 +466,7 @@ public final class ClientChainData implements LoginChainData {
             this.certificate = cert;
 
             Map<String, List<String>> map = JsonUtil.GSON.fromJson(cert, new TypeToken<Map<String, List<String>>>(){}.getType());
-            if (map.isEmpty() || (chains = map.get("chain")) == null || chains.isEmpty()) {
+            if (map == null || map.isEmpty() || (chains = map.get("chain")) == null || chains.isEmpty()) {
                 return;
             }
         } else {
@@ -573,6 +579,7 @@ public final class ClientChainData implements LoginChainData {
         if (skinToken.has("MaxViewDistance")) this.maxViewDistance = skinToken.get("MaxViewDistance").getAsInt();
         if (skinToken.has("GraphicsMode")) this.graphicsMode = skinToken.get("GraphicsMode").getAsInt();
         if (skinToken.has("PartyId")) this.partyId = skinToken.get("PartyId").getAsString();
+        if (skinToken.has("IsPartyLeader")) this.partyLeader = skinToken.get("IsPartyLeader").getAsBoolean();
 
         if (skinToken.has("IsReconnect")) this.neteaseReconnect = skinToken.get("IsReconnect").getAsBoolean();
         if (skinToken.has("SkinIID")) this.neteaseSkinIID = skinToken.get("SkinIID").getAsString();

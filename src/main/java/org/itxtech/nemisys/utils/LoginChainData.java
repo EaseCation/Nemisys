@@ -81,6 +81,8 @@ public interface LoginChainData {
 
     String getPartyId();
 
+    boolean isPartyLeader();
+
     boolean isNetEaseReconnect();
 
     String getNetEaseSkinIID();
