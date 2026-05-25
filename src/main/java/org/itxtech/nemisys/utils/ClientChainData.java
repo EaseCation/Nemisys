@@ -245,6 +245,16 @@ public final class ClientChainData implements LoginChainData {
     }
 
     @Override
+    public boolean isEditorCapable() {
+        return editorCapable;
+    }
+
+    @Override
+    public int isEditorConnectionIntent() {
+        return editorConnectionIntent;
+    }
+
+    @Override
     public boolean isSupportClientChunkGeneration() {
         return supportClientChunkGeneration;
     }
@@ -391,6 +401,8 @@ public final class ClientChainData implements LoginChainData {
     private String platformOfflineId;
     private String platformOnlineId;
     private boolean editorMode;
+    private boolean editorCapable;
+    private int editorConnectionIntent;
     private boolean supportClientChunkGeneration;
     private int platformType;
     private int memoryTier;
@@ -398,6 +410,7 @@ public final class ClientChainData implements LoginChainData {
     private int graphicsMode;
     private String partyId;
     private boolean partyLeader;
+    private boolean filterProfanity;
 
     private boolean neteaseReconnect;
     private String neteaseSkinIID;
@@ -580,6 +593,9 @@ public final class ClientChainData implements LoginChainData {
         if (skinToken.has("GraphicsMode")) this.graphicsMode = skinToken.get("GraphicsMode").getAsInt();
         if (skinToken.has("PartyId")) this.partyId = skinToken.get("PartyId").getAsString();
         if (skinToken.has("IsPartyLeader")) this.partyLeader = skinToken.get("IsPartyLeader").getAsBoolean();
+        if (skinToken.has("FilterProfanity")) this.filterProfanity = skinToken.get("FilterProfanity").getAsBoolean();
+        if (skinToken.has("ClientIsEditorCapable")) this.editorCapable = skinToken.get("ClientIsEditorCapable").getAsBoolean();
+        if (skinToken.has("ClientEditorConnectionIntent")) this.editorConnectionIntent = skinToken.get("ClientEditorConnectionIntent").getAsInt();
 
         if (skinToken.has("IsReconnect")) this.neteaseReconnect = skinToken.get("IsReconnect").getAsBoolean();
         if (skinToken.has("SkinIID")) this.neteaseSkinIID = skinToken.get("SkinIID").getAsString();

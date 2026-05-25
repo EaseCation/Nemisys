@@ -69,6 +69,10 @@ public interface LoginChainData {
 
     boolean isEditorMode();
 
+    boolean isEditorCapable();
+
+    int isEditorConnectionIntent();
+
     boolean isSupportClientChunkGeneration();
 
     int getPlatformType();
