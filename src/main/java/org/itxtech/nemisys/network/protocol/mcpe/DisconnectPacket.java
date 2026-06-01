@@ -1,6 +1,7 @@
 package org.itxtech.nemisys.network.protocol.mcpe;
 
 import lombok.ToString;
+import org.itxtech.nemisys.utils.TextFormat;
 
 /**
  * Created by on 15-10-12.
@@ -192,9 +193,9 @@ public class DisconnectPacket extends DataPacket {
             this.putBoolean(this.hideDisconnectionScreen);
         }
         if (!this.hideDisconnectionScreen) {
-            this.putString(this.message);
+            this.putString(!netease && protocol >= 823 ? TextFormat.clean(this.message) : this.message);
             if (protocol >= 705) {
-                this.putString(this.filteredMessage);
+                this.putString(!netease && protocol >= 823 ? TextFormat.clean(this.filteredMessage) : this.filteredMessage);
             }
         }
     }
