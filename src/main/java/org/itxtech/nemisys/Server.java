@@ -83,7 +83,7 @@ public class Server {
     private final Map<InetSocketAddress, Player> players = new Object2ObjectOpenHashMap<>();
     private final SynapseInterface synapseInterface;
     private final Map<String, Client> clients = new Object2ObjectOpenHashMap<>();
-    private ClientData clientData = new ClientData();
+    private volatile ClientData clientData = new ClientData();
     private final Map<String, Client> mainClients = new Object2ObjectOpenHashMap<>();
     private Synapse synapse;
     private final Thread currentThread;
@@ -311,6 +311,7 @@ public class Server {
     public void removeClient(Client client) {
         if (this.clients.remove(client.getHash()) != null) {
             this.mainClients.remove(client.getHash());
+            this.updateClientData();
         }
     }
 
@@ -323,15 +324,13 @@ public class Server {
     }
 
     public void updateClientData() {
-        if (!this.clients.isEmpty()) {
-            ClientData clientData = new ClientData();
-            for (Client client : this.clients.values()) {
-                ClientData.Entry entry = new Entry(client.getIp(), client.getPort(), client.getPlayers().size(),
-                        client.getMaxPlayers(), client.getDescription());
-                clientData.clientList.put(client.getHash(), entry);
-            }
-            this.clientData = clientData;
+        ClientData clientData = new ClientData();
+        for (Client client : this.clients.values()) {
+            ClientData.Entry entry = new Entry(client.getIp(), client.getPort(), client.getPlayers().size(),
+                    client.getMaxPlayers(), client.getDescription());
+            clientData.clientList.put(client.getHash(), entry);
         }
+        this.clientData = clientData;
     }
 
     public boolean comparePassword(String pass) {
