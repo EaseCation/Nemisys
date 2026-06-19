@@ -138,7 +138,7 @@ public class Server {
                 put("plus-one-max-count", false);
                 put("dynamic-player-count", false);
                 put("enable-upnp", false);
-                put("enable-query", true);
+                put("enable-query", false);
                 put("enable-rcon", false);
                 put("rcon.password", Base64.getEncoder().encodeToString(UUID.randomUUID().toString().replace("-", "").getBytes()).substring(3, 13));
                 put("debug", 1);
@@ -147,7 +147,7 @@ public class Server {
                 put("xbox-auth", true);
                 put("enable-jmx-monitoring", false);
                 put("enable-network-encryption", true);
-                put("network-compression-level", 7);
+                put("network-compression-level", 1);
                 put("compression-algorithm", "snappy");
                 put("packet-recorder-capability", false);
             }
@@ -159,7 +159,7 @@ public class Server {
                 .password(getPropertyString("password", "1234567890123456"))
                 .motd(getPropertyString("motd", "Nemisys Server"))
                 .plusOneMaxCount(getPropertyBoolean("plus-one-max-count", false))
-                .xboxAuth(getPropertyBoolean("xbox-auth", false))
+                .xboxAuth(getPropertyBoolean("xbox-auth", true))
                 .disableRaknet(getPropertyBoolean("disable-raknet", false))
                 .compressionAlgorithm(Compressor.getAlgorithmByName(getPropertyString("compression-algorithm", "snappy")))
                 .build();
@@ -237,7 +237,7 @@ public class Server {
         this.queryRegenerateEvent = new QueryRegenerateEvent(this, 5);
 
         this.networkEncryptionEnabled = this.getPropertyBoolean("enable-network-encryption");
-        this.networkCompressionLevel = Mth.clamp(this.getPropertyInt("network-compression-level", 7), Deflater.BEST_SPEED, Deflater.BEST_COMPRESSION);
+        this.networkCompressionLevel = Mth.clamp(this.getPropertyInt("network-compression-level", 1), Deflater.BEST_SPEED, Deflater.BEST_COMPRESSION);
 
         Compressor compressor = Compressor.get(configuration.getCompressionAlgorithm());
         if (compressor != Compressor.SNAPPY) {
@@ -459,7 +459,7 @@ public class Server {
             log.debug("UPnP is disabled.");
         }
 
-        if (this.getPropertyBoolean("enable-query", true)) {
+        if (this.getPropertyBoolean("enable-query", false)) {
             this.queryHandler = new QueryHandler();
         }
 
