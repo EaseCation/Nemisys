@@ -1,5 +1,5 @@
 [versions]
-jackson = "2.21.4"
+jackson = "2.22.0"
 jackson3 = "3.1.4"
 log4j = "2.26.0"
 jline = "4.2.1"
