@@ -119,7 +119,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                 for (NemisysRakNetSession session : sessionsToTick.get()) {
                     session.sendOutbound();
                 }
-            }, 0, 50, TimeUnit.MILLISECONDS));
+            }, 0, 10, TimeUnit.MILLISECONDS));
         }
     }
 
