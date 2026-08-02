@@ -3,9 +3,12 @@ package org.itxtech.nemisys.event.player;
 import org.itxtech.nemisys.Player;
 import org.itxtech.nemisys.event.Event;
 import org.itxtech.nemisys.event.HandlerList;
+import org.itxtech.nemisys.network.Compressor;
+import org.itxtech.nemisys.network.NetworkSession;
 import org.itxtech.nemisys.network.SourceInterface;
 
 import java.net.InetSocketAddress;
+import java.util.Objects;
 
 /**
  * @author CreeperFace
@@ -24,17 +27,13 @@ public class PlayerCreationEvent extends Event {
 
     private final InetSocketAddress socketAddress;
 
-    private Class<? extends Player> baseClass;
+    private PlayerFactory playerFactory;
 
-    private Class<? extends Player> playerClass;
-
-    public PlayerCreationEvent(SourceInterface interfaz, Class<? extends Player> baseClass, Class<? extends Player> playerClass, long clientId, InetSocketAddress socketAddress) {
+    public PlayerCreationEvent(SourceInterface interfaz, PlayerFactory playerFactory, long clientId, InetSocketAddress socketAddress) {
         this.interfaz = interfaz;
         this.clientId = clientId;
         this.socketAddress = socketAddress;
-
-        this.baseClass = baseClass;
-        this.playerClass = playerClass;
+        this.playerFactory = playerFactory;
     }
 
     public SourceInterface getInterface() {
@@ -57,19 +56,17 @@ public class PlayerCreationEvent extends Event {
         return clientId;
     }
 
-    public Class<? extends Player> getBaseClass() {
-        return baseClass;
+    public PlayerFactory getPlayerFactory() {
+        return playerFactory;
     }
 
-    public void setBaseClass(Class<? extends Player> baseClass) {
-        this.baseClass = baseClass;
+    public void setPlayerFactory(PlayerFactory playerFactory) {
+        Objects.requireNonNull(playerFactory, "constructor");
+        this.playerFactory = playerFactory;
     }
 
-    public Class<? extends Player> getPlayerClass() {
-        return playerClass;
-    }
-
-    public void setPlayerClass(Class<? extends Player> playerClass) {
-        this.playerClass = playerClass;
+    @FunctionalInterface
+    public interface PlayerFactory {
+        Player create(NetworkSession session, long clientId, InetSocketAddress socketAddress, Compressor compressor);
     }
 }

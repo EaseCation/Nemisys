@@ -95,7 +95,7 @@ public class Player {
         }
 
         if (!loginVerified && !packet.canBeSentBeforeLogin() && ++unverifiedPackets > 8) {
-            this.close("Too many failed login attempts");
+            this.close("Too many failed login attempts", "disconnectionScreen.unexpectedPacket", false);
             return;
         }
 
@@ -127,7 +127,7 @@ public class Player {
                 break;
             case ProtocolInfo.LOGIN_PACKET:
                 if (this.loginPacketReceived) {
-                    this.close("Invalid login packet");
+                    this.close("Invalid login packet", "disconnectionScreen.unexpectedPacket", false);
                     break;
                 }
                 this.loginPacketReceived = true;
@@ -186,7 +186,7 @@ public class Player {
                 break;
             case ProtocolInfo.CLIENT_TO_SERVER_HANDSHAKE_PACKET:
                 if (!this.awaitingEncryptionHandshake) {
-                    this.close("Invalid encryption handshake");
+                    this.close("Invalid encryption handshake", "disconnectionScreen.unexpectedPacket", false);
                     break;
                 }
 
@@ -369,14 +369,22 @@ public class Player {
     }
 
     public void close() {
-        this.close("Generic Reason");
+        this.close("disconnectionScreen.noReason");
     }
 
-    public void close(String reason) {
-        this.close(reason, true);
+    public void close(String message) {
+        this.close(message, true);
     }
 
-    public void close(String reason, boolean notify) {
+    public void close(String message, String reason) {
+        this.close(message, reason, true);
+    }
+
+    public void close(String message, boolean notify) {
+        this.close(message, message, notify);
+    }
+
+    public void close(String message, String reason, boolean notify) {
         if (!this.closed) {
             session.closeReader();
 
@@ -393,7 +401,7 @@ public class Player {
             if (this.client != null) {
                 PlayerLogoutPacket pk = new PlayerLogoutPacket();
                 pk.sessionId = sessionId;
-                pk.reason = reason;
+                pk.reason = message;
                 this.client.sendDataPacket(pk);
                 this.client.removePlayer(this);
             }
@@ -402,7 +410,7 @@ public class Player {
                     TextFormat.AQUA + this.getName() + TextFormat.WHITE,
                     this.getIp(),
                     String.valueOf(this.getPort()),
-                    this.getServer().getLanguage().translateString(reason)
+                    this.getServer().getLanguage().translateString(message)
             }));
 
             Server.getInstance().getScheduler().scheduleDelayedTask(() -> this.session.close(notify ? reason : ""), 2);

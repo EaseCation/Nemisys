@@ -7,8 +7,8 @@ import org.itxtech.nemisys.Nemisys;
 import org.itxtech.nemisys.Player;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.event.synapse.player.SynapsePlayerCreationEvent;
+import org.itxtech.nemisys.event.synapse.player.SynapsePlayerCreationEvent.SynapsePlayerFactory;
 import org.itxtech.nemisys.network.Compressor;
-import org.itxtech.nemisys.network.NetworkSession;
 import org.itxtech.nemisys.network.protocol.mcpe.DataPacket;
 import org.itxtech.nemisys.network.protocol.spp.*;
 import org.itxtech.nemisys.synapse.network.SynLibInterface;
@@ -17,8 +17,6 @@ import org.itxtech.nemisys.synapse.network.SynapseNetworkSession;
 import org.itxtech.nemisys.utils.ClientData;
 import org.itxtech.nemisys.utils.ClientData.Entry;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
@@ -264,20 +262,20 @@ public class SynapseEntry {
                 PlayerLoginPacket playerLoginPacket = (PlayerLoginPacket) pk;
 
                 InetSocketAddress socketAddress = InetSocketAddress.createUnresolved(playerLoginPacket.address, playerLoginPacket.port);
-                SynapsePlayerCreationEvent ev = new SynapsePlayerCreationEvent(this.synLibInterface, SynapsePlayer.class, SynapsePlayer.class, ThreadLocalRandom.current().nextLong(), socketAddress);
-                this.getSynapse().getServer().getPluginManager().callEvent(ev);
-                Class<? extends SynapsePlayer> clazz = ev.getPlayerClass();
+                SynapsePlayerCreationEvent ev = new SynapsePlayerCreationEvent(this.synLibInterface, SynapsePlayer::new, ThreadLocalRandom.current().nextLong(), socketAddress);
                 try {
-                    Constructor<?> constructor = clazz.getConstructor(NetworkSession.class, SynapseEntry.class, Long.class, InetSocketAddress.class, Compressor.class);
+                    this.getSynapse().getServer().getPluginManager().callEvent(ev);
+                    SynapsePlayerFactory playerFactory = ev.getPlayerFactory();
+
                     SynapseNetworkSession session = new SynapseNetworkSession(synLibInterface);
-                    SynapsePlayer player = (SynapsePlayer) constructor.newInstance(session, this, ev.getClientId(), ev.getSocketAddress(),
+                    SynapsePlayer player = playerFactory.create(session, this, ev.getClientId(), ev.getSocketAddress(),
                             playerLoginPacket.protocol >= 407 ? Compressor.ZLIB_RAW : Compressor.ZLIB);
                     session.setPlayer(player);
                     player.setUniqueId(playerLoginPacket.uuid);
                     this.players.put(playerLoginPacket.sessionId, player);
                     this.getSynapse().getServer().addPlayer(socketAddress, player);
                     player.handleLoginPacket(playerLoginPacket);
-                } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
+                } catch (Exception e) {
                     Server.getInstance().getLogger().logException(e);
                 }
                 break;
@@ -300,7 +298,7 @@ public class SynapseEntry {
                 UUID sessionId = playerLogoutPacket.sessionId;
                 player = this.players.get(sessionId);
                 if (player != null) {
-                    player.close(playerLogoutPacket.reason, true);
+                    player.close(playerLogoutPacket.reason);
                     this.removePlayer(sessionId);
                 }
                 break;

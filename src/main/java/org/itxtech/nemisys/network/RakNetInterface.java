@@ -25,6 +25,7 @@ import org.apache.logging.log4j.message.FormattedMessage;
 import org.itxtech.nemisys.Player;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.event.player.PlayerCreationEvent;
+import org.itxtech.nemisys.event.player.PlayerCreationEvent.PlayerFactory;
 import org.itxtech.nemisys.event.server.*;
 import org.itxtech.nemisys.network.protocol.mcpe.*;
 import org.itxtech.nemisys.utils.Binary;
@@ -37,8 +38,6 @@ import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.security.auth.DestroyFailedException;
 import java.io.IOException;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -109,10 +108,10 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
         InetSocketAddress bindAddress = new InetSocketAddress(Strings.isNullOrEmpty(this.server.getIp()) ? "0.0.0.0" : this.server.getIp(), this.server.getPort());
 
         this.raknet = new RakNetServer(bindAddress, Runtime.getRuntime().availableProcessors());
-        this.raknet.setMaxConnections(-1);
+        this.raknet.setMaxConnections(0);
 //        this.customRakNetServer(raknet);
-        this.raknet.bind().join();
         this.raknet.setListener(this);
+        this.raknet.bind().join();
 
         for (EventExecutor executor : this.raknet.getBootstrap().config().group()) {
             this.tickFutures.add(executor.scheduleAtFixedRate(() -> {
@@ -135,17 +134,16 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
             session.lastPacketBudgetUpdateTimeNs = System.nanoTime();
 
             InetSocketAddress address = session.raknet.getAddress();
-            PlayerCreationEvent ev = new PlayerCreationEvent(this, Player.class, Player.class, -1, address);
-            this.server.getPluginManager().callEvent(ev);
-            Class<? extends Player> clazz = ev.getPlayerClass();
-
+            PlayerCreationEvent ev = new PlayerCreationEvent(this, Player::new, -1, address);
             try {
-                Constructor<? extends Player> constructor = clazz.getConstructor(NetworkSession.class, long.class, InetSocketAddress.class, Compressor.class);
-                Player player = constructor.newInstance(session, ev.getClientId(), ev.getSocketAddress(), session.initCompression.compressor);
+                this.server.getPluginManager().callEvent(ev);
+                PlayerFactory factory = ev.getPlayerFactory();
+
+                Player player = factory.create(session, ev.getClientId(), ev.getSocketAddress(), session.initCompression.compressor);
                 this.server.addPlayer(address, player);
                 session.player = player;
                 this.sessions.put(address, session);
-            } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
+            } catch (Exception e) {
                 Server.getInstance().getLogger().logException(e);
             }
         }
@@ -155,9 +153,9 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
             NemisysRakNetSession nemisysSession = iterator.next();
             Player player = nemisysSession.player;
 
-            String disconnectReason = nemisysSession.disconnectReason;
-            if (disconnectReason != null) {
-                player.close(disconnectReason, false);
+            Disconnection disconnection = nemisysSession.disconnection;
+            if (disconnection != null) {
+                player.close(disconnection.message, disconnection.reason, false);
                 iterator.remove();
                 continue;
             }
@@ -304,7 +302,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
         private final Queue<DataPacket> outbound = PlatformDependent.newMpscQueue();
         private volatile boolean readable = true;
         @Nullable
-        private volatile String disconnectReason;
+        private volatile Disconnection disconnection;
         private Player player;
 
         private final Compression initCompression;
@@ -388,9 +386,9 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
         @Override
         public void onDisconnect(DisconnectReason disconnectReason) {
             if (disconnectReason == DisconnectReason.TIMED_OUT) {
-                this.disconnect("Timed out");
+                this.disconnect("Timed out", "disconnectionScreen.timeout");
             } else {
-                this.disconnect("Disconnected from Server");
+                this.disconnect("Disconnected from Server", "disconnectionScreen.disconnected");
             }
 
             Encryption encryption = this.encryption;
@@ -423,7 +421,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
             int size = buffer.readableBytes();
             if (size >= Compressor.MAX_SIZE) {
                 this.readable = false;
-                this.disconnect("Packet content exceeds maximum size");
+                this.disconnect("Packet content exceeds maximum size", "disconnect.overflow");
                 log.debug("[{}] Packet size exceeds limit: {}", raknet.getAddress(), size);
                 server.getPluginManager().callEvent(new RakNetExceptionEvent(raknet.getAddress(), "batch_size"));
                 return;
@@ -442,7 +440,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                         decryptCipher.update(inBuffer, outBuffer);
                     } catch (GeneralSecurityException e) {
                         this.readable = false;
-                        this.disconnect("Bad decrypt");
+                        this.disconnect("Bad decrypt", "disconnectionScreen.unexpectedPacket");
                         log.debug("[{}] Unable to decrypt packet", raknet.getAddress(), e);
                         server.getPluginManager().callEvent(new RakNetExceptionEvent(raknet.getAddress(), "decrypt"));
                         return;
@@ -457,7 +455,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                         buffer.readBytes(checksum);
                     } catch (Exception e) {
                         this.readable = false;
-                        this.disconnect("Bad checksum");
+                        this.disconnect("Bad checksum", "disconnectionScreen.unexpectedPacket");
                         log.debug("[{}] Unable to verify checksum", raknet.getAddress(), e);
                         server.getPluginManager().callEvent(new RakNetExceptionEvent(raknet.getAddress(), "checksum_corrupt"));
                         return;
@@ -467,7 +465,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                     byte[] expected = calculateChecksum(count, payload, encryption.secretKey);
                     if (!Arrays.equals(checksum, expected)) {
                         this.readable = false;
-                        this.disconnect("Invalid checksum");
+                        this.disconnect("Invalid checksum", "disconnectionScreen.unexpectedPacket");
                         log.debug("[{}] Encrypted packet {} has invalid checksum (expected {}, got {})", raknet.getAddress(),
                                 count, Binary.bytesToHexString(expected), Binary.bytesToHexString(checksum));
                         server.getPluginManager().callEvent(new RakNetExceptionEvent(raknet.getAddress(), "checksum_mismatch"));
@@ -493,7 +491,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                     if (incomingPacketBatchBudget <= 0) {
                         this.readable = false;
                         log.warn("{} receiving packets too fast", raknet.getAddress());
-                        this.disconnect("Receiving packets too fast");
+                        this.disconnect("Receiving packets too fast", "disconnectionScreen.connectionLost");
                         server.getPluginManager().callEvent(new RakNetExceptionEvent(raknet.getAddress(), "batch_fast"));
                         return;
                     }
@@ -509,7 +507,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                     compressionAlgorithm = buffer.readByte();
                     if (compressionAlgorithm < CompressionAlgorithm.NONE || compressionAlgorithm > CompressionAlgorithm.SNAPPY) {
                         this.readable = false;
-                        this.disconnect("Unknown compression algorithm");
+                        this.disconnect("Unknown compression algorithm", "disconnectionScreen.unexpectedPacket");
                         log.debug("[{}] Unknown compression algorithm: {}", raknet.getAddress(), compressionAlgorithm);
                         server.getPluginManager().callEvent(new RakNetExceptionEvent(raknet.getAddress(), "decompress"));
                         return;
@@ -567,8 +565,8 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
             // We don't allow any direct packets so ignore.
         }
 
-        private void disconnect(String message) {
-            this.disconnectReason = message;
+        private void disconnect(String message, String reason) {
+            this.disconnection = new Disconnection(message, reason);
             RakNetInterface.this.sessionsToTick.get().remove(this);
         }
 
@@ -763,5 +761,8 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
     }
 
     private record Compression(Compressor compressor, boolean dynamicCompressor) {
+    }
+
+    private record Disconnection(String message, String reason) {
     }
 }

@@ -345,7 +345,7 @@ public class Client {
                 PlayerLogoutPacket playerLogoutPacket = (PlayerLogoutPacket) packet;
                 player = this.players.get(playerLogoutPacket.sessionId);
                 if (player != null) {
-                    player.close(playerLogoutPacket.reason, true);
+                    player.close(playerLogoutPacket.reason);
                 }
                 break;
             default:

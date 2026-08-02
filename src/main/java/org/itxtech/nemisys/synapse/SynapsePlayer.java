@@ -88,12 +88,12 @@ public class SynapsePlayer extends Player {
     }
 
     @Override
-    public void close(String reason, boolean notify) {
-        super.close(reason, notify);
+    public void close(String message, String reason, boolean notify) {
+        super.close(message, reason, notify);
         if (this.synapseEntry != null) {
             PlayerLogoutPacket playerLogoutPacket = new PlayerLogoutPacket();
             playerLogoutPacket.sessionId = this.getSessionId();
-            playerLogoutPacket.reason = reason;
+            playerLogoutPacket.reason = message;
             this.synapseEntry.sendDataPacket(playerLogoutPacket);
         }
     }

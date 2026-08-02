@@ -247,12 +247,12 @@ public class Network {
         try {
             valid = processBatch(packet.payload, packets, compressor);
         } catch (ProtocolException e) {
-            player.close(e.getMessage());
+            player.close(e.getMessage(), "disconnectionScreen.unexpectedPacket", false);
             log.error("Unable to process player packets ", e);
             return;
         }
         if (!valid) {
-            player.close("malformed packet");
+            player.close("malformed packet", "disconnectionScreen.unexpectedPacket", false);
             return;
         }
         processPackets(player, packets);
