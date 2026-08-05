@@ -118,4 +118,17 @@ public interface LoginChainData {
     default String getViaProxyAuthToken() {
         return null;
     }
+
+    /**
+     * 返回已由 ViaProxyAuth 插件验证过的 Java 客户端来源 IP。
+     */
+    default String getTrustedViaProxyClientIp() {
+        return null;
+    }
+
+    /**
+     * 仅供认证插件在 HMAC 校验成功后写入可信来源 IP。
+     */
+    default void setTrustedViaProxyClientIp(String clientIp) {
+    }
 }

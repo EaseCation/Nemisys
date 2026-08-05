@@ -364,6 +364,16 @@ public final class ClientChainData implements LoginChainData {
         return viaProxyAuthToken;
     }
 
+    @Override
+    public String getTrustedViaProxyClientIp() {
+        return trustedViaProxyClientIp;
+    }
+
+    @Override
+    public void setTrustedViaProxyClientIp(String clientIp) {
+        this.trustedViaProxyClientIp = clientIp;
+    }
+
     ///////////////////////////////////////////////////////////////////////////
     // Internal
     ///////////////////////////////////////////////////////////////////////////
@@ -432,6 +442,7 @@ public final class ClientChainData implements LoginChainData {
     private String sandboxId;
 
     private String viaProxyAuthToken;
+    private transient String trustedViaProxyClientIp;
 
     private transient final BinaryStream bs;
 
