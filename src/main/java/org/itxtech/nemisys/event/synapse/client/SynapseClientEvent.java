@@ -5,5 +5,5 @@ import org.itxtech.nemisys.event.synapse.SynapseEvent;
 /**
  * Created by boybook on 16/6/25.
  */
-public class SynapseSlientEvent extends SynapseEvent {
+public abstract class SynapseClientEvent extends SynapseEvent {
 }

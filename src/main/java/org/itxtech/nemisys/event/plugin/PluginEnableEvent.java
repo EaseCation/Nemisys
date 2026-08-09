@@ -1,5 +1,6 @@
 package org.itxtech.nemisys.event.plugin;
 
+import org.itxtech.nemisys.event.HandlerList;
 import org.itxtech.nemisys.plugin.Plugin;
 
 /**
@@ -8,7 +9,13 @@ import org.itxtech.nemisys.plugin.Plugin;
  */
 public class PluginEnableEvent extends PluginEvent {
 
+    private static final HandlerList handlers = new HandlerList();
+
     public PluginEnableEvent(Plugin plugin) {
         super(plugin);
+    }
+
+    public static HandlerList getHandlers() {
+        return handlers;
     }
 }

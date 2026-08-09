@@ -290,6 +290,11 @@ public final class ClientChainData implements LoginChainData {
     }
 
     @Override
+    public boolean isFilterProfanity() {
+        return filterProfanity;
+    }
+
+    @Override
     public boolean isNetEaseReconnect() {
         return neteaseReconnect;
     }
@@ -302,11 +307,6 @@ public final class ClientChainData implements LoginChainData {
     @Override
     public int getNetEaseGrowthLevel() {
         return neteaseGrowthLevel;
-    }
-
-    @Override
-    public String getNetEaseBloomData() {
-        return neteaseBloomData;
     }
 
     @Override
@@ -425,7 +425,6 @@ public final class ClientChainData implements LoginChainData {
     private boolean neteaseReconnect;
     private String neteaseSkinIID;
     private int neteaseGrowthLevel;
-    private String neteaseBloomData;
 
     private int authenticationType = -1;
 
@@ -611,7 +610,6 @@ public final class ClientChainData implements LoginChainData {
         if (skinToken.has("IsReconnect")) this.neteaseReconnect = skinToken.get("IsReconnect").getAsBoolean();
         if (skinToken.has("SkinIID")) this.neteaseSkinIID = skinToken.get("SkinIID").getAsString();
         if (skinToken.has("GrowthLevel")) this.neteaseGrowthLevel = skinToken.get("GrowthLevel").getAsInt();
-        if (skinToken.has("BloomData")) this.neteaseBloomData = skinToken.get("BloomData").getAsString();
 
         if (skinToken.has("ViaProxyAuthToken")) this.viaProxyAuthToken = skinToken.get("ViaProxyAuthToken").getAsString();
     }

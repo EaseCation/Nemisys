@@ -87,13 +87,13 @@ public interface LoginChainData {
 
     boolean isPartyLeader();
 
+    boolean isFilterProfanity();
+
     boolean isNetEaseReconnect();
 
     String getNetEaseSkinIID();
 
     int getNetEaseGrowthLevel();
-
-    String getNetEaseBloomData();
 
     int getAuthenticationType();
 
