@@ -9,7 +9,7 @@ application {
     mainClass = "org.itxtech.nemisys.Nemisys"
 }
 
-extra.set("copyTo", listOf("proxy", "login-proxy"))
+extra.set("copyTo", listOf("proxy", "login-proxy", "proxy1"))
 
 gitProperties {
     dateFormat = "yyyy.MM.dd '@' HH:mm:ss z"

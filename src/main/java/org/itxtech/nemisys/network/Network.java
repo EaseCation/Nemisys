@@ -10,6 +10,7 @@ import org.itxtech.nemisys.Nemisys;
 import org.itxtech.nemisys.Player;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.network.protocol.mcpe.*;
+import org.itxtech.nemisys.scheduler.AsyncTask;
 import org.itxtech.nemisys.utils.*;
 import io.netty.buffer.ByteBuf;
 
@@ -241,21 +242,36 @@ public class Network {
         return server;
     }
 
-    public void processBatch(BatchPacket packet, Player player, Compressor compressor) {
-        List<DataPacket> packets = new ObjectArrayList<>();
-        boolean valid;
-        try {
-            valid = processBatch(packet.payload, packets, compressor);
-        } catch (ProtocolException e) {
-            player.close(e.getMessage(), "disconnectionScreen.unexpectedPacket", false);
-            log.error("Unable to process player packets ", e);
-            return;
-        }
-        if (!valid) {
-            player.close("malformed packet", "disconnectionScreen.unexpectedPacket", false);
-            return;
-        }
-        processPackets(player, packets);
+    public void processBatch(byte[] payload, Player player, Compressor compressor, Runnable completionCallback) {
+        server.getScheduler().scheduleAsyncTask(new AsyncTask() {
+            private final List<DataPacket> packets = new ObjectArrayList<>();
+            private boolean valid;
+
+            @Override
+            public void onRun() {
+                try {
+                    valid = processBatch(payload, packets, compressor);
+                } catch (ProtocolException e) {
+                    log.error("Unable to process player packets", e);
+                }
+            }
+
+            @Override
+            public void onCompletion(Server server) {
+                try {
+                    if (player.closed) {
+                        return;
+                    }
+                    if (!valid) {
+                        player.close("malformed packet", "disconnectionScreen.unexpectedPacket", false);
+                        return;
+                    }
+                    processPackets(player, packets);
+                } finally {
+                    completionCallback.run();
+                }
+            }
+        });
     }
 
     public boolean processBatch(byte[] payload, Collection<DataPacket> packets, Compressor compressor) throws ProtocolException {

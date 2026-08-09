@@ -50,6 +50,7 @@ public class Player {
     private boolean loginPacketReceived;
     private boolean awaitingEncryptionHandshake;
     private boolean loginVerified;
+    private boolean preLoginBatchInFlight;
 
     public Player(NetworkSession session, long clientId, InetSocketAddress socketAddress, Compressor compressor) {
         this.session = session;
@@ -102,6 +103,11 @@ public class Player {
         switch (packet.pid()) {
             case ProtocolInfo.BATCH_PACKET:
                 if (!loginVerified) {
+                    if (preLoginBatchInFlight) {
+                        this.close("Overlapping pre-login batch", "disconnectionScreen.unexpectedPacket", false);
+                        break;
+                    }
+
                     Compressor compressor;
                     byte algorithm = packet.compressor;
                     if (algorithm != -2) {
@@ -109,7 +115,9 @@ public class Player {
                     } else {
                         compressor = this.compressor;
                     }
-                    this.getServer().getNetwork().processBatch((BatchPacket) packet, this, compressor);
+
+                    preLoginBatchInFlight = true;
+                    this.getServer().getNetwork().processBatch(((BatchPacket) packet).payload, this, compressor, () -> preLoginBatchInFlight = false);
                 } else if (this.client != null) {
                     this.redirectPacket(packet.getBuffer(), packet.compressor);
                 }
