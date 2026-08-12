@@ -11,6 +11,7 @@ import com.nimbusds.jwt.SignedJWT;
 import lombok.ToString;
 import lombok.extern.log4j.Log4j2;
 
+import javax.annotation.Nullable;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
@@ -441,6 +442,9 @@ public final class ClientChainData implements LoginChainData {
     private String sandboxId;
 
     private String viaProxyAuthToken;
+    @Nullable
+    @ToString.Exclude
+    private String javaClientEncryptionKey;
     private transient String trustedViaProxyClientIp;
 
     private transient final BinaryStream bs;
@@ -612,6 +616,13 @@ public final class ClientChainData implements LoginChainData {
         if (skinToken.has("GrowthLevel")) this.neteaseGrowthLevel = skinToken.get("GrowthLevel").getAsInt();
 
         if (skinToken.has("ViaProxyAuthToken")) this.viaProxyAuthToken = skinToken.get("ViaProxyAuthToken").getAsString();
+        if (skinToken.has("JavaClientEncryptionKey")) this.javaClientEncryptionKey = skinToken.get("JavaClientEncryptionKey").getAsString();
+    }
+
+    @Nullable
+    @Override
+    public String getJavaClientEncryptionKey() {
+        return javaClientEncryptionKey;
     }
 
     private JsonObject decodeToken(String token) {

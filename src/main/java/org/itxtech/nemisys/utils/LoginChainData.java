@@ -1,5 +1,7 @@
 package org.itxtech.nemisys.utils;
 
+import javax.annotation.Nullable;
+
 import java.util.UUID;
 
 /**
@@ -116,6 +118,14 @@ public interface LoginChainData {
     String getSandboxId();
 
     default String getViaProxyAuthToken() {
+        return null;
+    }
+
+    /**
+     * 获取 Java 客户端与 ViaProxy 协商的登录会话密钥，其内容使用标准 Base64 编码。
+     */
+    @Nullable
+    default String getJavaClientEncryptionKey() {
         return null;
     }
 
