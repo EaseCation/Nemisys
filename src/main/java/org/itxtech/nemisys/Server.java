@@ -150,6 +150,8 @@ public class Server {
                 put("network-compression-level", 1);
                 put("compression-algorithm", "snappy");
                 put("packet-recorder-capability", false);
+                put("disable-raknet", false);
+                put("nethernet-signaling", true);
             }
         });
 
@@ -161,6 +163,7 @@ public class Server {
                 .plusOneMaxCount(getPropertyBoolean("plus-one-max-count", false))
                 .xboxAuth(getPropertyBoolean("xbox-auth", true))
                 .disableRaknet(getPropertyBoolean("disable-raknet", false))
+                .nethernetSignaling(getPropertyBoolean("nethernet-signaling", true))
                 .compressionAlgorithm(Compressor.getAlgorithmByName(getPropertyString("compression-algorithm", "snappy")))
                 .build();
 

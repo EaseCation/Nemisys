@@ -49,8 +49,7 @@ import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.*;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.itxtech.nemisys.Capabilities.*;
@@ -71,6 +70,8 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
     private Network network;
 
     private final RakNetServer raknet;
+    @Nullable
+    private final NetherNetSignalingServer nethernetSignaling;
 
     private final Map<InetSocketAddress, NemisysRakNetSession> sessions = new Object2ObjectOpenHashMap<>();
 
@@ -120,6 +121,45 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                 }
             }, 0, 10, TimeUnit.MILLISECONDS));
         }
+
+        this.nethernetSignaling = this.startSignalingServer(bindAddress);
+    }
+
+    @Nullable
+    private NetherNetSignalingServer startSignalingServer(InetSocketAddress bindAddress) {
+        if (!this.server.getConfiguration().isNethernetSignaling()) {
+            return null;
+        }
+        if (bindAddress.getPort() == 0) {
+            log.warn("Unable to start NetherNet signaling server for a dynamic port");
+            return null;
+        }
+
+        NetherNetSignalingServer signaling;
+        try {
+            signaling = new NetherNetSignalingServer(bindAddress);
+            signaling.start().whenComplete((_, throwable) -> {
+                if (throwable == null) {
+                    if (!signaling.isClosing()) {
+                        log.info("NetherNet signaling server started on {}", bindAddress);
+                    }
+                    return;
+                }
+
+                if (!signaling.isClosing()) {
+                    log.warn("Unable to start NetherNet signaling server on {}", bindAddress, unwrapCompletionException(throwable));
+                }
+                signaling.closeAsync().whenComplete((_, exception) -> {
+                    if (exception != null) {
+                        log.warn("Failed to clean up NetherNet signaling server", unwrapCompletionException(exception));
+                    }
+                });
+            });
+        } catch (Throwable throwable) {
+            log.warn("Unable to initialize NetherNet signaling server on {}", bindAddress, throwable);
+            return null;
+        }
+        return signaling;
     }
 
     @Override
@@ -195,14 +235,58 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
 
     @Override
     public void shutdown() {
-        this.tickFutures.forEach(future -> future.cancel(false));
-        this.raknet.close();
+        this.shutdownNetwork();
     }
 
     @Override
     public void emergencyShutdown() {
+        this.shutdownNetwork();
+    }
+
+    private void shutdownNetwork() {
         this.tickFutures.forEach(future -> future.cancel(false));
         this.raknet.close();
+        this.closeSignalingServer();
+    }
+
+    private void closeSignalingServer() {
+        NetherNetSignalingServer signaling = this.nethernetSignaling;
+        if (signaling == null) {
+            return;
+        }
+
+        CompletableFuture<Void> future;
+        try {
+            future = signaling.closeAsync();
+        } catch (Throwable throwable) {
+            log.warn("Failed to close NetherNet signaling server", throwable);
+            return;
+        }
+        if (signaling.isInEventLoop()) {
+            future.whenComplete((_, throwable) -> {
+                if (throwable != null) {
+                    log.warn("Failed to close NetherNet signaling server", unwrapCompletionException(throwable));
+                }
+            });
+            return;
+        }
+
+        try {
+            future.get(6, TimeUnit.SECONDS);
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            log.warn("Interrupted while closing NetherNet signaling server", exception);
+        } catch (ExecutionException | TimeoutException exception) {
+            log.warn("Failed to close NetherNet signaling server", unwrapCompletionException(exception));
+        }
+    }
+
+    private static Throwable unwrapCompletionException(Throwable throwable) {
+        Throwable cause = throwable;
+        while ((cause instanceof CompletionException || cause instanceof ExecutionException) && cause.getCause() != null) {
+            cause = cause.getCause();
+        }
+        return cause;
     }
 
     @Override

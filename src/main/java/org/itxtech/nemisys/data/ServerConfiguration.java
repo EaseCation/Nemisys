@@ -16,5 +16,7 @@ public class ServerConfiguration {
     boolean xboxAuth;
     boolean disableRaknet;
     @Default
+    boolean nethernetSignaling = true;
+    @Default
     byte compressionAlgorithm = CompressionAlgorithm.SNAPPY;
 }
