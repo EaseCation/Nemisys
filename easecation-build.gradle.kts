@@ -56,6 +56,7 @@ dependencies {
     api(libs.snakeyaml)
     api(libs.snakeyaml.engine)
     api(libs.snappy)
+    api(libs.xz)
     api(libs.zstd)
     annotationProcessor(libs.log4j.core)
 }
