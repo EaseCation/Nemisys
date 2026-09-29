@@ -14,6 +14,7 @@ import org.itxtech.nemisys.utils.Logger;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.LockSupport;
 
 @Log4j2
 public class SynapseServer extends Thread implements InterruptibleThread {
@@ -31,6 +32,11 @@ public class SynapseServer extends Thread implements InterruptibleThread {
     private final AtomicBoolean shutdown;
     private final SynapseInterface server;
     private final SessionManager sessionManager;
+    private final boolean networkEventDriven;
+
+    public boolean isNetworkEventDriven() {
+        return networkEventDriven;
+    }
 
     public SynapseServer(Logger logger, SynapseInterface server, int port) {
         this(logger, server, port, "0.0.0.0");
@@ -39,6 +45,7 @@ public class SynapseServer extends Thread implements InterruptibleThread {
     public SynapseServer(Logger logger, SynapseInterface server, int port, String interfaz) {
         this.logger = logger;
         this.server = server;
+        this.networkEventDriven = server.getServer().getConfiguration().isNetworkEventDriven();
         this.interfaz = interfaz;
         this.port = port;
         if (port < 1 || port > 65536) {
@@ -77,6 +84,9 @@ public class SynapseServer extends Thread implements InterruptibleThread {
 
     public void addExternalClientCloseRequest(String hash) {
         this.externalClientCloseQueue.add(hash);
+        if (networkEventDriven) {
+            LockSupport.unpark(this);
+        }
     }
 
     public String getClientOpenRequest() {
@@ -93,6 +103,9 @@ public class SynapseServer extends Thread implements InterruptibleThread {
 
     public void shutdown() {
         this.shutdown.compareAndSet(false, true);
+        if (networkEventDriven) {
+            LockSupport.unpark(this);
+        }
     }
 
     public int getPort() {
@@ -109,6 +122,9 @@ public class SynapseServer extends Thread implements InterruptibleThread {
 
     public void pushMainToThreadPacket(SynapseClientPacket data) {
         this.internalQueue.offer(data);
+        if (networkEventDriven) {
+            LockSupport.unpark(this);
+        }
     }
 
     public SynapseClientPacket readMainToThreadPacket() {

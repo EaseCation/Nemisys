@@ -3,6 +3,7 @@ package org.itxtech.nemisys;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 import com.google.gson.JsonObject;
+import com.nukkitx.network.util.LatencyTrace;
 import it.unimi.dsi.fastutil.Pair;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectIntPair;
@@ -190,6 +191,10 @@ public class Client {
                 RedirectPacket redirect = (RedirectPacket) packet;
                 Player player = this.players.get(redirect.sessionId);
                 if (player != null) {
+                    if (LatencyTrace.enabled()) {
+                        LatencyTrace.record("proxy.redirect.down", redirect.sessionId.toString(), redirect.getLatencyTraceKey(),
+                                LatencyTrace.key(redirect.mcpeBuffer), redirect.mcpeBuffer.length, -1);
+                    }
                     byte[] buffer = redirect.mcpeBuffer;
                     DataPacket send;
                     if (buffer.length > 0 && buffer[0] == (byte) ProtocolInfo.BATCH_PACKET) {

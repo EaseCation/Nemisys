@@ -8,6 +8,7 @@ import com.nukkitx.natives.sha256.Sha256;
 import com.nukkitx.natives.util.Natives;
 import com.nukkitx.network.raknet.*;
 import com.nukkitx.network.util.DisconnectReason;
+import com.nukkitx.network.util.LatencyTrace;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
@@ -200,9 +201,10 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                 continue;
             }
 
-            Queue<DataPacket> inbound = nemisysSession.inbound;
-            DataPacket packet;
-            while ((packet = inbound.poll()) != null && nemisysSession.readable) {
+            Queue<Object> inbound = nemisysSession.inbound;
+            Object pending;
+            while ((pending = inbound.poll()) != null && nemisysSession.readable) {
+                DataPacket packet = nemisysSession.unwrap(pending, "proxy.raknet.inbound_queue");
                 try {
                     player.handleDataPacket(packet);
                 } catch (Exception e) {
@@ -382,8 +384,37 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
 
     private class NemisysRakNetSession implements NetworkSession, RakNetSessionListener {
         private final RakNetServerSession raknet;
-        private final Queue<DataPacket> inbound = PlatformDependent.newSpscQueue();
-        private final Queue<DataPacket> outbound = PlatformDependent.newMpscQueue();
+        private final Queue<Object> inbound = PlatformDependent.newSpscQueue();
+        private final Queue<Object> outbound = PlatformDependent.newMpscQueue();
+        @Nullable
+        private final OutboundFlushTask outboundFlush;
+
+        private record TimedPacket(DataPacket packet, long queuedNanos, String key) {
+        }
+
+        private String traceConnection() {
+            return player == null ? raknet.getAddress().toString() : player.getSessionId().toString();
+        }
+
+        private Object capture(DataPacket packet, String stage) {
+            // 关闭诊断时沿用原包对象，不额外分配逐包队列包装。
+            if (!LatencyTrace.enabled()) {
+                return packet;
+            }
+            byte[] bytes = packet.getBuffer();
+            String key = LatencyTrace.key(bytes);
+            long queuedNanos = LatencyTrace.clock();
+            LatencyTrace.record(stage, traceConnection(), key, "", bytes.length, -1);
+            return new TimedPacket(packet, queuedNanos, key);
+        }
+
+        private DataPacket unwrap(Object pending, String stage) {
+            if (pending instanceof TimedPacket timed) {
+                LatencyTrace.elapsed(stage, traceConnection(), timed.key, timed.packet.getCount(), timed.queuedNanos);
+                return timed.packet;
+            }
+            return (DataPacket) pending;
+        }
         private volatile boolean readable = true;
         @Nullable
         private volatile Disconnection disconnection;
@@ -408,6 +439,14 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
 
         private NemisysRakNetSession(RakNetServerSession raknet, Compressor compressor) {
             this.raknet = raknet;
+            this.outboundFlush = server.getConfiguration().isNetworkEventDriven()
+                    ? new OutboundFlushTask(raknet.getEventLoop(), () -> {
+                        if (raknet.isClosed()) {
+                            outbound.clear();
+                        } else {
+                            sendOutbound();
+                        }
+                    }, () -> !outbound.isEmpty()) : null;
             Compression compression = new Compression(compressor, false);
             this.initCompression = compression;
             this.compression = compression;
@@ -416,7 +455,10 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
         @Override
         public void sendPacket(int protocol, boolean netease, DataPacket packet) {
             packet.tryEncode(protocol, netease);
-            outbound.offer(packet);
+            outbound.offer(capture(packet, "proxy.raknet.outbound_enqueue"));
+            if (outboundFlush != null) {
+                outboundFlush.schedule();
+            }
         }
 
         @Override
@@ -502,6 +544,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
             }
 
             ByteBuf buffer = packet.getBuffer();
+            String receivedKey = LatencyTrace.enabled() ? LatencyTrace.key(buffer) : "";
             int size = buffer.readableBytes();
             if (size >= Compressor.MAX_SIZE) {
                 this.readable = false;
@@ -632,7 +675,11 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                 batchPacket.setBuffer(packetBuffer, 1);
                 batchPacket.decode();
 
-                this.inbound.offer(batchPacket);
+                if (LatencyTrace.enabled()) {
+                    LatencyTrace.record("proxy.raknet.decoded", traceConnection(), receivedKey,
+                            LatencyTrace.key(packetBuffer), packetBuffer.length, -1);
+                }
+                this.inbound.offer(capture(batchPacket, "proxy.raknet.inbound_enqueue"));
 
                 if (PACKET_RECORDER) {
                     try {
@@ -656,11 +703,16 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
 
         private void sendOutbound() {
             boolean dynamicCompressor = this.compression.dynamicCompressor;
-            Queue<DataPacket> outbound = this.outbound;
+            Queue<Object> outbound = this.outbound;
             List<DataPacket> toBatch = new ObjectArrayList<>();
-            DataPacket packet;
-            while ((packet = outbound.poll()) != null) {
+            Object pending;
+            while ((pending = outbound.poll()) != null) {
+                DataPacket packet = unwrap(pending, "proxy.raknet.outbound_queue");
                 if (packet.pid() == ProtocolInfo.BATCH_PACKET) {
+                    if (LatencyTrace.enabled()) {
+                        LatencyTrace.record("proxy.batch.payload", traceConnection(), LatencyTrace.key(packet.getBuffer()),
+                                LatencyTrace.key(((BatchPacket) packet).payload), ((BatchPacket) packet).payload.length, -1);
+                    }
                     if (!toBatch.isEmpty()) {
                         this.sendPackets(toBatch);
                         toBatch.clear();
@@ -674,6 +726,9 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
 
             if (!toBatch.isEmpty()) {
                 this.sendPackets(toBatch);
+            }
+            if (server.getConfiguration().isNetworkEventDriven()) {
+                this.raknet.flush();
             }
         }
 
@@ -759,6 +814,10 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                 }
 
                 byteBuf.writeBytes(payload);
+            }
+            if (LatencyTrace.enabled()) {
+                LatencyTrace.record("proxy.raknet.submit", traceConnection(), LatencyTrace.key(byteBuf),
+                        LatencyTrace.key(payload), byteBuf.readableBytes(), -1);
             }
             this.raknet.send(byteBuf);
 
