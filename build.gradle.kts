@@ -214,6 +214,9 @@ publishing {
 }
 
 dependencies {
+    testImplementation(libs.jupiter.engine)
+    testImplementation(libs.mockito.core)
+    testRuntimeOnly(libs.junit.launcher)
     api("com.nukkitx.network:raknet")
     api(libs.apache.commons.compress)
     api(libs.apache.commons.lang3)
@@ -252,4 +255,8 @@ dependencies {
     annotationProcessor(libs.log4j.core)
     compileOnly(libs.lombok)
     compileOnly(libs.javax.annotations)
+}
+
+tasks.test {
+    useJUnitPlatform()
 }

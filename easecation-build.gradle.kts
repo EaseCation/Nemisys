@@ -23,6 +23,8 @@ tasks.shadowJar {
 }
 
 dependencies {
+    testImplementation(libs.jupiter.engine)
+    testImplementation(libs.mockito.core)
     api(project(":Network:raknet"))
     api(libs.apache.commons.compress)
     api(libs.apache.commons.lang3)

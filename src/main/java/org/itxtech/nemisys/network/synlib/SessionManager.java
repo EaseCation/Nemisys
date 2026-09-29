@@ -1,13 +1,17 @@
 package org.itxtech.nemisys.network.synlib;
 
+import com.nukkitx.network.util.LatencyTrace;
 import io.netty.channel.Channel;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.math.NemisysMath;
+import org.itxtech.nemisys.network.protocol.spp.TracedRedirectPacket;
 import org.itxtech.nemisys.utils.MainLogger;
 
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 
 /**
  * Author: PeratX
@@ -47,9 +51,16 @@ public class SessionManager {
             } catch (RuntimeException e) {
                 Server.getInstance().getLogger().logException(e);
             } finally {
-                try {
-                    Thread.sleep(1);
-                } catch (InterruptedException ignored) {
+                if (server.isNetworkEventDriven()) {
+                    if (server.getInternalQueue().isEmpty() && server.externalClientCloseQueue.isEmpty()) {
+                        LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(10));
+                        Thread.interrupted();
+                    }
+                } else {
+                    try {
+                        Thread.sleep(1);
+                    } catch (InterruptedException ignored) {
+                    }
                 }
 /*
                 long next = this.nextTick;
@@ -79,7 +90,19 @@ public class SessionManager {
             String hash = data.getHash();
             Channel channel = this.sessions.get(hash);
             if (channel != null) {
-                channel.writeAndFlush(data.getPacket());
+                if (data.getPacket() instanceof TracedRedirectPacket traced && LatencyTrace.enabled()) {
+                    traced.traceDequeue("proxy.synapse.outbound_queue", hash);
+                }
+                if (data.getPacket() instanceof TracedRedirectPacket traced && LatencyTrace.enabled()) {
+                    long startedNanos = LatencyTrace.clock();
+                    String key = traced.getLatencyTraceKey();
+                    int bytes = data.getPacket().getBuffer().length;
+                    channel.writeAndFlush(data.getPacket()).addListener(future -> LatencyTrace.elapsed(
+                            future.isSuccess() ? "proxy.synapse.write_complete" : "proxy.synapse.write_failed",
+                            hash, key, bytes, startedNanos));
+                } else {
+                    channel.writeAndFlush(data.getPacket());
+                }
                 //Server.getInstance().getLogger().debug("server-writeAndFlush: hash=" + hash);
             }
             return true;
@@ -102,7 +125,7 @@ public class SessionManager {
     public void tick() {
         long tickTime = System.currentTimeMillis();
         long tickTimeNano = System.nanoTime();
-        if ((tickTime - this.nextTick) < -5) {
+        if (!server.isNetworkEventDriven() && (tickTime - this.nextTick) < -5) {
             return;
         }
 

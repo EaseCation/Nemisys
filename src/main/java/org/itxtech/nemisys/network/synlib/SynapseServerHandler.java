@@ -1,9 +1,11 @@
 package org.itxtech.nemisys.network.synlib;
 
+import com.nukkitx.network.util.LatencyTrace;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import lombok.extern.log4j.Log4j2;
 import org.itxtech.nemisys.network.protocol.spp.SynapseDataPacket;
+import org.itxtech.nemisys.network.protocol.spp.TracedRedirectPacket;
 
 /**
  * Handles a server-side channel.
@@ -43,6 +45,9 @@ public class SynapseServerHandler extends ChannelInboundHandlerAdapter {
         if (msg instanceof SynapseDataPacket) {
             SynapseDataPacket packet = (SynapseDataPacket) msg;
             String hash = SessionManager.getChannelHash(ctx.channel());
+            if (packet instanceof TracedRedirectPacket traced && LatencyTrace.enabled()) {
+                traced.traceEnqueue("proxy.synapse.received", hash);
+            }
             //Server.getInstance().getLogger().debug("server-ChannelRead: hash=" + hash + " pk=" + packet.getClass().getSimpleName() + " pkLen=" + packet.getBuffer().length);
             this.getSessionManager().getServer().pushThreadToMainPacket(new SynapseClientPacket(hash, packet));
         }
