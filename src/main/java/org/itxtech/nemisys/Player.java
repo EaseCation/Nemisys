@@ -1,6 +1,7 @@
 package org.itxtech.nemisys;
 
 import com.google.gson.JsonObject;
+import com.nukkitx.network.util.LatencyTrace;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import lombok.extern.log4j.Log4j2;
 import org.itxtech.nemisys.event.player.*;
@@ -275,12 +276,16 @@ public class Player {
     }
 
     public void redirectPacket(byte[] buffer, byte compressionAlgorithm) {
-        RedirectPacket pk = new RedirectPacket();
+        RedirectPacket pk = RedirectPacket.create();
         pk.protocol = this.protocol;
         pk.sessionId = this.sessionId;
         pk.mcpeBuffer = buffer;
         pk.compressionAlgorithm = compressionAlgorithm;
         this.client.sendDataPacket(pk);
+        if (LatencyTrace.enabled()) {
+            LatencyTrace.record("proxy.redirect.up", sessionId.toString(), pk.getLatencyTraceKey(),
+                    LatencyTrace.key(buffer), buffer.length, -1);
+        }
     }
 
     public void onUpdate(long currentTick) {

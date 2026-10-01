@@ -15,6 +15,7 @@ public class ServerConfiguration {
     boolean plusOneMaxCount;
     boolean xboxAuth;
     boolean disableRaknet;
+    boolean networkEventDriven;
     @Default
     boolean nethernetSignaling = true;
     @Default

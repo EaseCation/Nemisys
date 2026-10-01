@@ -1,5 +1,6 @@
 package org.itxtech.nemisys.network;
 
+import com.nukkitx.network.util.LatencyTrace;
 import org.itxtech.nemisys.Client;
 import org.itxtech.nemisys.Server;
 import org.itxtech.nemisys.network.protocol.spp.*;
@@ -35,7 +36,8 @@ public class SynapseInterface {
 
         SynapseDataPacket clazz = packetPool[pid];
         if (clazz != null) {
-            SynapseDataPacket pk = clazz.clone();
+            SynapseDataPacket pk = pid == SynapseInfo.REDIRECT_PACKET && LatencyTrace.enabled()
+                    ? new TracedRedirectPacket() : clazz.clone();
             pk.setBuffer(buffer, 0);
             return pk;
         }
@@ -67,6 +69,9 @@ public class SynapseInterface {
         if (!pk.isEncoded) {
             pk.encode();
         }
+        if (pk instanceof TracedRedirectPacket traced && LatencyTrace.enabled()) {
+            traced.traceEnqueue("proxy.synapse.enqueue", client.getHash());
+        }
         this.interfaz.pushMainToThreadPacket(new SynapseClientPacket(client.getHash(), pk));
     }
 
@@ -83,6 +88,9 @@ public class SynapseInterface {
     private boolean processPackets() {
         SynapseClientPacket pk = this.interfaz.readThreadToMainPacket();
         if (pk != null) {
+            if (pk.getPacket() instanceof TracedRedirectPacket traced && LatencyTrace.enabled()) {
+                traced.traceDequeue("proxy.synapse.inbound_queue", pk.getHash());
+            }
             this.handlePacket(pk.getHash(), pk.getPacket());
             return true;
         }

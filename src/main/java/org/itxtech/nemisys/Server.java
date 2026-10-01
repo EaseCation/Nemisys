@@ -2,6 +2,7 @@ package org.itxtech.nemisys;
 
 import com.dosse.upnp.UPnP;
 import com.google.common.base.Preconditions;
+import com.nukkitx.network.util.LatencyTrace;
 import io.netty.buffer.ByteBuf;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
@@ -37,6 +38,7 @@ import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.Deflater;
+import javax.annotation.Nullable;
 
 /**
  * author: MagicDroidX & Box
@@ -51,6 +53,8 @@ public class Server {
     private volatile boolean hasStopped = false;
     @Getter
     private final ServerConfiguration configuration;
+    @Nullable
+    private LatencyTrace.Session latencyTrace;
     private final PluginManager pluginManager;
     private final ServerScheduler scheduler;
     private int tickCounter;
@@ -152,6 +156,10 @@ public class Server {
                 put("packet-recorder-capability", false);
                 put("disable-raknet", false);
                 put("nethernet-signaling", true);
+                put("network-event-driven", false);
+                put("network-latency-trace-enabled", false);
+                put("network-latency-trace-directory", "latency-traces");
+                put("network-latency-trace-duration-seconds", 300);
             }
         });
 
@@ -163,9 +171,16 @@ public class Server {
                 .plusOneMaxCount(getPropertyBoolean("plus-one-max-count", false))
                 .xboxAuth(getPropertyBoolean("xbox-auth", true))
                 .disableRaknet(getPropertyBoolean("disable-raknet", false))
+                .networkEventDriven(getPropertyBoolean("network-event-driven", false))
                 .nethernetSignaling(getPropertyBoolean("nethernet-signaling", true))
                 .compressionAlgorithm(Compressor.getAlgorithmByName(getPropertyString("compression-algorithm", "snappy")))
                 .build();
+
+        if (getPropertyBoolean("network-latency-trace-enabled", false)) {
+            latencyTrace = LatencyTrace.start(new File(this.dataPath).toPath(),
+                    getPropertyString("network-latency-trace-directory", "latency-traces"), "nemisys",
+                    getPropertyInt("network-latency-trace-duration-seconds", 300));
+        }
 
         this.baseLang = new BaseLang((String) this.getConfig("lang", BaseLang.FALLBACK_LANGUAGE));
         log.info(this.getLanguage().translateString("language.selected", new String[]{getLanguage().getName(), getLanguage().getLang()}));
@@ -439,6 +454,10 @@ public class Server {
             }
         } catch (Exception e) {
             log.fatal("Exception happened while shutting down", e);
+        } finally {
+            if (latencyTrace != null) {
+                latencyTrace.close();
+            }
         }
     }
 
