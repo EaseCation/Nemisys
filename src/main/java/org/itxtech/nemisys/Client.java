@@ -10,6 +10,7 @@ import lombok.extern.log4j.Log4j2;
 import org.itxtech.nemisys.event.client.ClientAuthEvent;
 import org.itxtech.nemisys.event.client.ClientConnectEvent;
 import org.itxtech.nemisys.event.client.ClientDisconnectEvent;
+import org.itxtech.nemisys.observability.ConnectionObservation;
 import org.itxtech.nemisys.event.client.PluginMsgRecvEvent;
 import org.itxtech.nemisys.network.SynapseInterface;
 import org.itxtech.nemisys.network.protocol.mcpe.*;
@@ -173,6 +174,7 @@ public class Client {
                     this.server.getLogger().info("mainServer: " + (this.isMainServer ? "true" : "false"));
                     this.server.getLogger().info("description: " + this.description);
                     this.server.getLogger().info("maxPlayers: " + this.maxPlayers);
+                    ConnectionObservation.emit(null, "backend_link_changed", Map.of("state", "connected", "backend_description", getDescription() == null ? "unknown" : getDescription()));
                     this.server.updateClientData();
                     this.sendDataPacket(pk2);
                     this.server.getPluginManager().callEvent(new ClientAuthEvent(this, connectPacket.password));
@@ -223,7 +225,7 @@ public class Client {
                     if (client != null) {
                         player.transfer(client, ((TransferPacket) packet).extra, true);
                     } else {
-                        player.close("Synapse Server: " + TextFormat.RED + "Target server is not online!" + "\n" + TextFormat.YELLOW + ((TransferPacket) packet).clientHash);
+                        player.closeObserved("Synapse Server: " + TextFormat.RED + "Target server is not online!" + "\n" + TextFormat.YELLOW + ((TransferPacket) packet).clientHash, "target_backend_unavailable", "service_fault");
                     }
                 }
                 break;
@@ -395,7 +397,8 @@ public class Client {
 
     public void closeAllPlayers(String reason) {
         for (Player player : new ObjectArrayList<>(this.players.values())) {
-            player.close("Server Closed" + (reason.isEmpty() ? "" : ": " + TextFormat.YELLOW + reason));
+            ConnectionObservation.emit(player, "backend_link_changed", Map.of("state", "disconnected", "backend_description", this.getDescription()));
+            player.closeObserved("Server Closed" + (reason.isEmpty() ? "" : ": " + TextFormat.YELLOW + reason), "backend_link_closed", "service_fault");
         }
     }
 
@@ -412,6 +415,7 @@ public class Client {
     }
 
     public void close(String reason, boolean needPk, byte type) {
+        ConnectionObservation.emit(null, "backend_link_changed", Map.of("state", "disconnected", "backend_description", getDescription() == null ? "unknown" : getDescription()));
         ClientDisconnectEvent ev;
         this.server.getPluginManager().callEvent(ev = new ClientDisconnectEvent(this, reason, type));
         reason = ev.getReason();

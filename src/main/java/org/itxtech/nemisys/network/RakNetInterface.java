@@ -469,6 +469,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
 
         @Override
         public void onDisconnect(DisconnectReason disconnectReason) {
+            if (player != null) player.observeTransportClosed(disconnectReason.name());
             if (disconnectReason == DisconnectReason.TIMED_OUT) {
                 this.disconnect("Timed out", "disconnectionScreen.timeout");
             } else {
