@@ -1,6 +1,7 @@
 package org.itxtech.nemisys;
 
 import com.google.gson.JsonObject;
+import org.itxtech.nemisys.observability.ConnectionObservation;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import lombok.extern.log4j.Log4j2;
 import org.itxtech.nemisys.event.player.*;
@@ -24,6 +25,18 @@ import java.util.concurrent.ThreadLocalRandom;
 @Log4j2
 public class Player {
     public boolean closed;
+    private String observationReason = "unclassified_server_close";
+    private String observationIntent = "unspecified";
+    private String observationAction;
+    private String observationTransport = "unknown";
+    public String getObservationConnectionId() { return ConnectionObservation.BOOT_ID + ":" + sessionId; }
+    public void observeTransportClosed(String reason) { this.observationTransport = reason; }
+    public void closeObserved(String message, String reasonCode, String intent) {
+        this.observationReason = reasonCode;
+        this.observationIntent = intent;
+        this.close(message);
+    }
+
     protected UUID uuid;
     private final UUID sessionId = UUID.randomUUID();
     private byte[] cachedLoginPacket = new byte[0];
@@ -59,6 +72,7 @@ public class Player {
         this.compressor = compressor;
         this.name = "";
         this.server = Server.getInstance();
+        ConnectionObservation.emit(this, "connection_opened", Map.of("transport", "raknet"));
     }
 
     public byte[] getCachedLoginPacket() {
@@ -360,6 +374,7 @@ public class Player {
                 pk.extra.addProperty("hideName", this.hideName);
             }
 
+            pk.extra.addProperty("ec_connection_id", getObservationConnectionId());
             this.client.sendDataPacket(pk);
 
             this.isFirstTimeLogin = false;
@@ -394,6 +409,17 @@ public class Player {
 
     public void close(String message, String reason, boolean notify) {
         if (!this.closed) {
+            String closeReason = observationReason;
+            if ("unclassified_server_close".equals(closeReason)) closeReason = ConnectionObservation.reasonCode(message);
+            if ("unclassified_server_close".equals(closeReason)) closeReason = ConnectionObservation.reasonCode(reason);
+            observationAction = UUID.randomUUID().toString();
+            if ("unknown".equals(observationTransport)) {
+                ConnectionObservation.emit(this, "disconnect_requested", Map.of("action_id", observationAction,
+                    "reason_code", closeReason, "intent", observationIntent));
+            }
+            ConnectionObservation.emit(this, "connection_closed", Map.of("action_id", observationAction,
+                "reason_code", closeReason, "intent", observationIntent, "transport_reason", observationTransport,
+                "close_origin", "unknown".equals(observationTransport) ? "server" : "transport"));
             session.closeReader();
 
             if (notify && !reason.isEmpty()) {
