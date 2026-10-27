@@ -398,7 +398,7 @@ public class Client {
     public void closeAllPlayers(String reason) {
         for (Player player : new ObjectArrayList<>(this.players.values())) {
             ConnectionObservation.emit(player, "backend_link_changed", Map.of("state", "disconnected", "backend_description", this.getDescription()));
-            player.closeObserved("Server Closed" + (reason.isEmpty() ? "" : ": " + TextFormat.YELLOW + reason), "backend_link_closed", "service_fault");
+            player.closeObserved("Server Closed" + (reason.isEmpty() ? "" : ": " + TextFormat.YELLOW + reason), "backend_link_closed", "unspecified");
         }
     }
 

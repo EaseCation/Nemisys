@@ -409,13 +409,17 @@ public class Player {
 
     public void close(String message, String reason, boolean notify) {
         if (!this.closed) {
+            String closeReason = observationReason;
+            if ("unclassified_server_close".equals(closeReason)) closeReason = ConnectionObservation.reasonCode(message);
+            if ("unclassified_server_close".equals(closeReason)) closeReason = ConnectionObservation.reasonCode(reason);
             observationAction = UUID.randomUUID().toString();
             if ("unknown".equals(observationTransport)) {
                 ConnectionObservation.emit(this, "disconnect_requested", Map.of("action_id", observationAction,
-                    "reason_code", observationReason, "intent", observationIntent));
+                    "reason_code", closeReason, "intent", observationIntent));
             }
             ConnectionObservation.emit(this, "connection_closed", Map.of("action_id", observationAction,
-                "reason_code", observationReason, "intent", observationIntent, "transport_reason", observationTransport));
+                "reason_code", closeReason, "intent", observationIntent, "transport_reason", observationTransport,
+                "close_origin", "unknown".equals(observationTransport) ? "server" : "transport"));
             session.closeReader();
 
             if (notify && !reason.isEmpty()) {
