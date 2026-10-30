@@ -38,7 +38,7 @@ public class TextPacket extends DataPacket {
     public boolean isLocalized = false;
 
     public String message = "";
-    public String[] parameters = new String[0];
+    public String[] parameters = new String[0]; // max: 4 || 12 (netease)
     public String primaryName = "";
 
     public String sendersXUID = "";
@@ -69,6 +69,14 @@ public class TextPacket extends DataPacket {
                 }
                 this.putString(primaryName);
                 this.putString(message);
+
+                if (netease && protocol >= 898) { // netease only
+                    this.putUnsignedVarInt(this.parameters.length);
+                    for (String parameter : this.parameters) {
+                        this.putString(parameter);
+                    }
+                }
+
                 break;
             case TYPE_RAW:
             case TYPE_TIP:
@@ -105,12 +113,19 @@ public class TextPacket extends DataPacket {
         this.putString(sendersXUID);
         this.putString(platformIdString);
         if (protocol >= 685) {
-            this.putString(filteredMessage);
+            if (protocol >= 898) {
+                this.putBoolean(!filteredMessage.isEmpty());
+                if (!filteredMessage.isEmpty()) {
+                    this.putString(filteredMessage);
+                }
+            } else {
+                this.putString(filteredMessage);
+            }
         }
 
-        if (netease && protocol >= 410) { // netease only
+        if (netease && protocol >= 410 && protocol <= 860) { // netease only
             if (type == TYPE_CHAT || type == TYPE_POPUP) {
-                this.putString("");
+                this.putUnsignedVarInt(0);
             }
         }
     }
