@@ -34,6 +34,13 @@ public class TextPacket extends DataPacket {
     public static final byte BODY_TYPE_AUTHOR_AND_MESSAGE = 1;
     public static final byte BODY_TYPE_MESSAGE_AND_PARAMS = 2;
 
+    private static final int MAX_MESSAGE_LENGTH = 65536;
+    private static final int MAX_AUTHOR_LENGTH = 256;
+    private static final int MAX_PARAMETER = 4;
+    private static final int MAX_PARAMETER_NETEASE = 12;
+    private static final int MAX_XUID_LENGTH = 64;
+    private static final int MAX_PLATFORM_ID_LENGTH = 256;
+
     public byte type;
     public boolean isLocalized = false;
 
@@ -56,6 +63,10 @@ public class TextPacket extends DataPacket {
             this.putByte(this.type);
         }
         this.putBoolean(this.isLocalized);
+        String message = this.message;
+        if (protocol >= 898 && message.isEmpty()) {
+            message = " ";
+        }
         switch (this.type) {
             case TYPE_CHAT:
             case TYPE_WHISPER:
@@ -67,14 +78,11 @@ public class TextPacket extends DataPacket {
                     }
                     this.putByte(this.type);
                 }
-                this.putString(primaryName);
-                this.putString(message);
+                this.putString(primaryName, MAX_AUTHOR_LENGTH);
+                this.putString(message, MAX_MESSAGE_LENGTH);
 
                 if (netease && protocol >= 898) { // netease only
-                    this.putUnsignedVarInt(this.parameters.length);
-                    for (String parameter : this.parameters) {
-                        this.putString(parameter);
-                    }
+                    this.putArray(this.parameters, BinaryStream::putString, MAX_PARAMETER_NETEASE);
                 }
 
                 break;
@@ -91,7 +99,7 @@ public class TextPacket extends DataPacket {
                     }
                     this.putByte(this.type);
                 }
-                this.putString(message);
+                this.putString(message, MAX_MESSAGE_LENGTH);
                 break;
             case TYPE_TRANSLATION:
             case TYPE_POPUP:
@@ -103,20 +111,17 @@ public class TextPacket extends DataPacket {
                     }
                     this.putByte(this.type);
                 }
-                this.putString(this.message);
-                this.putUnsignedVarInt(this.parameters.length);
-                for (String parameter : this.parameters) {
-                    this.putString(parameter);
-                }
+                this.putString(message, MAX_MESSAGE_LENGTH);
+                this.putArray(this.parameters, BinaryStream::putString, netease ? MAX_PARAMETER_NETEASE : MAX_PARAMETER);
                 break;
         }
-        this.putString(sendersXUID);
-        this.putString(platformIdString);
+        this.putString(sendersXUID, MAX_XUID_LENGTH);
+        this.putString(platformIdString, MAX_PLATFORM_ID_LENGTH);
         if (protocol >= 685) {
             if (protocol >= 898) {
                 this.putBoolean(!filteredMessage.isEmpty());
                 if (!filteredMessage.isEmpty()) {
-                    this.putString(filteredMessage);
+                    this.putString(filteredMessage, MAX_MESSAGE_LENGTH);
                 }
             } else {
                 this.putString(filteredMessage);
